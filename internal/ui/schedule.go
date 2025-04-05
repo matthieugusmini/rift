@@ -19,6 +19,7 @@ const (
 	gray     = "#777777"
 	charcoal = "#333333"
 	cyan     = "#00FFFF"
+	gold     = "#FFD700"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 
 var docStyle = lipgloss.NewStyle().Padding(1, 2)
 
-type scheduleModel struct { 
+type scheduleModel struct {
 	lolesportClient LoLEsportClient
 
 	matches       list.Model
@@ -58,6 +59,12 @@ func (m *scheduleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setSize(msg.Width-h, msg.Height-v-headersHeight)
 
 		return m, m.getSchedule()
+
+	case state:
+		if msg == stateShowSchedule {
+			return m, m.getSchedule()
+		}
+		return m, nil
 	}
 
 	var cmd tea.Cmd
@@ -218,12 +225,7 @@ func (i matchItem) Title() string {
 
 		filler := strings.Repeat(" ", lipgloss.Width(startTime))
 
-		title = lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			startTime,
-			score,
-			filler,
-		)
+		title = startTime + score + filler
 	} else if !i.spoilerRemoved {
 		team1Name := i.styles.teamName.Render(i.team1.name)
 		team2Name := i.styles.teamName.Render(i.team2.name)
@@ -264,12 +266,7 @@ func (i matchItem) Description() string {
 		Align(lipgloss.Right).
 		Render(i.strategy)
 
-	return lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		leagueName,
-		blockName,
-		strategy,
-	)
+	return leagueName + blockName + strategy
 }
 
 func (i matchItem) FilterValue() string {
@@ -293,8 +290,8 @@ func newDefaultMatchItemDelegateStyles() matchItemDelegateStyles {
 		BorderForeground(lipgloss.Color(gray))
 
 	selectedItemStyle := itemStyle.
-		Foreground(lipgloss.Color(cyan)).
-		BorderForeground(lipgloss.Color(cyan))
+		Foreground(lipgloss.Color(gold)).
+		BorderForeground(lipgloss.Color(gold))
 
 	return matchItemDelegateStyles{
 		normalItem:   normalItemStyle,

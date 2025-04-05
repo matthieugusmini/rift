@@ -13,9 +13,7 @@ func main() {
 	lolesportClient := lolesport.NewClient()
 
 	m := ui.NewModel(lolesportClient)
-
 	p := tea.NewProgram(m, tea.WithAltScreen())
-
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to run: %v\n", err)
 		os.Exit(1)

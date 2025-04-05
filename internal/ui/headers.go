@@ -34,7 +34,7 @@ func newDefaultHeadersStyles() headersStyles {
 		Foreground(lipgloss.Color(white)).
 		Faint(true)
 	selectedHeaderStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(cyan)).
+		Foreground(lipgloss.Color(gold)).
 		Bold(true)
 
 	separatorStyle := lipgloss.NewStyle().
@@ -69,14 +69,22 @@ func newHeadersModel() *headersModel {
 func (m *headersModel) Init() tea.Cmd { return nil }
 
 func (m *headersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	states := []state{
+		stateShowSchedule,
+		stateShowStandings,
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "shift+tab":
 			m.moveCursorLeft()
+			return m, changeSection(states[m.cursor])
 		case "tab":
 			m.moveCursorRight()
+			return m, changeSection(states[m.cursor])
 		}
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 	}
@@ -113,7 +121,7 @@ func (m *headersModel) View() string {
 
 	return fmt.Sprintf(
 		"%s\n%s",
-		lipgloss.JoinHorizontal(lipgloss.Center, lolesport, renderedHeaders, filler),
+		lolesport+renderedHeaders+filler,
 		separator,
 	)
 }
@@ -124,4 +132,10 @@ func (m *headersModel) moveCursorRight() {
 
 func (m *headersModel) moveCursorLeft() {
 	m.cursor = (m.cursor - 1 + len(m.headers)) % len(m.headers)
+}
+
+func changeSection(state state) tea.Cmd {
+	return func() tea.Msg {
+		return state
+	}
 }
