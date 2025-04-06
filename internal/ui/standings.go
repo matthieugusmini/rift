@@ -324,19 +324,11 @@ type leagueItem struct {
 }
 
 func (i leagueItem) Title() string {
-	emojiByLeagueName := map[string]string{
-		"LEC": "🇪🇺",
-		"LTA": "🇺🇸",
-		"LCK": "🇰🇷",
-		"LPL": "🇨🇳",
-		"LCP": "🇹🇼",
-	}
-
 	titleStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(white)).
 		Bold(true)
 
-	title := emojiByLeagueName[i.leagueName] + " " + i.leagueName
+	title := strings.Join(flagsByLeagueName[i.leagueName], bulletSeparator) + " " + i.leagueName
 	return titleStyle.Render(title)
 }
 
@@ -346,11 +338,12 @@ func (i leagueItem) FilterValue() string { return i.leagueName }
 
 func newLeagueChoicesList(leagues []*lolesport.League, width, height int) list.Model {
 	isShownLeagues := map[string]bool{
-		"LEC": true,
-		"LTA": true,
-		"LCK": true,
-		"LPL": true,
-		"LCP": true,
+		"LEC":       true,
+		"LTA North": true,
+		"LTA South": true,
+		"LCK":       true,
+		"LPL":       true,
+		"LCP":       true,
 	}
 
 	var leagueItems []list.Item

@@ -67,6 +67,7 @@ func (m *scheduleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setSize(msg.Width-h, msg.Height-v-headersHeight)
 		// The list uses the full screen size so we have to wait
 		// for tea.WindowSizeMsg before creating the list.
+		// TODO: Don't reload the page when resizing the window.
 		return m, m.getSchedule()
 
 	case state:
@@ -161,9 +162,9 @@ type matchItemStyles struct {
 	startTime           lipgloss.Style
 
 	// Description
-	leagueName lipgloss.Style
-	blockName  lipgloss.Style
-	strategy   lipgloss.Style
+	flags              lipgloss.Style
+	leagueAndBlockName lipgloss.Style
+	strategy           lipgloss.Style
 }
 
 func newDefaultmatchItemStyles(event lolesport.Event, width int) matchItemStyles {
@@ -198,12 +199,16 @@ func newDefaultmatchItemStyles(event lolesport.Event, width int) matchItemStyles
 		Bold(true)
 
 	// TODO(high effort): Develop a grid layout
-	sideColumnWidth := max(len(event.League.Name), len(formatMatchStrategy(event.Match.Strategy))) + padding
-	leagueNameStyle := descStyle.
+	sideColumnWidth := max(
+		lipgloss.Width(strings.Join(flagsByLeagueName[event.League.Name], bulletSeparator)),
+		len(formatMatchStrategy(event.Match.Strategy)),
+	) + padding
+
+	flagsStyle := descStyle.
 		Width(sideColumnWidth).
 		Align(lipgloss.Left)
 
-	blockNameStyle := descStyle.
+	leagueAndBlockNameStyle := descStyle.
 		Width(width - sideColumnWidth*2).
 		Align(lipgloss.Center)
 
@@ -218,9 +223,9 @@ func newDefaultmatchItemStyles(event lolesport.Event, width int) matchItemStyles
 		teamName:            teamNameStyle,
 		separator:           separatorStyle,
 
-		leagueName: leagueNameStyle,
-		blockName:  blockNameStyle,
-		strategy:   strategyStyle,
+		flags:              flagsStyle,
+		leagueAndBlockName: leagueAndBlockNameStyle,
+		strategy:           strategyStyle,
 	}
 }
 
@@ -295,10 +300,10 @@ func (i matchItem) titleWithScore() string {
 }
 
 func (i matchItem) Description() string {
-	leagueName := i.styles.leagueName.Render(i.leagueName)
-	blockName := i.styles.blockName.Render(i.blockName)
+	flags := i.styles.flags.Render(strings.Join(flagsByLeagueName[i.leagueName], bulletSeparator))
+	leagueAndBlockName := i.styles.leagueAndBlockName.Render(fmt.Sprintf("%s • %s", i.leagueName, i.blockName))
 	strategy := i.styles.strategy.Render(i.strategy)
-	return leagueName + blockName + strategy
+	return flags + leagueAndBlockName + strategy
 }
 
 func (i matchItem) FilterValue() string {
@@ -407,4 +412,31 @@ func formatDateTitle(date time.Time) string {
 	default:
 		return date.Format("Monday 02 Jan")
 	}
+}
+
+const (
+	bullet          = "•"
+	bulletSeparator = " " + bullet + " "
+)
+
+var flagsByLeagueName = map[string][]string{
+	"LJL":                     {"🇯🇵"},
+	"LEC":                     {"🇪🇺"},
+	"LTA North":               {"🇺🇸"},
+	"NACL":                    {"🇺🇸"},
+	"LTA South":               {"🇧🇷"},
+	"Circuito Desafiante":     {"🇧🇷"},
+	"LCK":                     {"🇰🇷"},
+	"LCK Challengers":         {"🇰🇷"},
+	"LPL":                     {"🇨🇳"},
+	"LCP":                     {"🇹🇼"},
+	"LoL Italian Tournament":  {"🇮🇹"},
+	"Hellenic Legends League": {"🇬🇷"},
+	"TCL":                     {"🇹🇷"},
+	"PCS":                     {"🇭🇰", "🇹🇼"},
+	"Hitpoint Masters":        {"🇨🇿"},
+	"LRN":                     {"🇲🇽", "🇨🇴"},
+	// "NLC":                     {"🇩🇰", "🇫🇮", "🇸🇪", "🇳🇴", "🇬🇧", "🇮🇪"},
+	"NLC":          {"🇬🇧", "🇮🇪"},
+	"Rift Legends": {"🇵🇱"},
 }

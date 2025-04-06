@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 )
 
 const (
@@ -25,80 +24,6 @@ func NewClient() *Client {
 		httpClient: http.DefaultClient,
 	}
 }
-
-type Schedule struct {
-	Updated time.Time `json:"updated"`
-	Pages   Pages     `json:"pages"`
-	Events  []Event   `json:"events"`
-}
-
-type Pages struct {
-	Older string `json:"older"`
-	Newer string `json:"newer"`
-}
-
-type EventType string
-
-const (
-	EventTypeMatch = "match"
-	EventTypeShow  = "show"
-)
-
-type EventState string
-
-const (
-	EventStateUnstarted  = "unstarted"
-	EventStateInProgress = "inProgress"
-	EventStateCompleted  = "completed"
-)
-
-type Event struct {
-	StartTime time.Time  `json:"startTime"`
-	BlockName string     `json:"blockName"`
-	Match     Match      `json:"match"`
-	State     EventState `json:"state"`
-	Type      string     `json:"type"`
-	League    League     `json:"league"`
-}
-
-type Match struct {
-	ID               string   `json:"id"`
-	PreviousMatchIDs []string `json:"previousMatchIds"`
-	Flags            []string `json:"flags"`
-	Teams            []Team   `json:"teams"`
-	Strategy         Strategy `json:"strategy"`
-}
-
-type Team struct {
-	ID     string  `json:"id,omitempty"`
-	Slug   string  `json:"slug,omitempty"`
-	Name   string  `json:"name"`
-	Code   string  `json:"code"`
-	Image  string  `json:"image"`
-	Result *Result `json:"result,omitempty"`
-	Record *Record `json:"record,omitempty"`
-}
-
-type Result struct {
-	Outcome  *string `json:"outcome"`
-	GameWins int     `json:"gameWins"`
-}
-
-type Record struct {
-	Losses int `json:"losses"`
-	Wins   int `json:"wins"`
-}
-
-type Strategy struct {
-	Count int    `json:"count"`
-	Type  string `json:"type"`
-}
-
-type MatchStrategyType string
-
-const (
-	MatchStrategyTypeBestOf = "bestOf"
-)
 
 type GetScheduleOptions struct {
 	LeagueIDs []string
@@ -126,29 +51,6 @@ func (c *Client) GetSchedule(ctx context.Context, opts GetScheduleOptions) (*Sch
 	return &responseData.Data.Schedule, nil
 }
 
-type Standings struct {
-	Stages []Stage `json:"stages"`
-}
-
-type Stage struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name,omitempty"`
-	Type     string    `json:"type,omitempty"`
-	Slug     string    `json:"slug,omitempty"`
-	Sections []Section `json:"sections,omitempty"`
-}
-
-type Section struct {
-	Name     string    `json:"name"`
-	Matches  []Match   `json:"matches"`
-	Rankings []Ranking `json:"rankings"`
-}
-
-type Ranking struct {
-	Ordinal int    `json:"ordinal"`
-	Teams   []Team `json:"teams"`
-}
-
 func (c *Client) GetStandings(ctx context.Context, tournamentID string) ([]*Standings, error) {
 	req, err := newRequest(ctx, "getStandings", map[string]string{"tournamentId": tournamentID})
 	if err != nil {
@@ -167,22 +69,6 @@ func (c *Client) GetStandings(ctx context.Context, tournamentID string) ([]*Stan
 	return responseBody.Data.Standings, nil
 }
 
-type League struct {
-	ID              string          `json:"id"`
-	Slug            string          `json:"slug"`
-	Name            string          `json:"name"`
-	Region          string          `json:"region"`
-	Image           string          `json:"image"`
-	Priority        int             `json:"priority"`
-	DisplayPriority DisplayPriority `json:"displayPriority"`
-	Tournaments     []*Tournament   `json:"tournaments"`
-}
-
-type DisplayPriority struct {
-	Position int    `json:"position"`
-	Status   string `json:"status"`
-}
-
 func (c *Client) GetLeagues(ctx context.Context) ([]*League, error) {
 	req, err := newRequest(ctx, "getLeagues", nil)
 	if err != nil {
@@ -199,31 +85,6 @@ func (c *Client) GetLeagues(ctx context.Context) ([]*League, error) {
 		return nil, err
 	}
 	return responseBody.Data.Leagues, nil
-}
-
-type Date struct{ time.Time }
-
-func (d *Date) UnmarshalJSON(b []byte) error {
-	layout := "2006-01-02"
-
-	s := string(b)
-	s = s[1 : len(s)-1]
-
-	t, err := time.Parse(layout, s)
-	if err != nil {
-		return err
-	}
-
-	*d = Date{t}
-
-	return nil
-}
-
-type Tournament struct {
-	ID        string `json:"id"`
-	Slug      string `json:"slug"`
-	StartDate Date   `json:"startDate"`
-	EndDate   Date   `json:"endDate"`
 }
 
 func (c *Client) GetTournamentsForLeague(ctx context.Context, leagueID string) ([]*Tournament, error) {

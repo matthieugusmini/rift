@@ -113,7 +113,7 @@ func (m *headersModel) View() string {
 		}
 	}
 
-	renderedHeaders := m.styles.headers.Render(strings.Join(headers, " • "))
+	renderedHeaders := m.styles.headers.Render(strings.Join(headers, bulletSeparator))
 	filler := m.styles.filler.Render(strings.Repeat(" ", lipgloss.Width(lolesport)))
 	separator := m.styles.separatorLine.Render(strings.Repeat("━", m.width))
 
