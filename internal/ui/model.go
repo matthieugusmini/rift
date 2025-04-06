@@ -51,15 +51,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
-		m.scheduleModel.(*scheduleModel).setSize(msg.Width-h, msg.Height-v-headersHeight)
-		m.standingsModel.(*standingsModel).setSize(msg.Width-h, msg.Height-v-headersHeight)
+		m.scheduleModel.(*scheduleModel).setSize(msg.Width, msg.Height-headersHeight)
+		m.standingsModel.(*standingsModel).setSize(msg.Width, msg.Height-headersHeight)
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
 		}
+
 	case state:
 		m.state = msg
 	}

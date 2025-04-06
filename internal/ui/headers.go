@@ -13,16 +13,16 @@ const (
 )
 
 type headersStyles struct {
-	lolStyle    lipgloss.Style
-	esportStyle lipgloss.Style
-
-	normalHeaderStyle   lipgloss.Style
-	selectedHeaderStyle lipgloss.Style
-
-	separatorStyle lipgloss.Style
+	lol            lipgloss.Style
+	esport         lipgloss.Style
+	headers        lipgloss.Style
+	normalHeader   lipgloss.Style
+	selectedHeader lipgloss.Style
+	separatorLine  lipgloss.Style
+	filler         lipgloss.Style
 }
 
-func newDefaultHeadersStyles() headersStyles {
+func newDefaultHeadersStyles(width int) headersStyles {
 	lolStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(white)).
 		Bold(true)
@@ -30,6 +30,9 @@ func newDefaultHeadersStyles() headersStyles {
 		Foreground(lipgloss.Color(cyan)).
 		Bold(true)
 
+	headersStyle := lipgloss.NewStyle().
+		Width(width - (len("lolesport")+2)*2).
+		Align(lipgloss.Center)
 	normalHeaderStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(white)).
 		Faint(true)
@@ -37,18 +40,20 @@ func newDefaultHeadersStyles() headersStyles {
 		Foreground(lipgloss.Color(gold)).
 		Bold(true)
 
+	fillerStyle := lipgloss.NewStyle().Width(width)
+
 	separatorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(white)).
 		Bold(true)
 
 	return headersStyles{
-		lolStyle:    lolStyle,
-		esportStyle: esportStyle,
-
-		normalHeaderStyle:   normalHeaderStyle,
-		selectedHeaderStyle: selectedHeaderStyle,
-
-		separatorStyle: separatorStyle,
+		lol:            lolStyle,
+		esport:         esportStyle,
+		headers:        headersStyle,
+		normalHeader:   normalHeaderStyle,
+		selectedHeader: selectedHeaderStyle,
+		separatorLine:  separatorStyle,
+		filler:         fillerStyle,
 	}
 }
 
@@ -62,7 +67,7 @@ type headersModel struct {
 func newHeadersModel() *headersModel {
 	return &headersModel{
 		headers: []string{"Schedule", "Standings"},
-		styles:  newDefaultHeadersStyles(),
+		styles:  newDefaultHeadersStyles(0),
 	}
 }
 
@@ -87,43 +92,32 @@ func (m *headersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.styles = newDefaultHeadersStyles(m.width)
 	}
 
 	return m, nil
 }
 
 func (m *headersModel) View() string {
-	lol := m.styles.lolStyle.Render("lol")
-	esport := m.styles.esportStyle.Render("esport")
+	lol := m.styles.lol.Render("lol")
+	esport := m.styles.esport.Render("esport")
 	lolesport := lipgloss.NewStyle().Padding(0, 1).Render(lol + esport)
 
 	headers := make([]string, len(m.headers))
 	for i, header := range m.headers {
 		isSelected := m.cursor == i
 		if isSelected {
-			headers[i] = m.styles.selectedHeaderStyle.Render(header)
+			headers[i] = m.styles.selectedHeader.Render(header)
 		} else {
-			headers[i] = m.styles.normalHeaderStyle.Render(header)
+			headers[i] = m.styles.normalHeader.Render(header)
 		}
 	}
 
-	renderedHeaders := lipgloss.NewStyle().
-		Width(m.width - lipgloss.Width(lolesport)*2).
-		Align(lipgloss.Center).
-		Render(strings.Join(headers, " • "))
+	renderedHeaders := m.styles.headers.Render(strings.Join(headers, " • "))
+	filler := m.styles.filler.Render(strings.Repeat(" ", lipgloss.Width(lolesport)))
+	separator := m.styles.separatorLine.Render(strings.Repeat("━", m.width))
 
-	filler := lipgloss.NewStyle().
-		Width(lipgloss.Width(lolesport)).
-		Render(strings.Repeat(" ", lipgloss.Width(lolesport)))
-
-	separator := m.styles.separatorStyle.
-		Render(strings.Repeat("━", m.width))
-
-	return fmt.Sprintf(
-		"%s\n%s",
-		lolesport+renderedHeaders+filler,
-		separator,
-	)
+	return fmt.Sprintf("%s\n%s", lolesport+renderedHeaders+filler, separator)
 }
 
 func (m *headersModel) moveCursorRight() {
@@ -131,6 +125,7 @@ func (m *headersModel) moveCursorRight() {
 }
 
 func (m *headersModel) moveCursorLeft() {
+	// Traverse the headers like a ring.
 	m.cursor = (m.cursor - 1 + len(m.headers)) % len(m.headers)
 }
 

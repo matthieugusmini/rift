@@ -1,6 +1,8 @@
 package dateutils
 
-import "time"
+import (
+	"time"
+)
 
 func IsYesterday(date time.Time) bool {
 	yesterday := time.Now().AddDate(0, 0, -1)
@@ -18,7 +20,7 @@ func IsTomorrow(date time.Time) bool {
 }
 
 func compareDay(date1 time.Time, date2 time.Time) bool {
-	truncatedDate1 := date1.Truncate(24 * time.Hour)
-	truncatedDate2 := date2.Truncate(24 * time.Hour)
-	return truncatedDate1.Equal(truncatedDate2)
+	return date1.Year() == date2.Year() &&
+		date1.Month() == date2.Month() &&
+		date1.Day() == date2.Day()
 }
