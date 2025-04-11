@@ -2,98 +2,203 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/matthieugusmini/lolesport/internal/lolesport"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/matthieugusmini/go-lolesports"
 )
+
+const (
+	logo = "Rift"
+
+	navItemLabelSchedule  = "Schedule"
+	navItemLabelStandings = "Standings"
+
+	navigationBarHeight = 2
+)
+
+var navItemLabels = []string{
+	navItemLabelSchedule,
+	navItemLabelStandings,
+}
 
 type state int
 
 const (
-	stateUnknown state = iota
-	stateShowSchedule
+	stateShowSchedule state = iota
 	stateShowStandings
 )
 
+var stateByNavItemLabel = map[string]state{
+	navItemLabelSchedule:  stateShowSchedule,
+	navItemLabelStandings: stateShowStandings,
+}
+
 type LoLEsportClient interface {
-	GetSchedule(ctx context.Context, opts lolesport.GetScheduleOptions) (*lolesport.Schedule, error)
-	GetStandings(ctx context.Context, tournamentID string) ([]*lolesport.Standings, error)
-	GetLeagues(ctx context.Context) ([]*lolesport.League, error)
-	GetTournamentsForLeague(ctx context.Context, leagueID string) ([]*lolesport.Tournament, error)
+	GetSchedule(ctx context.Context, opts lolesports.GetScheduleOptions) (*lolesports.Schedule, error)
+	GetStandings(ctx context.Context, tournamentIDs []string) ([]*lolesports.Standings, error)
+	GetCurrentSeason(ctx context.Context) (*lolesports.Season, error)
+}
+
+type modelStyles struct {
+	logo            lipgloss.Style
+	normalNavItem   lipgloss.Style
+	selectedNavItem lipgloss.Style
+	separator       lipgloss.Style
+}
+
+func newDefaultModelStyles() (s modelStyles) {
+	s.logo = lipgloss.NewStyle().
+		Padding(0, 1).
+		Foreground(white).
+		Bold(true)
+
+	s.normalNavItem = lipgloss.NewStyle().
+		Foreground(white).
+		Faint(true)
+
+	s.selectedNavItem = lipgloss.NewStyle().
+		Foreground(white).
+		Bold(true)
+
+	s.separator = lipgloss.NewStyle().
+		Foreground(gray).
+		Bold(true)
+
+	return s
 }
 
 type Model struct {
-	headers        tea.Model
-	scheduleModel  tea.Model
-	standingsModel tea.Model
-	state          state
+	selectedNavIndex int
 
-	lolesportClient LoLEsportClient
+	schedulePage  tea.Model
+	standingsPage tea.Model
+
+	state state
+
+	width, height int
+	styles        modelStyles
 }
 
-func NewModel(lolesportClient LoLEsportClient) Model {
+func NewModel(lolesportsClient LoLEsportClient) Model {
 	return Model{
-		// TODO: Probably inject the UI components as dependencies.
-		headers:        newHeadersModel(),
-		scheduleModel:  newScheduleModel(lolesportClient),
-		standingsModel: newStandingsModel(lolesportClient),
-		state:          stateShowSchedule,
+		schedulePage:  newSchedulePage(lolesportsClient),
+		standingsPage: newStandingsPage(lolesportsClient),
+		styles:        newDefaultModelStyles(),
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		m.schedulePage.Init(),
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.scheduleModel.(*scheduleModel).setSize(msg.Width, msg.Height-headersHeight)
-		m.standingsModel.(*standingsModel).setSize(msg.Width, msg.Height-headersHeight)
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "tab":
+			m.selectedNavIndex = moveNavigationBarCursorRight(m.selectedNavIndex)
+			return m.navigate()
+		case "shift+tab":
+			m.selectedNavIndex = moveNavigationBarCursorLeft(m.selectedNavIndex)
+			return m.navigate()
 		}
 
-	case state:
-		m.state = msg
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+		m.schedulePage.(*schedulePage).SetSize(msg.Width, msg.Height-navigationBarHeight)
+		m.standingsPage.(*standingsPage).SetSize(msg.Width, msg.Height-navigationBarHeight)
 	}
 
-	headers, cmd := m.headers.Update(msg)
-	m.headers = headers
-	cmds = append(cmds, cmd)
-
-	switch m.state {
-	case stateShowSchedule:
-		scheduleModel, cmd := m.scheduleModel.Update(msg)
-		m.scheduleModel = scheduleModel
-		cmds = append(cmds, cmd)
-	case stateShowStandings:
-		standingsModel, cmd := m.standingsModel.Update(msg)
-		m.standingsModel = standingsModel
-		cmds = append(cmds, cmd)
-	}
-
-	return m, tea.Batch(cmds...)
+	return m.updateCurrentPage(msg)
 }
 
 func (m Model) View() string {
 	var sb strings.Builder
-
-	sb.WriteString(m.headers.View())
+	sb.WriteString(m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.width))
 	sb.WriteString("\n")
+	sb.WriteString(m.currentPageView())
+	return sb.String()
+}
 
-	switch m.state {
-	case stateShowSchedule:
-		sb.WriteString(m.scheduleModel.View())
-	case stateShowStandings:
-		sb.WriteString(m.standingsModel.View())
+func (m Model) viewNavigationBar(navLabels []string, selectedNavIndex int, width int) string {
+	logo := m.styles.logo.Render(logo)
+
+	styledNavItems := make([]string, len(navLabels))
+	for i, label := range navLabels {
+		isSelected := selectedNavIndex == i
+		if isSelected {
+			styledNavItems[i] = m.styles.selectedNavItem.Render(label)
+		} else {
+			styledNavItems[i] = m.styles.normalNavItem.Render(label)
+		}
 	}
 
-	return sb.String()
+	padding := strings.Repeat(" ", lipgloss.Width(logo))
+
+	navItemsStyle := lipgloss.NewStyle().
+		Width(width - lipgloss.Width(logo)*2).
+		Align(lipgloss.Center)
+	navItems := navItemsStyle.Render(strings.Join(styledNavItems, separatorBullet))
+
+	navbar := logo + navItems + padding
+
+	separator := m.styles.separator.Render(strings.Repeat("━", width))
+
+	return fmt.Sprintf("%s\n%s", navbar, separator)
+}
+
+func (m Model) currentPageView() string {
+	switch m.state {
+	case stateShowSchedule:
+		return m.schedulePage.View()
+	case stateShowStandings:
+		return m.standingsPage.View()
+	default:
+		return ""
+	}
+}
+
+func (m Model) updateCurrentPage(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch m.state {
+	case stateShowSchedule:
+		m.schedulePage, cmd = m.schedulePage.Update(msg)
+	case stateShowStandings:
+		m.standingsPage, cmd = m.standingsPage.Update(msg)
+	}
+	return m, cmd
+}
+
+func (m Model) navigate() (Model, tea.Cmd) {
+	m.state = stateByNavItemLabel[navItemLabels[m.selectedNavIndex]]
+	switch m.state {
+	case stateShowSchedule:
+		return m, m.schedulePage.Init()
+	case stateShowStandings:
+		return m, m.standingsPage.Init()
+	default:
+		return m, nil
+	}
+}
+
+func moveNavigationBarCursorLeft(current int) int {
+	return moveCursor(current, -1, len(navItemLabels))
+}
+
+func moveNavigationBarCursorRight(current int) int {
+	return moveCursor(current, 1, len(navItemLabels))
+}
+
+func moveCursor(current, delta, max int) int {
+	if max == 0 {
+		return 0
+	}
+	return (current + delta + max) % max
 }
