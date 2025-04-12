@@ -45,8 +45,8 @@ type matchItem struct {
 	strategy   string
 	flags      string
 
-	isCompleted         bool
-	spoilerBlockRemoved bool
+	isCompleted          bool
+	spoilerBlockRevealed bool
 }
 
 func newMatchItem(event lolesports.Event) matchItem {
@@ -99,6 +99,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 }
 
 type matchItemStyles struct {
+	// Item
 	normalItem   lipgloss.Style
 	selectedItem lipgloss.Style
 
@@ -118,6 +119,7 @@ type matchItemStyles struct {
 }
 
 func newDefaultMatchItemStyles() (s matchItemStyles) {
+	// Item
 	itemStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 
 	s.normalItem = itemStyle.
@@ -185,12 +187,16 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		return
 	}
 
+	if m.Width() <= 0 {
+		return
+	}
+
 	var title string
 	// Some matches are completed but unstarted somehow so we render those
 	// with their score.
 	if !matchItem.isCompleted && matchItem.startTime.After(time.Now()) {
 		title = d.viewTitleWithStartTime(matchItem, m.Width())
-	} else if !matchItem.spoilerBlockRemoved {
+	} else if !matchItem.spoilerBlockRevealed {
 		title = d.viewTitleWithScoreSpoilerBlock(matchItem, m.Width())
 	} else {
 		title = d.viewTitleWithScore(matchItem, m.Width())
@@ -228,7 +234,7 @@ func (d matchItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 
 func (d matchItemDelegate) revealSpoiler(m *list.Model) {
 	item := m.SelectedItem().(matchItem)
-	item.spoilerBlockRemoved = true
+	item.spoilerBlockRevealed = true
 	m.SetItem(m.Index(), item)
 }
 
@@ -254,7 +260,7 @@ func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width 
 	team2Name := d.styles.teamName.Render(item.team2.name)
 	sep := d.styles.separator.Render(separataorStrokeEye)
 
-	title := fmt.Sprintf("%s%s %s", team1Name, sep, team2Name)
+	title := team1Name + sep + team2Name
 
 	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
 }

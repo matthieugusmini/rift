@@ -1,7 +1,7 @@
 package ui
 
 const (
-	separataorStrokeEye = " \uf070 "
+	separataorStrokeEye = " \uf070  "
 	separatorBullet     = " • "
 	separatorSlash      = " / "
 )
