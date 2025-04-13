@@ -211,7 +211,7 @@ func (m *schedulePage) getEvents(pageDirection pageDirection) tea.Cmd {
 			opts.PageToken = &m.paginationState.prevPageToken
 		}
 
-		schedule, err := m.lolesportsClient.GetSchedule(context.Background(), opts)
+		schedule, err := m.lolesportsClient.GetSchedule(context.Background(), &opts)
 		if err != nil {
 			return fetchErrorMessage{err}
 		}
