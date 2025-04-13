@@ -37,4 +37,6 @@ var flagsByLeagueName = map[string][]string{
 	"VCS":                     {"🇻🇳"},
 	"EMEA Masters":            {"🇪🇺"},
 	"First Stand":             {"🌏"},
+	"MSI":                     {"🌏"},
+	"Worlds":                  {"🌏"},
 }
