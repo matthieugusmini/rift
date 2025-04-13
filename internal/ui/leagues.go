@@ -35,12 +35,14 @@ func newDefaultLeageItemStyles() (s leagueItemStyles) {
 	s.normalTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
 		Foreground(white).
-		Bold(true)
+		Faint(true)
 
-	s.selectedTitle = s.normalTitle.
+	s.selectedTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 1).
 		Border(lipgloss.ThickBorder(), false, false, false, true).
-		BorderForeground(white)
+		BorderForeground(white).
+		Foreground(white).
+		Bold(true)
 
 	return s
 }
@@ -84,7 +86,7 @@ func (d leagueItemDelegate) Render(w io.Writer, m list.Model, index int, item li
 	fmt.Fprint(w, title)
 }
 
-func newLeagueChoicesList(leagues []*lolesports.League, width, height int) list.Model {
+func newLeagueOptionsList(leagues []*lolesports.League, width, height int) list.Model {
 	leagueItems := make([]list.Item, len(leagues))
 	for i, l := range leagues {
 		leagueItems[i] = leagueItem{

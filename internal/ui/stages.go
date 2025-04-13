@@ -26,7 +26,7 @@ func (i stageItem) Description() string { return string(i.stageType) }
 
 func (i stageItem) FilterValue() string { return i.name }
 
-func newStageChoices(standings []*lolesports.Standings, width, height int) list.Model {
+func newStageOptionsList(standings []*lolesports.Standings, width, height int) list.Model {
 	var stageItems []list.Item
 	for _, standing := range standings {
 		for _, stage := range standing.Stages {

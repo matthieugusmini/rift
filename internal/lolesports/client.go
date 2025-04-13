@@ -21,7 +21,7 @@ func (c *Client) GetSchedule(ctx context.Context, opts lolesports.GetScheduleOpt
 	return c.lolesportsClient.GetSchedule(ctx, opts)
 }
 
-func (c *Client) GetCurrentSeason(ctx context.Context) (*lolesports.Season, error) {
+func (c *Client) GetCurrentSeasonSplits(ctx context.Context) ([]*lolesports.Split, error) {
 	seasons, err := c.lolesportsClient.GetSeasons(context.Background(), lolesports.GetSeasonsOptions{})
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (c *Client) GetCurrentSeason(ctx context.Context) (*lolesports.Season, erro
 		}
 	}
 
-	return currentSeason, nil
+	return currentSeason.Splits, nil
 }
 
 func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]*lolesports.Standings, error) {

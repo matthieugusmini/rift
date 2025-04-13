@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -11,8 +12,19 @@ import (
 	"github.com/matthieugusmini/go-lolesports"
 )
 
+const selectionListCount = 3
+
+type standingsPageState int
+
+const (
+	standingsPageStateSplitSelection standingsPageState = iota
+	standingsPageStateLeagueSelection
+	standingsPageStateStageSelection
+	standingsPageStateShowStandings
+)
+
 type standingsStyles struct {
-	docStyle         lipgloss.Style
+	doc              lipgloss.Style
 	tableBorder      lipgloss.Style
 	stageName        lipgloss.Style
 	tournamentState  lipgloss.Style
@@ -21,7 +33,7 @@ type standingsStyles struct {
 }
 
 func newDefaultStandingsStyles() (s standingsStyles) {
-	s.docStyle = lipgloss.NewStyle().Padding(1, 2)
+	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.stageName = lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -48,32 +60,26 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 	return s
 }
 
-type standingsPageState int
-
-const (
-	standingsPageStateSplitSelection standingsPageState = iota
-	standingsPageStateLeagueSelection
-	standingsPageStateStageSelection
-	standingsPageStateShowStandings
-)
-
 type standingsPage struct {
 	lolesportsClient LoLEsportClient
 
 	state standingsPageState
 
-	currentSeason            *lolesports.Season
-	selectedSplitTournaments []*lolesports.Tournament
-	selectedStandings        []*lolesports.Standings
+	standingsCache map[string][]*lolesports.Standings
+	
+	// Selection phase
+	splitOptions  list.Model
+	leagueOptions list.Model
+	stageOptions  list.Model
 
-	splitChoices  list.Model
-	leagueChoices list.Model
-	stageChoices  list.Model
+	// Standings page
+	splitName string
+	startDate time.Time
+	endDate   time.Time
+	standings viewport.Model
 
-	splitName     string
-	startDate     time.Time
-	endDate       time.Time
-	standings     viewport.Model
+	errorMessage string
+
 	height, width int
 
 	styles standingsStyles
@@ -83,181 +89,256 @@ func newStandingsPage(lolesportsClient LoLEsportClient) *standingsPage {
 	return &standingsPage{
 		lolesportsClient: lolesportsClient,
 		styles:           newDefaultStandingsStyles(),
+		standingsCache:   map[string][]*lolesports.Standings{},
 	}
 }
 
-func (m *standingsPage) Init() tea.Cmd {
-	return m.getSeasons()
+func (p *standingsPage) Init() tea.Cmd {
+	return p.fetchCurrentSeasonSplits()
 }
 
-func (m *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
+func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "backspace":
-			switch m.state {
-			case standingsPageStateLeagueSelection:
-				m.state = standingsPageStateSplitSelection
-			case standingsPageStateStageSelection:
-				m.state = standingsPageStateLeagueSelection
-			case standingsPageStateShowStandings:
-				m.state = standingsPageStateSplitSelection
-			}
+			p.goToPreviousStep()
 
-		// TODO: Move to item delegate
 		case "enter":
-			switch m.state {
-			case standingsPageStateSplitSelection:
-				m.state = standingsPageStateLeagueSelection
-
-				var (
-					leagues           []*lolesports.League
-					selectedSplit     = m.splitChoices.SelectedItem().(splitItem)
-					alreadySeenLeague = make(map[string]bool)
-				)
-				m.selectedSplitTournaments = selectedSplit.tournaments
-				for _, tournament := range selectedSplit.tournaments {
-					if _, ok := alreadySeenLeague[tournament.League.ID]; !ok {
-						leagues = append(leagues, &tournament.League)
-						alreadySeenLeague[tournament.League.ID] = true
-					}
-				}
-				m.leagueChoices = newLeagueChoicesList(leagues, m.width/3, m.height)
-
-				m.splitName = selectedSplit.name
-				m.startDate = selectedSplit.startTime
-				m.endDate = selectedSplit.endTime
-
-			case standingsPageStateLeagueSelection:
-				m.state = standingsPageStateStageSelection
-
-				selectedLeague := m.leagueChoices.SelectedItem().(leagueItem)
-				var tournamentIDs []string
-				for _, tournament := range m.selectedSplitTournaments {
-					if tournament.League.ID == selectedLeague.id {
-						tournamentIDs = append(tournamentIDs, tournament.ID)
-					}
-				}
-				return m, m.getStandings(tournamentIDs)
-			case standingsPageStateStageSelection:
-				m.state = standingsPageStateShowStandings
-
-				var stage lolesports.Stage
-				for _, standing := range m.selectedStandings {
-					for _, s := range standing.Stages {
-						if m.stageChoices.SelectedItem().(stageItem).id == s.ID {
-							stage = s
-						}
-					}
-				}
-
-				m.standings = newStandingsViewport(stage, m.width, m.height-navigationBarHeight)
-				// m.table = newStandingsViewport(rankings, m.width)
-			}
+			return p.handleSelection()
 		}
 
 	case tea.WindowSizeMsg:
-		if m.currentSeason == nil {
-			return m, m.getSeasons()
+		if !p.hasLoadedSplits() {
+			return p, p.fetchCurrentSeasonSplits()
 		}
-		return m, nil
+		return p, nil
 
 	case fetchedStandingsMessage:
-		m.selectedStandings = msg.standings
-		m.stageChoices = newStageChoices(msg.standings, m.width/3, m.height)
+		splitID := p.splitOptions.SelectedItem().(splitItem).id
+		leagueID := p.leagueOptions.SelectedItem().(leagueItem).id
+		cacheKey := makeStandingsCacheKey(splitID, leagueID)
+		p.standingsCache[cacheKey] = msg.standings
 
-	case fetchedCurrentSeasonMessage:
-		m.currentSeason = msg.currentSeason
-		m.splitChoices = newSplitChoices(msg.currentSeason.Splits, m.width/3, m.height)
+		p.stageOptions = newStageOptionsList(msg.standings, p.optionListWidth(), p.height)
+		return p, nil
+
+	case fetchedCurrentSeasonSplitsMessage:
+		p.splitOptions = newSplitOptionsList(msg.splits, p.optionListWidth(), p.height)
+		return p, nil
+
+	case fetchErrorMessage:
+		// TODO: add proper error UI handling
+		p.errorMessage = msg.err.Error()
+		return p, nil
 	}
 
-	var cmds []tea.Cmd
-
-	if m.state == standingsPageStateSplitSelection {
-		m.splitChoices, cmd = m.splitChoices.Update(msg)
-		cmds = append(cmds, cmd)
+	if !p.hasLoadedSplits() {
+		return p, nil
 	}
 
-	if m.state == standingsPageStateLeagueSelection {
-		m.leagueChoices, cmd = m.leagueChoices.Update(msg)
-		cmds = append(cmds, cmd)
+	var cmd tea.Cmd
+	switch p.state {
+	case standingsPageStateSplitSelection:
+		p.splitOptions, cmd = p.splitOptions.Update(msg)
+	case standingsPageStateLeagueSelection:
+		p.leagueOptions, cmd = p.leagueOptions.Update(msg)
+	case standingsPageStateStageSelection:
+		p.stageOptions, cmd = p.stageOptions.Update(msg)
+	case standingsPageStateShowStandings:
+		p.standings, cmd = p.standings.Update(msg)
 	}
-
-	if m.state == standingsPageStateStageSelection {
-		m.stageChoices, cmd = m.stageChoices.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	if m.state == standingsPageStateShowStandings {
-		m.standings, cmd = m.standings.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	return m, tea.Batch(cmds...)
+	return p, cmd
 }
 
-func (m *standingsPage) View() string {
-	if m.state == standingsPageStateShowStandings {
-		return m.styles.tableBorder.Render(m.standings.View())
+func (p *standingsPage) View() string {
+	if p.state == standingsPageStateShowStandings {
+		return p.styles.tableBorder.Render(p.standings.View())
 	}
+	return p.viewSelection()
+}
+
+func (p *standingsPage) viewSelection() string {
+	style := lipgloss.NewStyle().
+		Width(p.optionListWidth()).
+		Align(lipgloss.Center)
 
 	var (
-		splitChoices  string
-		leagueChoices string
-		stageChoices  string
-
-		style = lipgloss.NewStyle().
-			Width(m.width / 3).
-			Align(lipgloss.Center)
+		splitOptionsView  string
+		leagueOptionsView string
+		stageOptionsView  string
 	)
-	switch m.state {
+	switch p.state {
 	case standingsPageStateSplitSelection:
-		splitChoices = style.Render(m.splitChoices.View())
+		splitOptionsView = style.Render(p.splitOptions.View())
 	case standingsPageStateLeagueSelection:
-		splitChoices = style.Render(m.splitChoices.View())
-		leagueChoices = style.Render(m.leagueChoices.View())
+		splitOptionsView = style.Render(p.splitOptions.View())
+		leagueOptionsView = style.Render(p.leagueOptions.View())
 	case standingsPageStateStageSelection:
-		splitChoices = style.Render(m.splitChoices.View())
-		leagueChoices = style.Render(m.leagueChoices.View())
-		stageChoices = style.Render(m.stageChoices.View())
+		splitOptionsView = style.Render(p.splitOptions.View())
+		leagueOptionsView = style.Render(p.leagueOptions.View())
+		stageOptionsView = style.Render(p.stageOptions.View())
 	}
 
-	selectionLists := lipgloss.JoinHorizontal(lipgloss.Center, splitChoices, leagueChoices, stageChoices)
+	allOptionLists := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		splitOptionsView,
+		leagueOptionsView,
+		stageOptionsView,
+	)
 
-	return m.styles.docStyle.Render(selectionLists)
+	return p.styles.doc.Render(allOptionLists)
 }
 
-func (m *standingsPage) SetSize(width, height int) {
-	h, v := m.styles.docStyle.GetFrameSize()
-	m.width, m.height = width-h, height-v
+func (p *standingsPage) SetSize(width, height int) {
+	h, v := p.styles.doc.GetFrameSize()
+	p.width, p.height = width-h, height-v
+}
+
+func (p *standingsPage) handleSelection() (tea.Model, tea.Cmd) {
+	switch p.state {
+	case standingsPageStateSplitSelection:
+		return p.selectSplit()
+	case standingsPageStateLeagueSelection:
+		return p.selectLeague()
+	case standingsPageStateStageSelection:
+		return p.selectStage()
+	default:
+		return p, nil
+	}
+}
+
+func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
+	p.state = standingsPageStateLeagueSelection
+
+	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
+	leagues := listLeaguesFromTournaments(selectedSplit.tournaments)
+	p.leagueOptions = newLeagueOptionsList(leagues, p.optionListWidth(), p.height)
+
+	p.splitName = selectedSplit.name
+	p.startDate = selectedSplit.startTime
+	p.endDate = selectedSplit.endTime
+
+	return p, nil
+}
+
+func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
+	p.state = standingsPageStateStageSelection
+
+	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
+	selectedLeague := p.leagueOptions.SelectedItem().(leagueItem)
+	cacheKey := makeStandingsCacheKey(selectedSplit.id, selectedLeague.id)
+	if standings, ok := p.standingsCache[cacheKey]; ok {
+		p.stageOptions = newStageOptionsList(standings, p.optionListWidth(), p.height)
+		return p, nil
+	}
+
+	tournamentIDs := listTournamentIDsForLeague(selectedSplit.tournaments, selectedLeague.id)
+	return p, p.fetchStandings(tournamentIDs)
+}
+
+func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
+	p.state = standingsPageStateShowStandings
+
+	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
+	selectedLeague := p.leagueOptions.SelectedItem().(leagueItem)
+	cacheKey := makeStandingsCacheKey(selectedSplit.id, selectedLeague.id)
+	standings := p.standingsCache[cacheKey]
+
+	selectedStage := p.stageOptions.SelectedItem().(stageItem)
+
+	stage := findStageByID(standings, selectedStage.id)
+	p.standings = newStandingsViewport(stage, p.width, p.height)
+
+	return p, nil
+}
+
+func (p *standingsPage) goToPreviousStep() {
+	switch p.state {
+	case standingsPageStateLeagueSelection:
+		p.state = standingsPageStateSplitSelection
+		p.leagueOptions = list.Model{}
+	case standingsPageStateStageSelection:
+		p.state = standingsPageStateLeagueSelection
+		p.stageOptions = list.Model{}
+	case standingsPageStateShowStandings:
+		p.state = standingsPageStateSplitSelection
+		p.leagueOptions = list.Model{}
+		p.stageOptions = list.Model{}
+	}
+}
+
+func (p *standingsPage) hasLoadedSplits() bool {
+	return len(p.splitOptions.Items()) > 0
+}
+
+func (p *standingsPage) optionListWidth() int {
+	return p.width / selectionListCount
 }
 
 type fetchedStandingsMessage struct {
 	standings []*lolesports.Standings
 }
 
-func (m *standingsPage) getStandings(tournamentIDs []string) tea.Cmd {
+func (p *standingsPage) fetchStandings(tournamentIDs []string) tea.Cmd {
 	return func() tea.Msg {
-		standings, err := m.lolesportsClient.GetStandings(context.Background(), tournamentIDs)
+		standings, err := p.lolesportsClient.GetStandings(context.Background(), tournamentIDs)
 		if err != nil {
-			return err
+			return fetchErrorMessage{err}
 		}
 		return fetchedStandingsMessage{standings}
 	}
 }
 
-type fetchedCurrentSeasonMessage struct {
-	currentSeason *lolesports.Season
+type fetchedCurrentSeasonSplitsMessage struct {
+	splits []*lolesports.Split
 }
 
-func (m *standingsPage) getSeasons() tea.Cmd {
+func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	return func() tea.Msg {
-		currentSeason, err := m.lolesportsClient.GetCurrentSeason(context.Background())
+		splits, err := p.lolesportsClient.GetCurrentSeasonSplits(context.Background())
 		if err != nil {
-			return err
+			return fetchErrorMessage{err}
 		}
-		return fetchedCurrentSeasonMessage{currentSeason}
+		return fetchedCurrentSeasonSplitsMessage{splits}
 	}
+}
+
+func listLeaguesFromTournaments(tournaments []*lolesports.Tournament) []*lolesports.League {
+	var (
+		leagues     []*lolesports.League
+		seenLeagues = map[string]bool{}
+	)
+	for _, tournament := range tournaments {
+		if _, ok := seenLeagues[tournament.League.ID]; !ok {
+			leagues = append(leagues, &tournament.League)
+			seenLeagues[tournament.League.ID] = true
+		}
+	}
+	return leagues
+}
+
+func listTournamentIDsForLeague(tournaments []*lolesports.Tournament, leagueID string) []string {
+	var tournamentIDs []string
+	for _, tournament := range tournaments {
+		if tournament.League.ID == leagueID {
+			tournamentIDs = append(tournamentIDs, tournament.ID)
+		}
+	}
+	return tournamentIDs
+}
+
+func findStageByID(standings []*lolesports.Standings, stageID string) lolesports.Stage {
+	for _, standing := range standings {
+		for _, s := range standing.Stages {
+			if s.ID == stageID {
+				return s
+			}
+		}
+	}
+	return lolesports.Stage{}
+}
+
+func makeStandingsCacheKey(splitID, leagueID string) string {
+	return fmt.Sprintf("%s-%s", splitID, leagueID)
 }

@@ -143,7 +143,7 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	fmt.Fprintf(w, "%s\n%s", titleStyle.Render(title), descStyle.Render(desc))
 }
 
-func newSplitChoices(splits []*lolesports.Split, width, height int) list.Model {
+func newSplitOptionsList(splits []*lolesports.Split, width, height int) list.Model {
 	var (
 		items       = make([]list.Item, len(splits))
 		cursorIndex int
