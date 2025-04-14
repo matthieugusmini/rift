@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -17,8 +18,10 @@ const selectionListCount = 3
 type standingsPageState int
 
 const (
-	standingsPageStateSplitSelection standingsPageState = iota
+	standingsPageStateLoadingSplits standingsPageState = iota
+	standingsPageStateSplitSelection
 	standingsPageStateLeagueSelection
+	standingsPageStateLoadingStages
 	standingsPageStateStageSelection
 	standingsPageStateShowStandings
 )
@@ -66,7 +69,7 @@ type standingsPage struct {
 	state standingsPageState
 
 	standingsCache map[string][]*lolesports.Standings
-	
+
 	// Selection phase
 	splitOptions  list.Model
 	leagueOptions list.Model
@@ -80,6 +83,8 @@ type standingsPage struct {
 
 	errorMessage string
 
+	spinner spinner.Model
+
 	height, width int
 
 	styles standingsStyles
@@ -90,14 +95,20 @@ func newStandingsPage(lolesportsClient LoLEsportClient) *standingsPage {
 		lolesportsClient: lolesportsClient,
 		styles:           newDefaultStandingsStyles(),
 		standingsCache:   map[string][]*lolesports.Standings{},
+		spinner:          spinner.New(spinner.WithSpinner(spinner.Monkey)),
 	}
 }
 
 func (p *standingsPage) Init() tea.Cmd {
-	return p.fetchCurrentSeasonSplits()
+	if p.state != standingsPageStateLoadingSplits {
+		return nil
+	}
+	return tea.Batch(p.spinner.Tick, p.fetchCurrentSeasonSplits())
 }
 
 func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -108,33 +119,31 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return p.handleSelection()
 		}
 
-	case tea.WindowSizeMsg:
-		if !p.hasLoadedSplits() {
-			return p, p.fetchCurrentSeasonSplits()
+	case spinner.TickMsg:
+		if p.isLoading() {
+			var cmd tea.Cmd
+			p.spinner, cmd = p.spinner.Update(msg)
+			cmds = append(cmds, cmd)
 		}
-		return p, nil
 
 	case fetchedStandingsMessage:
+		p.state = standingsPageStateStageSelection
+
 		splitID := p.splitOptions.SelectedItem().(splitItem).id
 		leagueID := p.leagueOptions.SelectedItem().(leagueItem).id
 		cacheKey := makeStandingsCacheKey(splitID, leagueID)
 		p.standingsCache[cacheKey] = msg.standings
 
 		p.stageOptions = newStageOptionsList(msg.standings, p.optionListWidth(), p.height)
-		return p, nil
 
 	case fetchedCurrentSeasonSplitsMessage:
+		p.state = standingsPageStateSplitSelection
+
 		p.splitOptions = newSplitOptionsList(msg.splits, p.optionListWidth(), p.height)
-		return p, nil
 
 	case fetchErrorMessage:
 		// TODO: add proper error UI handling
 		p.errorMessage = msg.err.Error()
-		return p, nil
-	}
-
-	if !p.hasLoadedSplits() {
-		return p, nil
 	}
 
 	var cmd tea.Cmd
@@ -148,7 +157,9 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case standingsPageStateShowStandings:
 		p.standings, cmd = p.standings.Update(msg)
 	}
-	return p, cmd
+	cmds = append(cmds, cmd)
+
+	return p, tea.Batch(cmds...)
 }
 
 func (p *standingsPage) View() string {
@@ -169,11 +180,17 @@ func (p *standingsPage) viewSelection() string {
 		stageOptionsView  string
 	)
 	switch p.state {
+	case standingsPageStateLoadingSplits:
+		splitOptionsView = style.Render(p.viewSpinner())
 	case standingsPageStateSplitSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
 	case standingsPageStateLeagueSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
+	case standingsPageStateLoadingStages:
+		splitOptionsView = style.Render(p.splitOptions.View())
+		leagueOptionsView = style.Render(p.leagueOptions.View())
+		stageOptionsView = style.Render(p.viewSpinner())
 	case standingsPageStateStageSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
@@ -190,9 +207,18 @@ func (p *standingsPage) viewSelection() string {
 	return p.styles.doc.Render(allOptionLists)
 }
 
+func (p *standingsPage) viewSpinner() string {
+	return p.spinner.View() + " Wukong is preparing your data…"
+}
+
 func (p *standingsPage) SetSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
+}
+
+func (p *standingsPage) isLoading() bool {
+	return p.state == standingsPageStateLoadingSplits ||
+		p.state == standingsPageStateLoadingStages
 }
 
 func (p *standingsPage) handleSelection() (tea.Model, tea.Cmd) {
@@ -223,18 +249,18 @@ func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
 }
 
 func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
-	p.state = standingsPageStateStageSelection
-
 	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
 	selectedLeague := p.leagueOptions.SelectedItem().(leagueItem)
 	cacheKey := makeStandingsCacheKey(selectedSplit.id, selectedLeague.id)
 	if standings, ok := p.standingsCache[cacheKey]; ok {
+		p.state = standingsPageStateStageSelection
 		p.stageOptions = newStageOptionsList(standings, p.optionListWidth(), p.height)
 		return p, nil
 	}
 
+	p.state = standingsPageStateLoadingStages
 	tournamentIDs := listTournamentIDsForLeague(selectedSplit.tournaments, selectedLeague.id)
-	return p, p.fetchStandings(tournamentIDs)
+	return p, tea.Batch(p.spinner.Tick, p.fetchStandings(tournamentIDs))
 }
 
 func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
@@ -266,10 +292,6 @@ func (p *standingsPage) goToPreviousStep() {
 		p.leagueOptions = list.Model{}
 		p.stageOptions = list.Model{}
 	}
-}
-
-func (p *standingsPage) hasLoadedSplits() bool {
-	return len(p.splitOptions.Items()) > 0
 }
 
 func (p *standingsPage) optionListWidth() int {

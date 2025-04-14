@@ -10,8 +10,8 @@ import (
 type stageType string
 
 const (
-	stageTypeGroups  = "GROUPS"
-	stageTypeBracket = "BRACKET"
+	stageTypeGroups  stageType = "GROUPS"
+	stageTypeBracket stageType = "BRACKET"
 )
 
 type stageItem struct {

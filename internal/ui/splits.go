@@ -12,6 +12,42 @@ import (
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
+func newSplitOptionsList(splits []*lolesports.Split, width, height int) list.Model {
+	var (
+		items       = make([]list.Item, len(splits))
+		cursorIndex int
+	)
+	for i, split := range splits {
+		item := splitItem{
+			id:          split.ID,
+			name:        split.Name,
+			splitType:   splitType(split.Region),
+			tournaments: split.Tournaments,
+			startTime:   split.StartTime,
+			endTime:     split.EndTime,
+		}
+		items[i] = item
+
+		if timeutils.IsCurrentTimeBetween(split.StartTime, split.EndTime) {
+			cursorIndex = i
+		}
+	}
+
+	l := list.New(items, newSplitItemDelegate(), width, height)
+	l.Select(cursorIndex)
+	l.Title = "EVENTS"
+	l.Styles.Title = lipgloss.NewStyle().
+		Padding(0, 1).
+		Foreground(white).
+		Background(charcoal).
+		Bold(true)
+	l.SetShowHelp(false)
+	l.SetShowPagination(false)
+	l.SetShowStatusBar(false)
+
+	return l
+}
+
 type splitType string
 
 const (
@@ -20,11 +56,11 @@ const (
 )
 
 type splitItem struct {
-	id     string
-	name   string
-	region splitType
+	id        string
+	name      string
+	splitType splitType
 
-	// TODO: Maybe move somewhere else
+	// TODO: Maybe move somewhere else?
 	startTime   time.Time
 	endTime     time.Time
 	tournaments []*lolesports.Tournament
@@ -39,7 +75,7 @@ func (i splitItem) Title() string {
 }
 
 func (i splitItem) Description() string {
-	return string(i.region) + " EVENT"
+	return string(i.splitType) + " EVENT"
 }
 
 type splitItemStyles struct {
@@ -116,6 +152,10 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	}
 	title, desc := i.Title(), i.Description()
 
+	if m.Width() <= 0 {
+		return
+	}
+
 	var (
 		titleStyle, descStyle = d.styles.normalTitle, d.styles.normalDescription
 
@@ -141,40 +181,4 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	}
 
 	fmt.Fprintf(w, "%s\n%s", titleStyle.Render(title), descStyle.Render(desc))
-}
-
-func newSplitOptionsList(splits []*lolesports.Split, width, height int) list.Model {
-	var (
-		items       = make([]list.Item, len(splits))
-		cursorIndex int
-	)
-	for i, split := range splits {
-		item := splitItem{
-			id:          split.ID,
-			name:        split.Name,
-			region:      splitType(split.Region),
-			tournaments: split.Tournaments,
-			startTime:   split.StartTime,
-			endTime:     split.EndTime,
-		}
-		items[i] = item
-
-		if timeutils.IsCurrentTimeBetween(split.StartTime, split.EndTime) {
-			cursorIndex = i
-		}
-	}
-
-	l := list.New(items, newSplitItemDelegate(), width, height)
-	l.Select(cursorIndex)
-	l.Title = "EVENTS"
-	l.Styles.Title = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(white).
-		Background(charcoal).
-		Bold(true)
-	l.SetShowHelp(false)
-	l.SetShowPagination(false)
-	l.SetShowStatusBar(false)
-
-	return l
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
@@ -89,6 +90,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l := list.New(items, newMatchItemDelegate(), width, height)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
+	l.SetSpinner(spinner.MiniDot)
 
 	i := slices.IndexFunc(items, func(item list.Item) bool {
 		return timeutils.IsToday(item.(matchItem).startTime)
