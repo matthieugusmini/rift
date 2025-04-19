@@ -82,47 +82,51 @@ type splitItemStyles struct {
 	normalTitle       lipgloss.Style
 	normalDescription lipgloss.Style
 
-	upcomingEventNormalTitle       lipgloss.Style
-	upcomingEventNormalDescription lipgloss.Style
+	upcomingNormalTitle       lipgloss.Style
+	upcomingNormalDescription lipgloss.Style
 
-	selectedTitle       lipgloss.Style
-	selectedDescription lipgloss.Style
+	lastNormalDescription lipgloss.Style
+
+	selectedTitle lipgloss.Style
 }
 
 func newSplitItemStyles() (s splitItemStyles) {
 	baseTitleStyle := lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
-		Bold(true)
-
-	baseDescriptionStyle := lipgloss.NewStyle().
-		Padding(0, 0, 0, 2).
-		Border(lipgloss.ThickBorder(), false, false, false, true).
+		Foreground(white).
 		Bold(true)
 
 	s.normalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		Foreground(white)
+		BorderForeground(white)
 
-	s.normalDescription = baseDescriptionStyle.
-		Foreground(gray)
-
-	s.upcomingEventNormalTitle = baseTitleStyle.
+	s.upcomingNormalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◯"}).
-		BorderForeground(charcoal).
-		Foreground(white)
-
-	s.upcomingEventNormalDescription = baseDescriptionStyle.
-		BorderForeground(charcoal).
-		Foreground(gray)
+		BorderForeground(charcoal)
 
 	s.selectedTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		BorderForeground(red).
-		Foreground(white)
+		BorderForeground(red)
 
-	s.selectedDescription = baseDescriptionStyle.
-		Foreground(gray)
+	baseDescStyle := lipgloss.NewStyle().
+		Foreground(gray).
+		Bold(true)
+
+	s.normalDescription = baseDescStyle.
+		Padding(0, 0, 0, 2).
+		BorderLeft(true).
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(white)
+
+	s.upcomingNormalDescription = baseDescStyle.
+		Padding(0, 0, 0, 2).
+		BorderLeft(true).
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(charcoal)
+
+	s.lastNormalDescription = baseDescStyle.
+		Padding(0, 0, 0, 3)
 
 	return s
 }
@@ -152,10 +156,6 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	}
 	title, desc := i.Title(), i.Description()
 
-	if m.Width() <= 0 {
-		return
-	}
-
 	var (
 		titleStyle, descStyle = d.styles.normalTitle, d.styles.normalDescription
 
@@ -163,21 +163,27 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		isUpcoming = i.startTime.After(now)
 		isCurrent  = timeutils.IsCurrentTimeBetween(i.startTime, i.endTime)
 		isSelected = index == m.Index()
+		isLast     = index == len(m.Items())-1
 	)
-	if isSelected {
+	switch {
+	case isSelected:
 		titleStyle = d.styles.selectedTitle
-		if isCurrent || isUpcoming {
-			descStyle = d.styles.upcomingEventNormalDescription
-		} else {
-			descStyle = d.styles.selectedDescription
+		if isLast {
+			descStyle = d.styles.lastNormalDescription
+		} else if isCurrent || isUpcoming {
+			descStyle = d.styles.upcomingNormalDescription
 		}
-	} else {
-		if isCurrent {
-			descStyle = d.styles.upcomingEventNormalDescription
-		} else if isUpcoming {
-			titleStyle = d.styles.upcomingEventNormalTitle
-			descStyle = d.styles.upcomingEventNormalDescription
-		}
+
+	case isLast:
+		titleStyle = d.styles.upcomingNormalTitle
+		descStyle = d.styles.lastNormalDescription
+
+	case isCurrent:
+		descStyle = d.styles.upcomingNormalDescription
+
+	case isUpcoming:
+		titleStyle = d.styles.upcomingNormalTitle
+		descStyle = d.styles.upcomingNormalDescription
 	}
 
 	fmt.Fprintf(w, "%s\n%s", titleStyle.Render(title), descStyle.Render(desc))
