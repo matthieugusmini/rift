@@ -73,10 +73,6 @@ func (d leagueItemDelegate) Render(w io.Writer, m list.Model, index int, item li
 		return
 	}
 
-	if m.Width() <= 0 {
-		return
-	}
-
 	isSelected := index == m.Index()
 	if isSelected {
 		title = d.styles.selectedTitle.Render(title)

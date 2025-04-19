@@ -36,13 +36,18 @@ type paginationState struct {
 	loadingNextPage bool
 }
 
+func (s paginationState) hasNextPage() bool { return s.nextPageToken != "" }
+
+func (s paginationState) hasPrevPage() bool { return s.prevPageToken != "" }
+
 type schedulePage struct {
-	lolesportsClient LoLEsportClient
+	lolesportsClient LoLEsportsClient
 
-	paginationState paginationState
+	events          []lolesports.Event
 	matches         list.Model
+	paginationState paginationState
 
-	errorMessage string
+	err error
 
 	spinner spinner.Model
 	loaded  bool
@@ -51,7 +56,7 @@ type schedulePage struct {
 	styles        schedulePageStyles
 }
 
-func newSchedulePage(lolesportsClient LoLEsportClient) *schedulePage {
+func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
 	return &schedulePage{
 		lolesportsClient: lolesportsClient,
 		spinner:          spinner.New(spinner.WithSpinner(spinner.Monkey)),
@@ -60,7 +65,7 @@ func newSchedulePage(lolesportsClient LoLEsportClient) *schedulePage {
 }
 
 func (p *schedulePage) Init() tea.Cmd {
-	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionNone))
+	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 
 func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -70,10 +75,9 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// The size of this page should be managed by the parent model to ensure
 	// that the page remains agnostic to its parent's layout.
 	case tea.WindowSizeMsg:
-		if p.matches.Items() == nil {
-			return p, nil
+		if p.matches.Items() != nil {
+			p.matches.SetSize(p.width, p.height)
 		}
-		p.matches.SetSize(p.width, p.height)
 
 	case spinner.TickMsg:
 		if !p.loaded {
@@ -86,8 +90,7 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.handleFetchedEvents(msg)
 
 	case fetchErrorMessage:
-		p.errorMessage = msg.err.Error()
-		return p, nil
+		p.err = msg.err
 	}
 
 	if !p.loaded {
@@ -116,8 +119,8 @@ func (p *schedulePage) View() string {
 	if !p.loaded {
 		return p.viewSpinner()
 	}
-	if p.errorMessage != "" {
-		return p.errorView()
+	if p.err != nil {
+		return p.viewError()
 	}
 	return p.styles.doc.Render(p.matches.View())
 }
@@ -127,11 +130,13 @@ func (p *schedulePage) viewSpinner() string {
 		Width(p.width).
 		Height(p.height).
 		Align(lipgloss.Center, lipgloss.Center)
-	return style.Render(p.spinner.View() + " Wukong is looking for the schedule " + p.spinner.View())
+	return style.Render(
+		p.spinner.View() + " Wukong is looking for the schedule",
+	)
 }
 
-func (p *schedulePage) errorView() string {
-	return p.styles.doc.Render(p.errorMessage)
+func (p *schedulePage) viewError() string {
+	return p.styles.doc.Render(p.err.Error())
 }
 
 func (p *schedulePage) SetSize(width, height int) {
@@ -140,15 +145,11 @@ func (p *schedulePage) SetSize(width, height int) {
 }
 
 func (p *schedulePage) shouldFetchNextPage() bool {
-	return p.onLastItem() &&
-		p.paginationState.nextPageToken != "" &&
-		!p.paginationState.loadingNextPage
+	return p.onLastItem() && p.paginationState.hasNextPage() && !p.paginationState.loadingNextPage
 }
 
 func (p *schedulePage) shouldFetchPreviousPage() bool {
-	return p.onFirstItem() &&
-		p.paginationState.prevPageToken != "" &&
-		!p.paginationState.loadingPrevPage
+	return p.onFirstItem() && p.paginationState.hasPrevPage() && !p.paginationState.loadingPrevPage
 }
 
 func (p *schedulePage) onLastItem() bool {
@@ -161,16 +162,19 @@ func (p *schedulePage) onFirstItem() bool {
 
 func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 	switch msg.pageDirection {
-	case pageDirectionNone:
+	case pageDirectionInitial:
 		p.loaded = true
-		p.matches = newMatchList(msg.events, p.width, p.height)
+		p.events = msg.events
+		p.matches = newMatchList(p.events, p.width, p.height)
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
+
 	case pageDirectionPrev:
 		p.matches.StopSpinner()
 		p.prependMatches(msg.events)
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.loadingPrevPage = false
+
 	case pageDirectionNext:
 		p.matches.StopSpinner()
 		p.appendMatches(msg.events)
@@ -180,30 +184,32 @@ func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 }
 
 func (p *schedulePage) prependMatches(events []lolesports.Event) {
-	items := newMatchListItems(events)
-	p.matches.SetItems(append(items, p.matches.Items()...))
+	p.events = append(events, p.events...)
+	items := newMatchListItems(p.events)
+	p.matches.SetItems(items)
 	// We should keep the cursor on the previously selected index.
 	p.matches.Select(p.matches.Index() + len(items))
 }
 
 func (p *schedulePage) appendMatches(events []lolesports.Event) {
+	p.events = append(p.events, events...)
 	items := newMatchListItems(events)
 	p.matches.SetItems(append(p.matches.Items(), items...))
 }
 
 func (p *schedulePage) updateMatchListTitle() {
-	if item, ok := p.matches.SelectedItem().(matchItem); ok {
-		title := formatDateTitle(item.startTime)
-		// TODO: Search why -3 is needed here
-		p.matches.Title = lipgloss.PlaceHorizontal(p.width-3, lipgloss.Center, title)
-		p.matches.Styles.Title = p.styles.title
-	}
+	selectedIndex := p.matches.Index()
+	selectedEvent := p.events[selectedIndex]
+	title := formatDateTitle(selectedEvent.StartTime)
+	// TODO: Search why -3 is needed here
+	p.matches.Title = lipgloss.PlaceHorizontal(p.width-3, lipgloss.Center, title)
+	p.matches.Styles.Title = p.styles.title
 }
 
 type pageDirection int
 
 const (
-	pageDirectionNone pageDirection = iota
+	pageDirectionInitial pageDirection = iota
 	pageDirectionNext
 	pageDirectionPrev
 )
@@ -243,7 +249,7 @@ func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 
 		var prevPageToken, nextPageToken string
 		switch pageDirection {
-		case pageDirectionNone:
+		case pageDirectionInitial:
 			prevPageToken = schedule.Pages.Older
 			nextPageToken = schedule.Pages.Newer
 		case pageDirectionNext:

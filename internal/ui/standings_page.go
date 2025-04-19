@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -64,10 +63,13 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 }
 
 type standingsPage struct {
-	lolesportsClient LoLEsportClient
+	lolesportsClient LoLEsportsClient
 
 	state standingsPageState
 
+	splits         []*lolesports.Split
+	leagues        []*lolesports.League
+	stages         []lolesports.Stage
 	standingsCache map[string][]*lolesports.Standings
 
 	// Selection phase
@@ -76,12 +78,9 @@ type standingsPage struct {
 	stageOptions  list.Model
 
 	// Standings page
-	splitName string
-	startDate time.Time
-	endDate   time.Time
 	standings viewport.Model
 
-	errorMessage string
+	err error
 
 	spinner spinner.Model
 
@@ -90,7 +89,7 @@ type standingsPage struct {
 	styles standingsStyles
 }
 
-func newStandingsPage(lolesportsClient LoLEsportClient) *standingsPage {
+func newStandingsPage(lolesportsClient LoLEsportsClient) *standingsPage {
 	return &standingsPage{
 		lolesportsClient: lolesportsClient,
 		styles:           newDefaultStandingsStyles(),
@@ -128,22 +127,17 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchedStandingsMessage:
 		p.state = standingsPageStateStageSelection
-
-		splitID := p.splitOptions.SelectedItem().(splitItem).id
-		leagueID := p.leagueOptions.SelectedItem().(leagueItem).id
-		cacheKey := makeStandingsCacheKey(splitID, leagueID)
-		p.standingsCache[cacheKey] = msg.standings
-
-		p.stageOptions = newStageOptionsList(msg.standings, p.optionListWidth(), p.height)
+		p.setStandingsInCache(msg.standings)
+		p.stages = listStagesFromStandings(msg.standings)
+		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height)
 
 	case fetchedCurrentSeasonSplitsMessage:
 		p.state = standingsPageStateSplitSelection
-
-		p.splitOptions = newSplitOptionsList(msg.splits, p.optionListWidth(), p.height)
+		p.splits = msg.splits
+		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.height)
 
 	case fetchErrorMessage:
-		// TODO: add proper error UI handling
-		p.errorMessage = msg.err.Error()
+		p.err = msg.err
 	}
 
 	var cmd tea.Cmd
@@ -163,6 +157,9 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *standingsPage) View() string {
+	if p.err != nil {
+		return p.err.Error()
+	}
 	if p.state == standingsPageStateShowStandings {
 		return p.styles.tableBorder.Render(p.standings.View())
 	}
@@ -182,15 +179,19 @@ func (p *standingsPage) viewSelection() string {
 	switch p.state {
 	case standingsPageStateLoadingSplits:
 		splitOptionsView = style.Render(p.viewSpinner())
+
 	case standingsPageStateSplitSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
+
 	case standingsPageStateLeagueSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
+
 	case standingsPageStateLoadingStages:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
 		stageOptionsView = style.Render(p.viewSpinner())
+
 	case standingsPageStateStageSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
@@ -237,46 +238,51 @@ func (p *standingsPage) handleSelection() (tea.Model, tea.Cmd) {
 func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
 	p.state = standingsPageStateLeagueSelection
 
-	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
-	leagues := listLeaguesFromTournaments(selectedSplit.tournaments)
-	p.leagueOptions = newLeagueOptionsList(leagues, p.optionListWidth(), p.height)
-
-	p.splitName = selectedSplit.name
-	p.startDate = selectedSplit.startTime
-	p.endDate = selectedSplit.endTime
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	p.leagues = listLeaguesFromTournaments(selectedSplit.Tournaments)
+	p.leagueOptions = newLeagueOptionsList(p.leagues, p.optionListWidth(), p.height)
 
 	return p, nil
 }
 
 func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
-	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
-	selectedLeague := p.leagueOptions.SelectedItem().(leagueItem)
-	cacheKey := makeStandingsCacheKey(selectedSplit.id, selectedLeague.id)
-	if standings, ok := p.standingsCache[cacheKey]; ok {
+	if standings, ok := p.standingsFromCache(); ok {
 		p.state = standingsPageStateStageSelection
-		p.stageOptions = newStageOptionsList(standings, p.optionListWidth(), p.height)
+		p.stages = listStagesFromStandings(standings)
+		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height)
 		return p, nil
 	}
 
 	p.state = standingsPageStateLoadingStages
-	tournamentIDs := listTournamentIDsForLeague(selectedSplit.tournaments, selectedLeague.id)
+
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	selectedLeague := p.leagues[p.leagueOptions.Index()]
+	tournamentIDs := listTournamentIDsForLeague(selectedSplit.Tournaments, selectedLeague.ID)
 	return p, tea.Batch(p.spinner.Tick, p.fetchStandings(tournamentIDs))
 }
 
 func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 	p.state = standingsPageStateShowStandings
 
-	selectedSplit := p.splitOptions.SelectedItem().(splitItem)
-	selectedLeague := p.leagueOptions.SelectedItem().(leagueItem)
-	cacheKey := makeStandingsCacheKey(selectedSplit.id, selectedLeague.id)
-	standings := p.standingsCache[cacheKey]
-
-	selectedStage := p.stageOptions.SelectedItem().(stageItem)
-
-	stage := findStageByID(standings, selectedStage.id)
-	p.standings = newStandingsViewport(stage, p.width, p.height)
+	selectedStage := p.stages[p.stageOptions.Index()]
+	p.standings = newStandingsViewport(selectedStage, p.width, p.height)
 
 	return p, nil
+}
+
+func (p *standingsPage) setStandingsInCache(standings []*lolesports.Standings) {
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	selectedLeague := p.leagues[p.leagueOptions.Index()]
+	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
+	p.standingsCache[cacheKey] = standings
+}
+
+func (p *standingsPage) standingsFromCache() ([]*lolesports.Standings, bool) {
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	selectedLeague := p.leagues[p.leagueOptions.Index()]
+	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
+	standings, ok := p.standingsCache[cacheKey]
+	return standings, ok
 }
 
 func (p *standingsPage) goToPreviousStep() {
@@ -284,9 +290,11 @@ func (p *standingsPage) goToPreviousStep() {
 	case standingsPageStateLeagueSelection:
 		p.state = standingsPageStateSplitSelection
 		p.leagueOptions = list.Model{}
+
 	case standingsPageStateStageSelection:
 		p.state = standingsPageStateLeagueSelection
 		p.stageOptions = list.Model{}
+
 	case standingsPageStateShowStandings:
 		p.state = standingsPageStateSplitSelection
 		p.leagueOptions = list.Model{}
@@ -350,15 +358,14 @@ func listTournamentIDsForLeague(tournaments []*lolesports.Tournament, leagueID s
 	return tournamentIDs
 }
 
-func findStageByID(standings []*lolesports.Standings, stageID string) lolesports.Stage {
+func listStagesFromStandings(standings []*lolesports.Standings) []lolesports.Stage {
+	var stages []lolesports.Stage
 	for _, standing := range standings {
-		for _, s := range standing.Stages {
-			if s.ID == stageID {
-				return s
-			}
+		for _, stage := range standing.Stages {
+			stages = append(stages, stage)
 		}
 	}
-	return lolesports.Stage{}
+	return stages
 }
 
 func makeStandingsCacheKey(splitID, leagueID string) string {

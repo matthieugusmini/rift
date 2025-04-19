@@ -79,15 +79,13 @@ func (i splitItem) Description() string {
 }
 
 type splitItemStyles struct {
-	normalTitle       lipgloss.Style
-	normalDescription lipgloss.Style
+	normalTitle         lipgloss.Style
+	upcomingNormalTitle lipgloss.Style
+	selectedTitle       lipgloss.Style
 
-	upcomingNormalTitle       lipgloss.Style
+	normalDescription         lipgloss.Style
 	upcomingNormalDescription lipgloss.Style
-
-	lastNormalDescription lipgloss.Style
-
-	selectedTitle lipgloss.Style
+	lastNormalDescription     lipgloss.Style
 }
 
 func newSplitItemStyles() (s splitItemStyles) {

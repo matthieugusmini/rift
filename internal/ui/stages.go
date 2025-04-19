@@ -26,24 +26,15 @@ func (i stageItem) Description() string { return string(i.stageType) }
 
 func (i stageItem) FilterValue() string { return i.name }
 
-func newStageOptionsList(standings []*lolesports.Standings, width, height int) list.Model {
-	var stageItems []list.Item
-	for _, standing := range standings {
-		for _, stage := range standing.Stages {
-			var stageType stageType
-			if stage.Sections != nil && len(stage.Sections[0].Rankings) == 0 {
-				stageType = stageTypeBracket
-			} else {
-				stageType = stageTypeGroups
-			}
-
-			item := stageItem{
-				id:        stage.ID,
-				name:      stage.Name,
-				stageType: stageType,
-			}
-			stageItems = append(stageItems, item)
+func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Model {
+	stageItems := make([]list.Item, len(stages))
+	for i, stage := range stages {
+		item := stageItem{
+			id:        stage.ID,
+			name:      stage.Name,
+			stageType: getStageType(stage),
 		}
+		stageItems[i] = item
 	}
 
 	delegate := list.NewDefaultDelegate()
@@ -71,4 +62,12 @@ func newStageOptionsList(standings []*lolesports.Standings, width, height int) l
 	l.SetSpinner(spinner.Meter)
 
 	return l
+}
+
+func getStageType(stage lolesports.Stage) stageType {
+	if len(stage.Sections) > 0 && len(stage.Sections[0].Rankings) == 0 {
+		return stageTypeBracket
+	} else {
+		return stageTypeGroups
+	}
 }
