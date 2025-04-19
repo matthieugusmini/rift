@@ -39,21 +39,21 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 
 	s.stageName = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.tournamentState = lipgloss.NewStyle().
 		Padding(0, 1).
 		Foreground(lipgloss.Color("#000000")).
-		Background(white)
+		Background(textPrimaryColor)
 
 	s.tournamentPeriod = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white)
+		Foreground(textPrimaryColor)
 
 	s.tournamentType = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white)
+		Foreground(textPrimaryColor)
 
 	s.tableBorder = lipgloss.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).

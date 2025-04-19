@@ -34,14 +34,14 @@ type leagueItemStyles struct {
 func newDefaultLeageItemStyles() (s leagueItemStyles) {
 	s.normalTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Faint(true)
 
 	s.selectedTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 1).
 		Border(lipgloss.ThickBorder(), false, false, false, true).
-		BorderForeground(white).
-		Foreground(white).
+		BorderForeground(textPrimaryColor).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	return s
@@ -96,8 +96,8 @@ func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.M
 	// TODO: Where should we define this style?
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white).
-		Background(charcoal).
+		Foreground(textPrimaryColor).
+		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)

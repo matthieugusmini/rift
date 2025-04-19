@@ -15,7 +15,6 @@ const (
 )
 
 type stageItem struct {
-	id        string
 	name      string
 	stageType stageType
 }
@@ -30,7 +29,6 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 	stageItems := make([]list.Item, len(stages))
 	for i, stage := range stages {
 		item := stageItem{
-			id:        stage.ID,
 			name:      stage.Name,
 			stageType: getStageType(stage),
 		}
@@ -39,22 +37,22 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(white)
+		BorderForeground(textPrimaryColor)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(white)
+		BorderForeground(textPrimaryColor)
 
 	l := list.New(stageItems, delegate, width, height)
 	l.Title = "STAGES"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white).
-		Background(charcoal).
+		Foreground(textPrimaryColor).
+		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)

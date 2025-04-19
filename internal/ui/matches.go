@@ -125,27 +125,27 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 	itemStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 
 	s.normalItem = itemStyle.
-		Foreground(gray).
-		BorderForeground(gray)
+		Foreground(textSecondaryColor).
+		BorderForeground(textPrimaryColor)
 
 	s.selectedItem = itemStyle.
-		Foreground(gold).
-		BorderForeground(gold)
+		Foreground(selectedBorderColor).
+		BorderForeground(selectedBorderColor)
 
 	// Title
 	s.title = lipgloss.NewStyle().Padding(0, 1)
 
 	s.startTime = lipgloss.NewStyle().
 		Align(lipgloss.Left).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.teamName = lipgloss.NewStyle().
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.separator = lipgloss.NewStyle().
-		Foreground(gray)
+		Foreground(textSecondaryColor)
 
 	s.upcomingMatchScore = lipgloss.NewStyle().
 		Align(lipgloss.Center)
@@ -158,16 +158,16 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 
 	s.flags = lipgloss.NewStyle().
 		Align(lipgloss.Left).
-		Foreground(gray)
+		Foreground(textSecondaryColor) // for separator
 
 	s.leagueAndBlockName = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(gray).
+		Foreground(textSecondaryColor).
 		Bold(true)
 
 	s.strategy = lipgloss.NewStyle().
 		Align(lipgloss.Right).
-		Foreground(gray).
+		Foreground(textSecondaryColor).
 		Bold(true)
 
 	return s

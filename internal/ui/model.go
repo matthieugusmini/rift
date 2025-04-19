@@ -52,19 +52,19 @@ type modelStyles struct {
 func newDefaultModelStyles() (s modelStyles) {
 	s.logo = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.normalNavItem = lipgloss.NewStyle().
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Faint(true)
 
 	s.selectedNavItem = lipgloss.NewStyle().
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.separator = lipgloss.NewStyle().
-		Foreground(gray).
+		Foreground(textSecondaryColor).
 		Bold(true)
 
 	return s

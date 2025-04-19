@@ -21,8 +21,8 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.title = lipgloss.NewStyle().
-		Foreground(white).
-		Background(charcoal).
+		Foreground(textPrimaryColor).
+		Background(secondaryBackgroundColor).
 		Bold(true)
 
 	return s

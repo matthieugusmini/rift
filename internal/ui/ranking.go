@@ -14,9 +14,7 @@ import (
 )
 
 func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Model {
-	var (
-		standingsTables []table.Model
-	)
+	var standingsTables []table.Model
 	for _, section := range stage.Sections {
 		standingsTable := newStandingsTable(section.Rankings, width-2)
 		standingsTables = append(standingsTables, standingsTable)
@@ -30,8 +28,8 @@ func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Mo
 			Align(lipgloss.Center).
 			Margin(1, 2).
 			Bold(true).
-			Background(white).
-			Foreground(black).
+			Background(secondaryBackgroundColor).
+			Foreground(textPrimaryColor).
 			Render(stage.Sections[i].Name)
 		sb.WriteString("\n")
 		sb.WriteString(title)
@@ -73,16 +71,16 @@ func newStandingsTable(rankings []lolesports.Ranking, width int) table.Model {
 	}
 
 	tableStyles := table.DefaultStyles()
-	tableStyles.Selected = tableStyles.Selected.Foreground(gold)
+	tableStyles.Selected = tableStyles.Selected.Foreground(selectedBorderColor)
 	tableStyles.Cell = tableStyles.Cell.
 		Width(columnWidth).
 		Align(lipgloss.Center).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 	tableStyles.Header = tableStyles.Header.
 		Align(lipgloss.Center).
 		Width(columnWidth).
-		Background(charcoal).
+		Background(borderSecondaryColor).
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		BorderBottom(true).

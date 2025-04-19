@@ -38,8 +38,8 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 	l.Title = "EVENTS"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(white).
-		Background(charcoal).
+		Foreground(textPrimaryColor).
+		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
@@ -92,36 +92,36 @@ func newSplitItemStyles() (s splitItemStyles) {
 	baseTitleStyle := lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
-		Foreground(white).
+		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.normalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		BorderForeground(white)
+		BorderForeground(textPrimaryColor)
 
 	s.upcomingNormalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◯"}).
-		BorderForeground(charcoal)
+		BorderForeground(borderSecondaryColor)
 
 	s.selectedTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
 		BorderForeground(red)
 
 	baseDescStyle := lipgloss.NewStyle().
-		Foreground(gray).
+		Foreground(textSecondaryColor).
 		Bold(true)
 
 	s.normalDescription = baseDescStyle.
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(white)
+		BorderForeground(textPrimaryColor)
 
 	s.upcomingNormalDescription = baseDescStyle.
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(charcoal)
+		BorderForeground(borderSecondaryColor)
 
 	s.lastNormalDescription = baseDescStyle.
 		Padding(0, 0, 0, 3)

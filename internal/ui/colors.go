@@ -3,10 +3,26 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	black    = lipgloss.Color("#000000")
-	white    = lipgloss.Color("#FFFFFF")
-	gray     = lipgloss.Color("#777777")
-	charcoal = lipgloss.Color("#333333")
-	gold     = lipgloss.Color("#FFD700")
-	red      = lipgloss.Color("#FF0000")
+	white         = "#ffffff"
+	eerieBlack    = "#1f1f1f"
+	lightGray     = "#848482"
+	sonicSilver   = "#757575"
+	gold          = "#ffd700"
+	darkGoldenrod = "#f01879"
+	charcoal      = "#36454"
+	dimGrey       = "#696969"
+	ivory         = "#fffff0"
+	darkVanilla   = "#d1bea8"
+	imperialRed   = "#ed2939"
+	crimson       = "#dc143c"
+)
+
+var (
+	textPrimaryColor         = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
+	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: lightGray}
+	borderPrimaryColor       = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
+	borderSecondaryColor     = lipgloss.AdaptiveColor{Light: lightGray, Dark: dimGrey}
+	selectedBorderColor      = lipgloss.AdaptiveColor{Light: darkGoldenrod, Dark: gold}
+	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: dimGrey}
+	red                      = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
 )
