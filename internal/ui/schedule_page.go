@@ -188,13 +188,13 @@ func (p *schedulePage) prependMatches(events []lolesports.Event) {
 	items := newMatchListItems(p.events)
 	p.matches.SetItems(items)
 	// We should keep the cursor on the previously selected index.
-	p.matches.Select(p.matches.Index() + len(items))
+	p.matches.Select(p.matches.Index() + len(events))
 }
 
 func (p *schedulePage) appendMatches(events []lolesports.Event) {
 	p.events = append(p.events, events...)
-	items := newMatchListItems(events)
-	p.matches.SetItems(append(p.matches.Items(), items...))
+	items := newMatchListItems(p.events)
+	p.matches.SetItems(items)
 }
 
 func (p *schedulePage) updateMatchListTitle() {
