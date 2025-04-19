@@ -37,9 +37,9 @@ var stateByNavItemLabel = map[string]state{
 }
 
 type LoLEsportsClient interface {
-	GetSchedule(ctx context.Context, opts *lolesports.GetScheduleOptions) (*lolesports.Schedule, error)
-	GetStandings(ctx context.Context, tournamentIDs []string) ([]*lolesports.Standings, error)
-	GetCurrentSeasonSplits(ctx context.Context) ([]*lolesports.Split, error)
+	GetSchedule(ctx context.Context, opts *lolesports.GetScheduleOptions) (lolesports.Schedule, error)
+	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
+	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
 
 type modelStyles struct {

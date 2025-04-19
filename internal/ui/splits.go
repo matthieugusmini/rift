@@ -12,19 +12,19 @@ import (
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
-func newSplitOptionsList(splits []*lolesports.Split, width, height int) list.Model {
+func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Model {
 	var (
 		items       = make([]list.Item, len(splits))
 		cursorIndex int
 	)
 	for i, split := range splits {
 		item := splitItem{
-			id:          split.ID,
-			name:        split.Name,
-			splitType:   splitType(split.Region),
-			tournaments: split.Tournaments,
-			startTime:   split.StartTime,
-			endTime:     split.EndTime,
+			// id:          split.ID,
+			name:      split.Name,
+			splitType: splitType(split.Region),
+			// tournaments: split.Tournaments,
+			startTime: split.StartTime,
+			endTime:   split.EndTime,
 		}
 		items[i] = item
 
@@ -56,14 +56,14 @@ const (
 )
 
 type splitItem struct {
-	id        string
+	// id        string
 	name      string
 	splitType splitType
 
 	// TODO: Maybe move somewhere else?
-	startTime   time.Time
-	endTime     time.Time
-	tournaments []*lolesports.Tournament
+	startTime time.Time
+	endTime   time.Time
+	// tournaments []*lolesports.Tournament
 }
 
 func (i splitItem) FilterValue() string {

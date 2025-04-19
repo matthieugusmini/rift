@@ -67,10 +67,10 @@ type standingsPage struct {
 
 	state standingsPageState
 
-	splits         []*lolesports.Split
-	leagues        []*lolesports.League
+	splits         []lolesports.Split
+	leagues        []lolesports.League
 	stages         []lolesports.Stage
-	standingsCache map[string][]*lolesports.Standings
+	standingsCache map[string][]lolesports.Standings
 
 	// Selection phase
 	splitOptions  list.Model
@@ -93,7 +93,7 @@ func newStandingsPage(lolesportsClient LoLEsportsClient) *standingsPage {
 	return &standingsPage{
 		lolesportsClient: lolesportsClient,
 		styles:           newDefaultStandingsStyles(),
-		standingsCache:   map[string][]*lolesports.Standings{},
+		standingsCache:   map[string][]lolesports.Standings{},
 		spinner:          spinner.New(spinner.WithSpinner(spinner.Monkey)),
 	}
 }
@@ -270,14 +270,14 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 	return p, nil
 }
 
-func (p *standingsPage) setStandingsInCache(standings []*lolesports.Standings) {
+func (p *standingsPage) setStandingsInCache(standings []lolesports.Standings) {
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	selectedLeague := p.leagues[p.leagueOptions.Index()]
 	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
 	p.standingsCache[cacheKey] = standings
 }
 
-func (p *standingsPage) standingsFromCache() ([]*lolesports.Standings, bool) {
+func (p *standingsPage) standingsFromCache() ([]lolesports.Standings, bool) {
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	selectedLeague := p.leagues[p.leagueOptions.Index()]
 	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
@@ -307,7 +307,7 @@ func (p *standingsPage) optionListWidth() int {
 }
 
 type fetchedStandingsMessage struct {
-	standings []*lolesports.Standings
+	standings []lolesports.Standings
 }
 
 func (p *standingsPage) fetchStandings(tournamentIDs []string) tea.Cmd {
@@ -321,7 +321,7 @@ func (p *standingsPage) fetchStandings(tournamentIDs []string) tea.Cmd {
 }
 
 type fetchedCurrentSeasonSplitsMessage struct {
-	splits []*lolesports.Split
+	splits []lolesports.Split
 }
 
 func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
@@ -334,21 +334,21 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	}
 }
 
-func listLeaguesFromTournaments(tournaments []*lolesports.Tournament) []*lolesports.League {
+func listLeaguesFromTournaments(tournaments []lolesports.Tournament) []lolesports.League {
 	var (
-		leagues     []*lolesports.League
+		leagues     []lolesports.League
 		seenLeagues = map[string]bool{}
 	)
 	for _, tournament := range tournaments {
 		if _, ok := seenLeagues[tournament.League.ID]; !ok {
-			leagues = append(leagues, &tournament.League)
+			leagues = append(leagues, tournament.League)
 			seenLeagues[tournament.League.ID] = true
 		}
 	}
 	return leagues
 }
 
-func listTournamentIDsForLeague(tournaments []*lolesports.Tournament, leagueID string) []string {
+func listTournamentIDsForLeague(tournaments []lolesports.Tournament, leagueID string) []string {
 	var tournamentIDs []string
 	for _, tournament := range tournaments {
 		if tournament.League.ID == leagueID {
@@ -358,7 +358,7 @@ func listTournamentIDsForLeague(tournaments []*lolesports.Tournament, leagueID s
 	return tournamentIDs
 }
 
-func listStagesFromStandings(standings []*lolesports.Standings) []lolesports.Stage {
+func listStagesFromStandings(standings []lolesports.Standings) []lolesports.Stage {
 	var stages []lolesports.Stage
 	for _, standing := range standings {
 		for _, stage := range standing.Stages {

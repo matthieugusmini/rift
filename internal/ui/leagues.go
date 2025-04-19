@@ -82,7 +82,7 @@ func (d leagueItemDelegate) Render(w io.Writer, m list.Model, index int, item li
 	fmt.Fprint(w, title)
 }
 
-func newLeagueOptionsList(leagues []*lolesports.League, width, height int) list.Model {
+func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.Model {
 	leagueItems := make([]list.Item, len(leagues))
 	for i, l := range leagues {
 		leagueItems[i] = leagueItem{

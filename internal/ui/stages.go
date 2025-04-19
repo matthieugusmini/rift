@@ -41,13 +41,14 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
 		Foreground(white).
 		Bold(true).
-		Border(lipgloss.ThickBorder(), false, false, false, true).
+		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(white)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
 		Foreground(white).
 		Bold(true).
-		Border(lipgloss.ThickBorder(), false, false, false, true).
+		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(white)
+
 	l := list.New(stageItems, delegate, width, height)
 	l.Title = "STAGES"
 	l.Styles.Title = lipgloss.NewStyle().
