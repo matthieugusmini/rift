@@ -82,7 +82,7 @@ type standingsPage struct {
 
 	err error
 
-	spinner spinner.Model
+	spinner *wukongSpinner
 
 	height, width int
 
@@ -94,7 +94,7 @@ func newStandingsPage(lolesportsClient LoLEsportsClient) *standingsPage {
 		lolesportsClient: lolesportsClient,
 		styles:           newDefaultStandingsStyles(),
 		standingsCache:   map[string][]lolesports.Standings{},
-		spinner:          spinner.New(spinner.WithSpinner(spinner.Monkey)),
+		spinner:          newWukongSpinner(),
 	}
 }
 
@@ -127,12 +127,14 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchedStandingsMessage:
 		p.state = standingsPageStateStageSelection
+		p.spinner.refreshQuote()
 		p.setStandingsInCache(msg.standings)
 		p.stages = listStagesFromStandings(msg.standings)
 		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height)
 
 	case fetchedCurrentSeasonSplitsMessage:
 		p.state = standingsPageStateSplitSelection
+		p.spinner.refreshQuote()
 		p.splits = msg.splits
 		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.height)
 
@@ -178,7 +180,7 @@ func (p *standingsPage) viewSelection() string {
 	)
 	switch p.state {
 	case standingsPageStateLoadingSplits:
-		splitOptionsView = style.Render(p.viewSpinner())
+		splitOptionsView = style.Render(p.spinner.View())
 
 	case standingsPageStateSplitSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
@@ -190,7 +192,7 @@ func (p *standingsPage) viewSelection() string {
 	case standingsPageStateLoadingStages:
 		splitOptionsView = style.Render(p.splitOptions.View())
 		leagueOptionsView = style.Render(p.leagueOptions.View())
-		stageOptionsView = style.Render(p.viewSpinner())
+		stageOptionsView = style.Render(p.spinner.View())
 
 	case standingsPageStateStageSelection:
 		splitOptionsView = style.Render(p.splitOptions.View())
@@ -206,10 +208,6 @@ func (p *standingsPage) viewSelection() string {
 	)
 
 	return p.styles.doc.Render(allOptionLists)
-}
-
-func (p *standingsPage) viewSpinner() string {
-	return p.spinner.View() + " Wukong is preparing your data…"
 }
 
 func (p *standingsPage) SetSize(width, height int) {

@@ -49,7 +49,7 @@ type schedulePage struct {
 
 	err error
 
-	spinner spinner.Model
+	spinner *wukongSpinner
 	loaded  bool
 
 	width, height int
@@ -59,7 +59,7 @@ type schedulePage struct {
 func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
 	return &schedulePage{
 		lolesportsClient: lolesportsClient,
-		spinner:          spinner.New(spinner.WithSpinner(spinner.Monkey)),
+		spinner:          newWukongSpinner(),
 		styles:           newDefaultSchedulePageStyles(),
 	}
 }
@@ -129,10 +129,9 @@ func (p *schedulePage) viewSpinner() string {
 	style := lipgloss.NewStyle().
 		Width(p.width).
 		Height(p.height).
-		Align(lipgloss.Center, lipgloss.Center)
-	return style.Render(
-		p.spinner.View() + " Wukong is looking for the schedule",
-	)
+		Align(lipgloss.Center, lipgloss.Center).
+		Italic(true)
+	return style.Render(p.spinner.View())
 }
 
 func (p *schedulePage) viewError() string {

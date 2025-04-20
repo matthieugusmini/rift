@@ -15,6 +15,7 @@ var (
 	darkVanilla   = "#d1bea8"
 	imperialRed   = "#ed2939"
 	crimson       = "#dc143c"
+	neonFuchsia   = "#fe4164"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: lightGray}
 	borderPrimaryColor       = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
 	borderSecondaryColor     = lipgloss.AdaptiveColor{Light: lightGray, Dark: dimGrey}
-	selectedBorderColor      = lipgloss.AdaptiveColor{Light: darkGoldenrod, Dark: gold}
+	selectedBorderColor      = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
 	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: dimGrey}
 	red                      = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
 )
