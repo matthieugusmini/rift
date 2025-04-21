@@ -3,19 +3,16 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	white         = "#ffffff"
-	eerieBlack    = "#1f1f1f"
-	lightGray     = "#848482"
-	sonicSilver   = "#757575"
-	gold          = "#ffd700"
-	darkGoldenrod = "#f01879"
-	charcoal      = "#36454"
-	dimGrey       = "#696969"
-	ivory         = "#fffff0"
-	darkVanilla   = "#d1bea8"
-	imperialRed   = "#ed2939"
-	crimson       = "#dc143c"
-	neonFuchsia   = "#fe4164"
+	white       = "#ffffff"
+	eerieBlack  = "#1f1f1f"
+	lightGray   = "#848482"
+	sonicSilver = "#757575"
+	gold        = "#ffd700"
+	dimGrey     = "#696969"
+	darkVanilla = "#d1bea8"
+	imperialRed = "#ed2939"
+	crimson     = "#dc143c"
+	neonFuchsia = "#fe4164"
 )
 
 var (

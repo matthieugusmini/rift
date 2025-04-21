@@ -10,14 +10,14 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
 func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Model {
-	var standingsTables []table.Model
-	for _, section := range stage.Sections {
-		standingsTable := newStandingsTable(section.Rankings, width-2)
-		standingsTables = append(standingsTables, standingsTable)
+	standingsTables := make([]table.Model, len(stage.Sections))
+	for i, section := range stage.Sections {
+		standingsTables[i] = newStandingsTable(section.Rankings, width-2)
 	}
 
 	var sb strings.Builder
@@ -49,10 +49,10 @@ func newStandingsTable(rankings []lolesports.Ranking, width int) table.Model {
 	var (
 		headerTitles = []string{"Ranking", "Team", "Series Win / Loss", "Win / Loss %"}
 		columnWidth  = width / len(headerTitles)
-		columns      []table.Column
+		columns      = make([]table.Column, len(headerTitles))
 	)
-	for _, title := range headerTitles {
-		columns = append(columns, table.Column{Title: title, Width: columnWidth})
+	for i, title := range headerTitles {
+		columns[i] = table.Column{Title: title, Width: columnWidth}
 	}
 
 	var rows []table.Row

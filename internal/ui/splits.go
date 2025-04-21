@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
@@ -143,7 +144,7 @@ func (d splitItemDelegate) Height() int { return 2 }
 
 func (d splitItemDelegate) Spacing() int { return 0 }
 
-func (d splitItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+func (d splitItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 

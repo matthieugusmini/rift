@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
@@ -235,9 +236,10 @@ func (p *schedulePage) fetchEventsNextPage() tea.Cmd {
 func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 	return func() tea.Msg {
 		var opts lolesports.GetScheduleOptions
-		if pageDirection == pageDirectionNext {
+		switch pageDirection {
+		case pageDirectionNext:
 			opts.PageToken = &p.paginationState.nextPageToken
-		} else if pageDirection == pageDirectionPrev {
+		case pageDirectionPrev:
 			opts.PageToken = &p.paginationState.prevPageToken
 		}
 
@@ -272,9 +274,8 @@ func formatDateTitle(date time.Time) string {
 	case timeutils.IsToday(date):
 		if date.After(time.Now()) {
 			return "Later Today"
-		} else {
-			return "Earlier Today"
 		}
+		return "Earlier Today"
 	case timeutils.IsTomorrow(date):
 		return "Tomorrow"
 	default:

@@ -1,0 +1,74 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - cyclop # We don't focus on arbitrary complexity metrics here.
+    - contextcheck # Too many false positives (e.g., during graceful shutdowns).
+    - depguard
+    - exhaustive
+    - exhaustruct
+    - forcetypeassert # When you know, you know ;)
+    - ginkgolinter
+    - gochecknoglobals
+    - gocognit # We don't focus on arbitrary complexity metrics here. 
+    - gocyclo # We don't focus on arbitrary complexity metrics here.
+    - godox
+    - ireturn
+    - lll # golines already handle that job.
+    - mnd
+    - nlreturn
+    - nonamedreturns
+    - tagalign
+    - testifylint
+    - varnamelen
+    - wrapcheck
+    - wsl # Too strict and opinionated. Doesn't necessarily improve code readability.
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+    gocritic:
+      disabled-checks:
+        - singleCaseSwitch
+      settings:
+        ifElseChain:
+          minThreshold: 3
+    gosec:
+      excludes:
+        # False positive when using math/rand/v2.
+        # https://github.com/securego/gosec/issues/1241
+        - G404
+    gosmopolitan:
+      allow-time-local: true
+    revive:
+      rules:
+        # We don't focus on arbitrary complexity metrics here.
+        - name: cognitive-complexity
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        # Sometimes you don't mandatorily want comments(e.g. implementing an interface)
+        - name: package-comments
+          disabled: true
+    sloglint:
+      # Less error-prone
+      kv-only: true
+      # Use dependency injection instead.
+      no-global: "all"
+    exclusions:
+      presets: std-error-handling
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+    - golines
+  settings:
+    gofumpt:
+      module-path: github.com/matthieugusmini/lolesport
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/matthieugusmini/lolesport
+    golines:
+      max-len: 100

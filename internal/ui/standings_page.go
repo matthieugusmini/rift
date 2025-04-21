@@ -359,9 +359,7 @@ func listTournamentIDsForLeague(tournaments []lolesports.Tournament, leagueID st
 func listStagesFromStandings(standings []lolesports.Standings) []lolesports.Stage {
 	var stages []lolesports.Stage
 	for _, standing := range standings {
-		for _, stage := range standing.Stages {
-			stages = append(stages, stage)
-		}
+		stages = append(stages, standing.Stages...)
 	}
 	return stages
 }

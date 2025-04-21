@@ -61,5 +61,7 @@ func randomWukongQuote() string {
 		"If you don't fight, you can't make friends.",
 		"Improve your skills! Then find me again.",
 	}
-	return quotes[rand.IntN(len(quotes))]
+
+	randomIndex := rand.IntN(len(quotes))
+	return quotes[randomIndex]
 }

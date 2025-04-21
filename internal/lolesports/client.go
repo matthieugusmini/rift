@@ -4,6 +4,7 @@ import (
 	"context"
 
 	lolesports "github.com/matthieugusmini/go-lolesports"
+
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
@@ -17,7 +18,10 @@ func NewClient(lolesportsClient *lolesports.Client) *Client {
 	}
 }
 
-func (c *Client) GetSchedule(ctx context.Context, opts *lolesports.GetScheduleOptions) (lolesports.Schedule, error) {
+func (c *Client) GetSchedule(
+	ctx context.Context,
+	opts *lolesports.GetScheduleOptions,
+) (lolesports.Schedule, error) {
 	return c.lolesportsClient.GetSchedule(ctx, opts)
 }
 
@@ -39,7 +43,10 @@ func (c *Client) GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split
 	return currentSeason.Splits, nil
 }
 
-func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error) {
+func (c *Client) GetStandings(
+	ctx context.Context,
+	tournamentIDs []string,
+) ([]lolesports.Standings, error) {
 	return c.lolesportsClient.GetStandings(ctx, tournamentIDs)
 }
 

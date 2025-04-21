@@ -37,7 +37,10 @@ var stateByNavItemLabel = map[string]state{
 }
 
 type LoLEsportsClient interface {
-	GetSchedule(ctx context.Context, opts *lolesports.GetScheduleOptions) (lolesports.Schedule, error)
+	GetSchedule(
+		ctx context.Context,
+		opts *lolesports.GetScheduleOptions,
+	) (lolesports.Schedule, error)
 	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
 	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
@@ -127,7 +130,11 @@ func (m Model) View() string {
 	return sb.String()
 }
 
-func (m Model) viewNavigationBar(navLabels []string, selectedNavIndex int, width int) string {
+func (m Model) viewNavigationBar(
+	navLabels []string,
+	selectedNavIndex int,
+	width int,
+) string {
 	logo := m.styles.logo.Render(logo)
 
 	styledNavItems := make([]string, len(navLabels))
@@ -196,9 +203,9 @@ func moveNavigationBarCursorRight(current int) int {
 	return moveCursor(current, 1, len(navItemLabels))
 }
 
-func moveCursor(current, delta, max int) int {
-	if max == 0 {
+func moveCursor(current, delta, upperBound int) int {
+	if upperBound == 0 {
 		return 0
 	}
-	return (current + delta + max) % max
+	return (current + delta + upperBound) % upperBound
 }

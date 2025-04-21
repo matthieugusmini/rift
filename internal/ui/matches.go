@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
 	"github.com/matthieugusmini/lolesport/internal/timeutils"
 )
 
@@ -72,14 +73,13 @@ func (i matchItem) FilterValue() string {
 }
 
 func newMatchListItems(events []lolesports.Event) []list.Item {
-	var items []list.Item
-	for _, event := range events {
+	items := make([]list.Item, len(events))
+	for i, event := range events {
 		if event.Type != lolesports.EventTypeMatch {
 			continue
 		}
 
-		item := newMatchItem(event)
-		items = append(items, item)
+		items[i] = newMatchItem(event)
 	}
 	return items
 }
@@ -92,10 +92,10 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.SetShowStatusBar(false)
 	l.SetSpinner(spinner.MiniDot)
 
-	i := slices.IndexFunc(items, func(item list.Item) bool {
-		return timeutils.IsToday(item.(matchItem).startTime)
+	firstTodayMatchIndex := slices.IndexFunc(events, func(event lolesports.Event) bool {
+		return timeutils.IsToday(event.StartTime)
 	})
-	l.Select(i)
+	l.Select(firstTodayMatchIndex)
 
 	return l
 }
@@ -126,7 +126,7 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 
 	s.normalItem = itemStyle.
 		Foreground(textSecondaryColor).
-		BorderForeground(textPrimaryColor)
+		BorderForeground(borderPrimaryColor)
 
 	s.selectedItem = itemStyle.
 		Foreground(selectedBorderColor).
@@ -268,8 +268,12 @@ func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width 
 }
 
 func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string {
-	team1NameAndScore := d.styles.teamName.Render(fmt.Sprintf("%s %d", item.team1.name, item.team1.gameWins))
-	team2NameAndScore := d.styles.teamName.Render(fmt.Sprintf("%d %s ", item.team2.gameWins, item.team2.name))
+	team1NameAndScore := d.styles.teamName.Render(
+		fmt.Sprintf("%s %d", item.team1.name, item.team1.gameWins),
+	)
+	team2NameAndScore := d.styles.teamName.Render(
+		fmt.Sprintf("%d %s ", item.team2.gameWins, item.team2.name),
+	)
 	sep := d.styles.separator.Render(separatorSlash)
 
 	title := team1NameAndScore + sep + team2NameAndScore

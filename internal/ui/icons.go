@@ -33,7 +33,7 @@ var flagsByLeagueName = map[string][]string{
 	"La Ligue Française":      {"🇫🇷"},
 	"Arabian League":          {"🇸🇦"},
 	"Esports Balkan League":   {"🇭🇷", "🇧🇬", "🇭🇺", "🇷🇸", "🇸🇮"},
-	"Liga Portuguesa":          {"🇵🇹"},
+	"Liga Portuguesa":         {"🇵🇹"},
 	"VCS":                     {"🇻🇳"},
 	"EMEA Masters":            {"🇪🇺"},
 	"First Stand":             {"🌏"},

@@ -66,7 +66,6 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 func getStageType(stage lolesports.Stage) stageType {
 	if len(stage.Sections) > 0 && len(stage.Sections[0].Rankings) == 0 {
 		return stageTypeBracket
-	} else {
-		return stageTypeGroups
 	}
+	return stageTypeGroups
 }
