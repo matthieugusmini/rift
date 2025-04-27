@@ -189,31 +189,29 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		return
 	}
 
-	if m.Width() <= 0 {
-		return
-	}
+	itemWidth := m.Width() - d.styles.normalItem.GetHorizontalFrameSize()
 
 	var title string
 	// Some matches are completed but unstarted somehow so we render those
 	// with their score.
 	if !matchItem.isCompleted && matchItem.startTime.After(time.Now()) {
-		title = d.viewTitleWithStartTime(matchItem, m.Width())
+		title = d.viewTitleWithStartTime(matchItem, itemWidth)
 	} else if !matchItem.spoilerBlockRevealed {
-		title = d.viewTitleWithScoreSpoilerBlock(matchItem, m.Width())
+		title = d.viewTitleWithScoreSpoilerBlock(matchItem, itemWidth)
 	} else {
-		title = d.viewTitleWithScore(matchItem, m.Width())
+		title = d.viewTitleWithScore(matchItem, itemWidth)
 	}
 
-	desc := d.viewDescription(matchItem, m.Width())
+	desc := d.viewDescription(matchItem, itemWidth)
 
-	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", m.Width()), desc)
+	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", itemWidth), desc)
 
 	var (
-		matchItemStyle = d.styles.normalItem.Width(m.Width())
+		matchItemStyle = d.styles.normalItem.Width(itemWidth)
 		isSelected     = index == m.Index()
 	)
 	if isSelected {
-		matchItemStyle = d.styles.selectedItem.Width(m.Width())
+		matchItemStyle = d.styles.selectedItem.Width(itemWidth)
 	}
 
 	fmt.Fprintf(w, "%s", matchItemStyle.Render(content))

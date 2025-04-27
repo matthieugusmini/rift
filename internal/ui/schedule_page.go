@@ -22,6 +22,7 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.title = lipgloss.NewStyle().
+		Padding(0, 1).
 		Foreground(textPrimaryColor).
 		Background(secondaryBackgroundColor).
 		Bold(true)
@@ -201,8 +202,8 @@ func (p *schedulePage) updateMatchListTitle() {
 	selectedIndex := p.matches.Index()
 	selectedEvent := p.events[selectedIndex]
 	title := formatDateTitle(selectedEvent.StartTime)
-	// TODO: Search why -3 is needed here
-	p.matches.Title = lipgloss.PlaceHorizontal(p.width-3, lipgloss.Center, title)
+
+	p.matches.Title = title
 	p.matches.Styles.Title = p.styles.title
 }
 

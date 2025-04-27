@@ -20,10 +20,8 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 	)
 	for i, split := range splits {
 		item := splitItem{
-			// id:          split.ID,
 			name:      split.Name,
-			splitType: splitType(split.Region),
-			// tournaments: split.Tournaments,
+			splitType: split.Region,
 			startTime: split.StartTime,
 			endTime:   split.EndTime,
 		}
@@ -49,22 +47,11 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 	return l
 }
 
-type splitType string
-
-const (
-	splitTypeRegional splitType = "REGIONAL"
-	splitTypeGlobal   splitType = "GLOBAL"
-)
-
 type splitItem struct {
-	// id        string
 	name      string
-	splitType splitType
-
-	// TODO: Maybe move somewhere else?
+	splitType string
 	startTime time.Time
 	endTime   time.Time
-	// tournaments []*lolesports.Tournament
 }
 
 func (i splitItem) FilterValue() string {
@@ -76,7 +63,7 @@ func (i splitItem) Title() string {
 }
 
 func (i splitItem) Description() string {
-	return string(i.splitType) + " EVENT"
+	return i.splitType + " EVENT"
 }
 
 type splitItemStyles struct {

@@ -156,7 +156,7 @@ func (m Model) viewNavigationBar(
 
 	navbar := logo + navItems + padding
 
-	separator := m.styles.separator.Render(strings.Repeat("━", width))
+	separator := m.styles.separator.Render(strings.Repeat(separatorLine, width))
 
 	return fmt.Sprintf("%s\n%s", navbar, separator)
 }

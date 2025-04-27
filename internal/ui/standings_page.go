@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -12,7 +13,10 @@ import (
 	"github.com/matthieugusmini/go-lolesports"
 )
 
-const selectionListCount = 3
+const (
+	selectionListCount        = 3
+	standingsViewHeaderHeight = 5
+)
 
 type standingsPageState int
 
@@ -27,37 +31,32 @@ const (
 
 type standingsStyles struct {
 	doc              lipgloss.Style
-	tableBorder      lipgloss.Style
 	stageName        lipgloss.Style
 	tournamentState  lipgloss.Style
 	tournamentPeriod lipgloss.Style
 	tournamentType   lipgloss.Style
+	separator        lipgloss.Style
 }
 
 func newDefaultStandingsStyles() (s standingsStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.stageName = lipgloss.NewStyle().
-		Align(lipgloss.Center).
 		Foreground(textPrimaryColor).
 		Bold(true)
 
 	s.tournamentState = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(lipgloss.Color("#000000")).
-		Background(textPrimaryColor)
+		Foreground(lipgloss.Color(black)).
+		Background(lipgloss.Color(antiFlashWhite))
 
 	s.tournamentPeriod = lipgloss.NewStyle().
-		Padding(0, 1).
 		Foreground(textPrimaryColor)
 
 	s.tournamentType = lipgloss.NewStyle().
-		Padding(0, 1).
 		Foreground(textPrimaryColor)
 
-	s.tableBorder = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240"))
+	s.separator = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 
 	return s
 }
@@ -163,9 +162,34 @@ func (p *standingsPage) View() string {
 		return p.err.Error()
 	}
 	if p.state == standingsPageStateShowStandings {
-		return p.styles.tableBorder.Render(p.standings.View())
+		return p.viewStandings()
 	}
 	return p.viewSelection()
+}
+
+func (p *standingsPage) viewStandings() string {
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	selectedLeague := p.leagues[p.leagueOptions.Index()]
+	stageName := p.styles.stageName.Render(
+		fmt.Sprintf("%s: %s Standings", selectedSplit.Name, selectedLeague.Name),
+	)
+
+	tournamentState := computeTournamentState(selectedSplit.StartTime, selectedSplit.EndTime)
+	tournamentPeriod := formatTournamentPeriod(selectedSplit.StartTime, selectedSplit.EndTime)
+	tournamentType := selectedSplit.Region
+	stageInfo := strings.Join(
+		[]string{
+			p.styles.tournamentState.Render(string(tournamentState)),
+			p.styles.tournamentPeriod.Render(tournamentPeriod),
+			p.styles.tournamentType.Render(tournamentType),
+		},
+		separatorBullet,
+	)
+
+	sep := p.styles.separator.Render(strings.Repeat(separatorLine, p.width))
+
+	header := fmt.Sprintf("%s\n\n%s\n%s\n", stageName, stageInfo, sep)
+	return p.styles.doc.Render(header + p.standings.View())
 }
 
 func (p *standingsPage) viewSelection() string {
@@ -263,7 +287,7 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 	p.state = standingsPageStateShowStandings
 
 	selectedStage := p.stages[p.stageOptions.Index()]
-	p.standings = newStandingsViewport(selectedStage, p.width, p.height)
+	p.standings = newStandingsViewport(selectedStage, p.width, p.height-standingsViewHeaderHeight)
 
 	return p, nil
 }
