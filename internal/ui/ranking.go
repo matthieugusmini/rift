@@ -29,8 +29,8 @@ func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Mo
 			Align(lipgloss.Center).
 			Padding(0, 1).
 			Bold(true).
-			Background(secondaryBackgroundColor).
-			Foreground(textPrimaryColor).
+			Background(lipgloss.Color(antiFlashWhite)).
+			Foreground(lipgloss.Color(black)).
 			Render(stage.Sections[i].Name)
 		sb.WriteString(title + "\n")
 		sb.WriteString(t.Render())
