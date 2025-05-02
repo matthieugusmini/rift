@@ -7,6 +7,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
+	"github.com/matthieugusmini/lolesport/internal/rift"
 )
 
 const (
@@ -56,7 +58,7 @@ func NewDefaultBracketModelStyles() (s BracketModelStyles) {
 }
 
 type BracketModel struct {
-	template BracketTemplate
+	template rift.BracketTemplate
 	matches  []lolesports.Match
 
 	width, height int
@@ -64,7 +66,7 @@ type BracketModel struct {
 }
 
 func NewBracketModel(
-	template BracketTemplate,
+	template rift.BracketTemplate,
 	stage lolesports.Stage,
 	width, height int,
 ) BracketModel {
@@ -109,10 +111,10 @@ func (m BracketModel) View() string {
 
 			var card string
 			switch match.DisplayType {
-			case DisplayTypeMatch:
+			case rift.DisplayTypeMatch:
 				card = m.drawMatch(m.matches[matchIndex], columnsWidth)
 				matchIndex++
-			case DisplayTypeHorizontalLine:
+			case rift.DisplayTypeHorizontalLine:
 				line := m.styles.link.Render(horizontalLine)
 				card = strings.Repeat(line, columnsWidth)
 			}
@@ -136,7 +138,7 @@ func (m BracketModel) View() string {
 		Render(view)
 }
 
-func (m BracketModel) viewLinks(links []Link) string {
+func (m BracketModel) viewLinks(links []rift.Link) string {
 	var linksView string
 	for _, link := range links {
 		linksView += strings.Repeat("\n", link.Above)
@@ -179,13 +181,13 @@ func (m BracketModel) drawMatch(match lolesports.Match, width int) string {
 
 const linkWidth = 3
 
-func drawLink(link Link) string {
+func drawLink(link rift.Link) string {
 	var sb strings.Builder
 	switch link.Type {
 	// ┌
 	// │
 	// ┘
-	case LinkTypeZDown:
+	case rift.LinkTypeZDown:
 		sb.WriteString(horizontalLine + topRightCorner + "\n")
 		sb.WriteString(strings.Repeat(" "+verticalLine+"\n", link.Height))
 		sb.WriteString(" " + bottomLeftCorner + horizontalLine + "\n")
@@ -193,16 +195,16 @@ func drawLink(link Link) string {
 	// ┐
 	// │
 	// └
-	case LinkTypeZUp:
+	case rift.LinkTypeZUp:
 		sb.WriteString(" " + topLeftCorner + horizontalLine + "\n")
 		sb.WriteString(strings.Repeat(" "+verticalLine+"\n", link.Height))
 		sb.WriteString(horizontalLine + bottomRightCorner + " ")
 
 	// ───
-	case LinkTypeHorizontal:
+	case rift.LinkTypeHorizontal:
 		sb.WriteString(strings.Repeat(horizontalLine, linkWidth))
 
-	case LinkTypeReseed:
+	case rift.LinkTypeReseed:
 		sb.WriteString(strings.Repeat(" ", linkWidth))
 	}
 	return sb.String()

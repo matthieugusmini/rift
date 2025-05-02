@@ -8,6 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
+	"github.com/matthieugusmini/lolesport/internal/rift"
 )
 
 const (
@@ -43,6 +45,10 @@ type LoLEsportsClient interface {
 	) (lolesports.Schedule, error)
 	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
 	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
+}
+
+type BracketTemplateLoader interface {
+	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
 }
 
 type modelStyles struct {
@@ -85,10 +91,10 @@ type Model struct {
 	styles        modelStyles
 }
 
-func NewModel(lolesportsClient LoLEsportsClient) Model {
+func NewModel(lolesportsClient LoLEsportsClient, bracketLoader BracketTemplateLoader) Model {
 	return Model{
 		schedulePage:  newSchedulePage(lolesportsClient),
-		standingsPage: newStandingsPage(lolesportsClient),
+		standingsPage: newStandingsPage(lolesportsClient, bracketLoader),
 		styles:        newDefaultModelStyles(),
 	}
 }

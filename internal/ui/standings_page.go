@@ -11,60 +11,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
+
+	"github.com/matthieugusmini/lolesport/internal/rift"
 )
 
 const (
 	selectionListCount        = 3
 	standingsViewHeaderHeight = 5
 )
-
-var bracketTemplates = map[string]BracketTemplate{
-	// Split 1: LTA Regional Finals
-	"113475284068307602": Bracket8SE,
-	// Split 1: LTA North Qualifiers
-	"113470687275945132": Bracket8DETop3,
-	// Split 1: LTA South Qualifiers
-	"113475306295252714": Bracket8DETop3,
-	// Split 1: LCK Play-Ins
-	"113480868345405054": BracketSE3Qual,
-	// Split 1: LCK Playoffs
-	"113480868345405055": Bracket6DELCK,
-	// Split 1: LEC Playoffs
-	"113476054450034536": Bracket8DE,
-	// Split 1: LPL Knockouts
-	"113662754116983020": Bracket4DE4LSeeds,
-	// Split 1: LCP Qualifying Series
-	"113476466602513091": Bracket6DELCK,
-
-	// First Stand: Round 2
-	"113470740395299256": Bracket4SE,
-
-	// Split 2: LCP Regional Qualifer
-	"113503075099321450": Bracket6DELCK,
-	// Split 2: LTA North Round 3
-	"114217030657513527": BracketCrossGroupBattles,
-	// Split 2: LTA North Playoffs
-	"114217030657513528": Bracket6DE,
-	// Split 2: LTA South Round 3
-	"114217106691346008": BracketCrossGroupBattles,
-	// Split 2: LTA South Playoffs
-	"114217106691346009": Bracket6DE,
-	// Split 2: LCK Road to MSI
-	"113503303283548978": Bracket6KOTHLCK,
-	// Split 2: LEC Playoffs
-	"113487475358735354": Bracket6DE,
-	// Split 2: LPL Qualifying Series
-	"114195672836203092": Bracket4DEGroup,
-	// Split 2: LPL Playoffs Play-in: Knights Rivals
-	"114278136919316228": BracketCrossGroupBattles,
-	// Split 2: LPL Playoffs
-	"114278136919316229": Bracket8DE,
-
-	// MSI: Play-Ins
-	"113470862151614512": Bracket4DEGroup,
-	// MSI: Bracket Stage
-	"113470862151614513": Bracket8DE,
-}
 
 type standingsPageState int
 
@@ -111,7 +65,8 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 }
 
 type standingsPage struct {
-	lolesportsClient LoLEsportsClient
+	lolesportsClient      LoLEsportsClient
+	bracketTemplateLoader BracketTemplateLoader
 
 	state standingsPageState
 
@@ -140,12 +95,16 @@ type standingsPage struct {
 	styles standingsStyles
 }
 
-func newStandingsPage(lolesportsClient LoLEsportsClient) *standingsPage {
+func newStandingsPage(
+	lolesportsClient LoLEsportsClient,
+	bracketLoader BracketTemplateLoader,
+) *standingsPage {
 	return &standingsPage{
-		lolesportsClient: lolesportsClient,
-		styles:           newDefaultStandingsStyles(),
-		standingsCache:   map[string][]lolesports.Standings{},
-		spinner:          newWukongSpinner(),
+		lolesportsClient:      lolesportsClient,
+		bracketTemplateLoader: bracketLoader,
+		styles:                newDefaultStandingsStyles(),
+		standingsCache:        map[string][]lolesports.Standings{},
+		spinner:               newWukongSpinner(),
 	}
 }
 
@@ -188,6 +147,11 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.spinner.refreshQuote()
 		p.splits = msg.splits
 		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.height)
+
+	case fetchedBracketStageTemplateMessage:
+		p.state = standingsPageStateShowBracket
+		selectedStage := p.stages[p.stageOptions.Index()]
+		p.bracket = NewBracketModel(msg.template, selectedStage, p.width, p.height)
 
 	case fetchErrorMessage:
 		p.err = msg.err
@@ -345,7 +309,6 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 	switch stageType {
 	case stageTypeGroups:
 		p.state = standingsPageStateShowStandings
-
 		p.standings = newStandingsViewport(
 			selectedStage,
 			p.width,
@@ -353,19 +316,7 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		)
 
 	case stageTypeBracket:
-		bracket, ok := bracketTemplates[selectedStage.ID]
-		if !ok {
-			return p, nil
-		}
-
-		p.state = standingsPageStateShowBracket
-
-		p.bracket = NewBracketModel(
-			bracket,
-			selectedStage,
-			p.width,
-			p.height,
-		)
+		return p, p.fetchBracketStageTemplate(selectedStage.ID)
 	}
 
 	return p, nil
@@ -430,6 +381,20 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 			return fetchErrorMessage{err}
 		}
 		return fetchedCurrentSeasonSplitsMessage{splits}
+	}
+}
+
+type fetchedBracketStageTemplateMessage struct {
+	template rift.BracketTemplate
+}
+
+func (p *standingsPage) fetchBracketStageTemplate(stageID string) tea.Cmd {
+	return func() tea.Msg {
+		tmpl, err := p.bracketTemplateLoader.Load(context.Background(), stageID)
+		if err != nil {
+			return fetchErrorMessage{err}
+		}
+		return fetchedBracketStageTemplateMessage{tmpl}
 	}
 }
 

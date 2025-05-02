@@ -5,9 +5,11 @@ linters:
     - cyclop # We don't focus on arbitrary complexity metrics here.
     - contextcheck # Too many false positives (e.g., during graceful shutdowns).
     - depguard
+    - err113
     - exhaustive
     - exhaustruct
     - forcetypeassert # When you know, you know ;)
+    - funlen
     - ginkgolinter
     - gochecknoglobals
     - gocognit # We don't focus on arbitrary complexity metrics here. 
@@ -28,6 +30,7 @@ linters:
       exclude-functions:
         - fmt.Fprint
         - fmt.Fprintf
+        - (io.ReadCloser).Close
     gocritic:
       disabled-checks:
         - singleCaseSwitch
