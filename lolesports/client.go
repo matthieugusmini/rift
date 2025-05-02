@@ -25,8 +25,6 @@ func (c *Client) GetSchedule(
 	return c.lolesportsClient.GetSchedule(ctx, opts)
 }
 
-// TODO: Maybe we can find the id of the season somewhere and
-// query the current season by id directly here.
 func (c *Client) GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error) {
 	seasons, err := c.lolesportsClient.GetSeasons(context.Background(), nil)
 	if err != nil {
