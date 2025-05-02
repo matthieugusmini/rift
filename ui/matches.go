@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/internal/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutils"
 )
 
 const (

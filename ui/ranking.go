@@ -9,10 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/internal/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutils"
 )
 
 func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Model {

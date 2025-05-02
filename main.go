@@ -8,17 +8,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	gololesports "github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/internal/github"
-	"github.com/matthieugusmini/lolesport/internal/lolesports"
-	"github.com/matthieugusmini/lolesport/internal/ui"
+	"github.com/matthieugusmini/lolesport/github"
+	"github.com/matthieugusmini/lolesport/lolesports"
+	"github.com/matthieugusmini/lolesport/ui"
 )
 
 func main() {
-	l := github.NewBracketTemplateLoader(http.DefaultClient)
+	bracketTemplateLoader := github.NewBracketTemplateLoader(http.DefaultClient)
 
 	lolesportsClient := lolesports.NewClient(gololesports.NewClient())
 
-	m := ui.NewModel(lolesportsClient, l)
+	m := ui.NewModel(lolesportsClient, bracketTemplateLoader)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

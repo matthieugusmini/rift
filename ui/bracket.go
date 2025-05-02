@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/internal/rift"
+	"github.com/matthieugusmini/lolesport/rift"
 )
 
 const (

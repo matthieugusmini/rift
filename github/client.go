@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/matthieugusmini/lolesport/internal/rift"
+	"github.com/matthieugusmini/lolesport/rift"
 )
 
 const (
