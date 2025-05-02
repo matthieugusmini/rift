@@ -190,6 +190,9 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	}
 
 	itemWidth := m.Width() - d.styles.normalItem.GetHorizontalFrameSize()
+	if itemWidth <= 0 {
+		return
+	}
 
 	var title string
 	// Some matches are completed but unstarted somehow so we render those

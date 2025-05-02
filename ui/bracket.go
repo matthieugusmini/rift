@@ -83,6 +83,9 @@ func (m BracketModel) View() string {
 	nbRounds := len(m.template.Rounds)
 	nbLinkColumns := nbRounds - 1
 	widthWithoutLinks := m.width - nbLinkColumns*linkWidth
+	if widthWithoutLinks <= 0 {
+		return ""
+	}
 	columnsWidth := widthWithoutLinks / nbRounds
 
 	var (
@@ -161,9 +164,13 @@ func (m BracketModel) drawMatch(match lolesports.Match, width int) string {
 	}
 
 	borderWidth := m.styles.match.GetHorizontalFrameSize()
+	rowWidth := width - borderWidth
+	if rowWidth <= 0 {
+		return ""
+	}
 
 	rowStyle := lipgloss.NewStyle().
-		Width(width - borderWidth).
+		Width(rowWidth).
 		Align(lipgloss.Center)
 
 	team1Row := team1Style.Render(formatTeamRow(match.Teams[0]))
@@ -172,7 +179,7 @@ func (m BracketModel) drawMatch(match lolesports.Match, width int) string {
 	content := fmt.Sprintf(
 		"%s\n%s\n%s",
 		rowStyle.Render(team1Row),
-		m.styles.link.Render(strings.Repeat(horizontalLine, width-borderWidth)),
+		m.styles.link.Render(strings.Repeat(horizontalLine, rowWidth)),
 		rowStyle.Render(team2Row),
 	)
 

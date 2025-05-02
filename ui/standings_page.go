@@ -70,21 +70,18 @@ type standingsPage struct {
 
 	state standingsPageState
 
-	splits         []lolesports.Split
-	leagues        []lolesports.League
-	stages         []lolesports.Stage
-	standingsCache map[string][]lolesports.Standings
+	splits                []lolesports.Split
+	leagues               []lolesports.League
+	stages                []lolesports.Stage
+	standingsCache        map[string][]lolesports.Standings
+	bracketTemplatesCache map[string]rift.BracketTemplate
 
-	// Selection phase
 	splitOptions  list.Model
 	leagueOptions list.Model
 	stageOptions  list.Model
 
-	// Standings page
 	standings viewport.Model
-
-	// Bracket page
-	bracket BracketModel
+	bracket   BracketModel
 
 	err error
 
@@ -104,6 +101,7 @@ func newStandingsPage(
 		bracketTemplateLoader: bracketLoader,
 		styles:                newDefaultStandingsStyles(),
 		standingsCache:        map[string][]lolesports.Standings{},
+		bracketTemplatesCache: map[string]rift.BracketTemplate{},
 		spinner:               newWukongSpinner(),
 	}
 }
@@ -151,6 +149,7 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchedBracketStageTemplateMessage:
 		p.state = standingsPageStateShowBracket
 		selectedStage := p.stages[p.stageOptions.Index()]
+		p.bracketTemplatesCache[selectedStage.ID] = msg.template
 		p.bracket = NewBracketModel(msg.template, selectedStage, p.width, p.height)
 
 	case fetchErrorMessage:
@@ -174,6 +173,10 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *standingsPage) View() string {
+	if p.width <= 0 {
+		return ""
+	}
+
 	if p.err != nil {
 		return p.err.Error()
 	}
@@ -256,6 +259,21 @@ func (p *standingsPage) viewSelection() string {
 func (p *standingsPage) SetSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
+
+	switch p.state {
+	case standingsPageStateShowStandings:
+		selectedStage := p.stages[p.stageOptions.Index()]
+		p.standings = newStandingsViewport(
+			selectedStage,
+			p.width,
+			p.height-standingsViewHeaderHeight,
+		)
+
+	case standingsPageStateShowBracket:
+		selectedStage := p.stages[p.stageOptions.Index()]
+		tmpl := p.bracketTemplatesCache[selectedStage.ID]
+		p.bracket = NewBracketModel(tmpl, selectedStage, p.width, p.height)
+	}
 }
 
 func (p *standingsPage) isLoading() bool {
@@ -308,15 +326,21 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 	stageType := getStageType(selectedStage)
 	switch stageType {
 	case stageTypeGroups:
-		p.state = standingsPageStateShowStandings
 		p.standings = newStandingsViewport(
 			selectedStage,
 			p.width,
 			p.height-standingsViewHeaderHeight,
 		)
+		p.state = standingsPageStateShowStandings
 
 	case stageTypeBracket:
-		return p, p.fetchBracketStageTemplate(selectedStage.ID)
+		tmpl, ok := p.bracketTemplatesCache[selectedStage.ID]
+		if !ok {
+			return p, p.fetchBracketStageTemplate(selectedStage.ID)
+		}
+
+		p.bracket = NewBracketModel(tmpl, selectedStage, p.width, p.height)
+		p.state = standingsPageStateShowBracket
 	}
 
 	return p, nil
