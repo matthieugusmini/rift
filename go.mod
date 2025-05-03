@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/matthieugusmini/go-lolesports v0.3.0
+	go.etcd.io/bbolt v1.4.0
 )
 
 require (

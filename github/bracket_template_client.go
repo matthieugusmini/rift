@@ -15,29 +15,27 @@ const (
 	bracketTypeByStageIDFilename = "bracket-type-by-stage-id.json"
 )
 
-// BracketTemplateLoader handles loading bracket templates from JSON config files
+// BracketTemplateLoader handles fetching bracket templates from JSON config files
 // stored in a GitHub repository.
 //
 // Example: https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main/8SE.json
-type BracketTemplateLoader struct {
+type BracketTemplateClient struct {
 	httpClient *http.Client
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
-func NewBracketTemplateLoader(httpClient *http.Client) *BracketTemplateLoader {
-	return &BracketTemplateLoader{
+func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
+	return &BracketTemplateClient{
 		httpClient: httpClient,
 	}
 }
 
-// Load fetches and returns the bracket template for the given stage ID.
-func (l *BracketTemplateLoader) Load(
-	ctx context.Context,
-	stageID string,
-) (rift.BracketTemplate, error) {
+func (c *BracketTemplateClient) GetTemplateByStageID(ctx context.Context, stageID string) (rift.BracketTemplate, error) {
 	var bracketTypeByStageID map[string]string
-	bracketTypeByStageIDURL := baseURL + bracketTypeByStageIDFilename
-	if err := l.get(ctx, bracketTypeByStageIDURL, &bracketTypeByStageID); err != nil {
+	var data rift.BracketTemplate
+
+	bracketTypeByStageID, err := c.getBracketTemplateMapper(ctx)
+	if err != nil {
 		return rift.BracketTemplate{}, err
 	}
 
@@ -46,21 +44,32 @@ func (l *BracketTemplateLoader) Load(
 		return rift.BracketTemplate{}, fmt.Errorf("stage ID %q is unsupported", stageID)
 	}
 
-	var tmpl rift.BracketTemplate
 	bracketTemplateURL := fmt.Sprintf("%s%s.json", baseURL, bracketType)
-	if err := l.get(ctx, bracketTemplateURL, &tmpl); err != nil {
+	if err := c.get(ctx, bracketTemplateURL, &data); err != nil {
 		return rift.BracketTemplate{}, err
 	}
 
-	return tmpl, nil
+	return data, nil
 }
 
-func (l *BracketTemplateLoader) get(ctx context.Context, url string, data any) error {
+func (c *BracketTemplateClient) getBracketTemplateMapper(ctx context.Context) (map[string]string, error) {
+	var data map[string]string
+
+	bracketTypeByStageIDURL := baseURL + bracketTypeByStageIDFilename
+
+	if err := c.get(ctx, bracketTypeByStageIDURL, &data); err != nil {
+		return map[string]string{}, err
+	}
+
+	return data, nil
+}
+
+func (c *BracketTemplateClient) get(ctx context.Context, url string, data any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("could not create new request: %w", err)
 	}
-	resp, err := l.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
