@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,6 +19,7 @@ type schedulePageStyles struct {
 	doc     lipgloss.Style
 	title   lipgloss.Style
 	spinner lipgloss.Style
+	help    lipgloss.Style
 }
 
 func newDefaultSchedulePageStyles() (s schedulePageStyles) {
@@ -30,7 +33,35 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 
 	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
 
+	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
+
 	return s
+}
+
+type schedulePageKeyMap struct {
+	list.KeyMap
+
+	RevealSpoiler key.Binding
+	NextPage      key.Binding
+	PrevPage      key.Binding
+}
+
+func newDefaultSchedulePageKeyMap() schedulePageKeyMap {
+	return schedulePageKeyMap{
+		KeyMap: list.DefaultKeyMap(),
+		RevealSpoiler: key.NewBinding(
+			key.WithKeys("enter", "right"),
+			key.WithHelp("enter", "reveal spoiler"),
+		),
+		PrevPage: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "prev page"),
+		),
+		NextPage: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "next page"),
+		),
+	}
 }
 
 type paginationState struct {
@@ -58,7 +89,10 @@ type schedulePage struct {
 	loaded  bool
 
 	width, height int
-	styles        schedulePageStyles
+
+	styles schedulePageStyles
+	keyMap schedulePageKeyMap
+	help   help.Model
 }
 
 func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
@@ -73,6 +107,8 @@ func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
 		lolesportsClient: lolesportsClient,
 		spinner:          sp,
 		styles:           styles,
+		keyMap:           newDefaultSchedulePageKeyMap(),
+		help:             help.New(),
 	}
 }
 
@@ -80,15 +116,27 @@ func (p *schedulePage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 
+func (p *schedulePage) toggleHelp() {
+	p.help.ShowAll = !p.help.ShowAll
+	p.matches.SetSize(p.width, p.matchListHeight())
+}
+
 func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, p.keyMap.ShowFullHelp),
+			key.Matches(msg, p.keyMap.CloseFullHelp):
+			p.toggleHelp()
+		}
+
 	// The size of this page should be managed by the parent model to ensure
 	// that the page remains agnostic to its parent's layout.
 	case tea.WindowSizeMsg:
 		if p.matches.Items() != nil {
-			p.matches.SetSize(p.width, p.height)
+			p.matches.SetSize(p.width, p.matchListHeight())
 		}
 
 	case spinner.TickMsg:
@@ -134,7 +182,19 @@ func (p *schedulePage) View() string {
 	if p.err != nil {
 		return p.viewError()
 	}
-	return p.styles.doc.Render(p.matches.View())
+
+	sections := []string{
+		p.matches.View(),
+		p.viewHelp(),
+	}
+
+	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
+
+	return p.styles.doc.Render(view)
+}
+
+func (p *schedulePage) viewHelp() string {
+	return p.styles.help.Render(p.help.View(p))
 }
 
 func (p *schedulePage) viewSpinner() string {
@@ -153,6 +213,8 @@ func (p *schedulePage) viewError() string {
 func (p *schedulePage) SetSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
+
+	p.help.Width = p.width
 }
 
 func (p *schedulePage) shouldFetchNextPage() bool {
@@ -182,7 +244,7 @@ func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 	case pageDirectionInitial:
 		p.loaded = true
 		p.events = msg.events
-		p.matches = newMatchList(p.events, p.width, p.height)
+		p.matches = newMatchList(p.events, p.width, p.matchListHeight())
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
 
@@ -221,6 +283,52 @@ func (p *schedulePage) updateMatchListTitle() {
 
 	p.matches.Title = title
 	p.matches.Styles.Title = p.styles.title
+}
+
+func (p *schedulePage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.CursorUp,
+		p.keyMap.CursorDown,
+		p.keyMap.RevealSpoiler,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *schedulePage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			p.keyMap.CursorUp,
+			p.keyMap.CursorDown,
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+			p.keyMap.GoToStart,
+			p.keyMap.GoToEnd,
+			p.keyMap.RevealSpoiler,
+		},
+		{
+			p.keyMap.Filter,
+			p.keyMap.ClearFilter,
+			p.keyMap.AcceptWhileFiltering,
+			p.keyMap.CancelWhileFiltering,
+		},
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
+}
+
+func (p *schedulePage) helpHeight() int {
+	padding := p.styles.help.GetVerticalPadding()
+	if p.help.ShowAll {
+		return 7 + padding
+	}
+	return 1 + padding
+}
+
+func (p *schedulePage) matchListHeight() int {
+	return p.height - p.helpHeight()
 }
 
 type pageDirection int

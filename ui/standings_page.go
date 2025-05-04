@@ -247,18 +247,18 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.state = standingsPageStateStageSelection
 		p.setStandingsInCache(msg.standings)
 		p.stages = listStagesFromStandings(msg.standings)
-		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height-p.helpHeight())
+		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.contentViewHeight())
 
 	case fetchedCurrentSeasonSplitsMessage:
 		p.state = standingsPageStateSplitSelection
 		p.splits = msg.splits
-		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.height-p.helpHeight())
+		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.contentViewHeight())
 
 	case fetchedBracketStageTemplateMessage:
 		p.state = standingsPageStateShowBracket
 		selectedStage := p.stages[p.stageOptions.Index()]
 		p.bracketTemplatesCache[selectedStage.ID] = msg.template
-		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.height-p.helpHeight())
+		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.contentViewHeight())
 
 	case fetchErrorMessage:
 		p.err = msg.err
@@ -344,7 +344,7 @@ func (p *standingsPage) viewRanking() string {
 }
 
 func (p *standingsPage) viewSelection() string {
-	style := lipgloss.NewStyle().
+	listStyle := lipgloss.NewStyle().
 		Width(p.optionListWidth()).
 		Align(lipgloss.Center)
 
@@ -355,32 +355,37 @@ func (p *standingsPage) viewSelection() string {
 	)
 	switch p.state {
 	case standingsPageStateLoadingSplits:
-		splitOptionsView = style.Render(p.spinner.View())
+		splitOptionsView = listStyle.Render(p.spinner.View())
 
 	case standingsPageStateSplitSelection:
-		splitOptionsView = style.Render(p.splitOptions.View())
+		splitOptionsView = listStyle.Render(p.splitOptions.View())
 
 	case standingsPageStateLeagueSelection:
-		splitOptionsView = style.Render(p.splitOptions.View())
-		leagueOptionsView = style.Render(p.leagueOptions.View())
+		splitOptionsView = listStyle.Render(p.splitOptions.View())
+		leagueOptionsView = listStyle.Render(p.leagueOptions.View())
 
 	case standingsPageStateLoadingStages:
-		splitOptionsView = style.Render(p.splitOptions.View())
-		leagueOptionsView = style.Render(p.leagueOptions.View())
-		stageOptionsView = style.Render(p.spinner.View())
+		splitOptionsView = listStyle.Render(p.splitOptions.View())
+		leagueOptionsView = listStyle.Render(p.leagueOptions.View())
+		stageOptionsView = listStyle.Render(p.spinner.View())
 
 	case standingsPageStateStageSelection:
-		splitOptionsView = style.Render(p.splitOptions.View())
-		leagueOptionsView = style.Render(p.leagueOptions.View())
-		stageOptionsView = style.Render(p.stageOptions.View())
+		splitOptionsView = listStyle.Render(p.splitOptions.View())
+		leagueOptionsView = listStyle.Render(p.leagueOptions.View())
+		stageOptionsView = listStyle.Render(p.stageOptions.View())
 	}
 
-	return lipgloss.JoinHorizontal(
+	view := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		splitOptionsView,
 		leagueOptionsView,
 		stageOptionsView,
 	)
+
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Align(lipgloss.Left).
+		Render(view)
 }
 
 func (p *standingsPage) viewHelp() string {
@@ -399,13 +404,13 @@ func (p *standingsPage) SetSize(width, height int) {
 		p.ranking = newRankingViewport(
 			selectedStage,
 			p.width,
-			p.height-rankingViewHeaderHeight-p.helpHeight(),
+			p.contentViewHeight()-rankingViewHeaderHeight,
 		)
 
 	case standingsPageStateShowBracket:
 		selectedStage := p.stages[p.stageOptions.Index()]
 		tmpl := p.bracketTemplatesCache[selectedStage.ID]
-		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.height-p.helpHeight())
+		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
 	}
 }
 
@@ -432,7 +437,7 @@ func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
 
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	p.leagues = listLeaguesFromTournaments(selectedSplit.Tournaments)
-	p.leagueOptions = newLeagueOptionsList(p.leagues, p.optionListWidth(), p.height-p.helpHeight())
+	p.leagueOptions = newLeagueOptionsList(p.leagues, p.optionListWidth(), p.contentViewHeight())
 
 	return p, nil
 }
@@ -441,7 +446,7 @@ func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
 	if standings, ok := p.standingsFromCache(); ok {
 		p.state = standingsPageStateStageSelection
 		p.stages = listStagesFromStandings(standings)
-		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height-p.helpHeight())
+		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.contentViewHeight())
 		return p, nil
 	}
 
@@ -462,7 +467,7 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		p.ranking = newRankingViewport(
 			selectedStage,
 			p.width,
-			p.height-rankingViewHeaderHeight-p.helpHeight(),
+			p.contentViewHeight()-rankingViewHeaderHeight,
 		)
 		p.state = standingsPageStateShowRanking
 
@@ -472,7 +477,7 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 			return p, p.fetchBracketStageTemplate(selectedStage.ID)
 		}
 
-		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.height-p.helpHeight())
+		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
 		p.state = standingsPageStateShowBracket
 	}
 

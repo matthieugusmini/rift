@@ -91,6 +91,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
 	l.SetSpinner(spinner.MiniDot)
+	l.SetShowHelp(false)
 
 	firstTodayMatchIndex := slices.IndexFunc(events, func(event lolesports.Event) bool {
 		return timeutils.IsToday(event.StartTime)
