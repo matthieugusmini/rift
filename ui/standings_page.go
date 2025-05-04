@@ -161,18 +161,17 @@ type standingsPage struct {
 
 	state standingsPageState
 
-	splits                []lolesports.Split
-	leagues               []lolesports.League
-	stages                []lolesports.Stage
-	standingsCache        map[string][]lolesports.Standings
-	bracketTemplatesCache map[string]rift.BracketTemplate
+	splits         []lolesports.Split
+	leagues        []lolesports.League
+	stages         []lolesports.Stage
+	standingsCache map[string][]lolesports.Standings
 
 	splitOptions  list.Model
 	leagueOptions list.Model
 	stageOptions  list.Model
 
 	ranking viewport.Model
-	bracket bracketModel
+	bracket *bracketModel
 
 	err error
 
@@ -202,7 +201,6 @@ func newStandingsPage(
 		bracketTemplateLoader: bracketLoader,
 		styles:                styles,
 		standingsCache:        map[string][]lolesports.Standings{},
-		bracketTemplatesCache: map[string]rift.BracketTemplate{},
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
 		help:                  help.New(),
@@ -257,7 +255,6 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchedBracketStageTemplateMessage:
 		p.state = standingsPageStateShowBracket
 		selectedStage := p.stages[p.stageOptions.Index()]
-		p.bracketTemplatesCache[selectedStage.ID] = msg.template
 		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.contentViewHeight())
 
 	case fetchErrorMessage:
@@ -274,6 +271,8 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.stageOptions, cmd = p.stageOptions.Update(msg)
 	case standingsPageStateShowRanking:
 		p.ranking, cmd = p.ranking.Update(msg)
+	case standingsPageStateShowBracket:
+		p.bracket, cmd = p.bracket.Update(msg)
 	}
 	cmds = append(cmds, cmd)
 
@@ -408,9 +407,8 @@ func (p *standingsPage) SetSize(width, height int) {
 		)
 
 	case standingsPageStateShowBracket:
-		selectedStage := p.stages[p.stageOptions.Index()]
-		tmpl := p.bracketTemplatesCache[selectedStage.ID]
-		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
+		p.bracket.setSize(p.width, p.contentViewHeight())
+		// p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
 	}
 }
 
@@ -472,13 +470,7 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		p.state = standingsPageStateShowRanking
 
 	case stageTypeBracket:
-		tmpl, ok := p.bracketTemplatesCache[selectedStage.ID]
-		if !ok {
-			return p, p.fetchBracketStageTemplate(selectedStage.ID)
-		}
-
-		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
-		p.state = standingsPageStateShowBracket
+		return p, p.fetchBracketStageTemplate(selectedStage.ID)
 	}
 
 	return p, nil
@@ -550,9 +542,7 @@ func (p *standingsPage) updateCentralViewHeight() {
 		)
 
 	case standingsPageStateShowBracket:
-		selectedStage := p.stages[p.stageOptions.Index()]
-		tmpl := p.bracketTemplatesCache[selectedStage.ID]
-		p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
+		p.bracket.setSize(p.width, p.contentViewHeight())
 	}
 }
 

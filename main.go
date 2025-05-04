@@ -17,38 +17,46 @@ import (
 	"github.com/matthieugusmini/lolesport/ui"
 )
 
-func main() {
-	var logFile = "app.log"
+const logFile = "app.log"
 
-	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("Failed to open or create log file: %v", err)
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to run: %v\n", err)
+		os.Exit(1)
 	}
+}
+
+func run() error {
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("could not open log file: %w", err)
+	}
+	//nolint
 	defer file.Close()
 
 	log.SetOutput(file)
 	log.SetPrefix("[rift] ")
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	cacheDB, err := bbolt.Open("rift.db", 0600, nil)
+	cacheDB, err := bbolt.Open("rift.db", 0o600, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to open DB: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("could not open the cache database: %w", err)
 	}
-	defer cacheDB.Close()
+	defer cacheDB.Close() //nolint
 
 	bracketTemplateCache := cache.NewCache(cacheDB, 10*time.Hour)
 
 	bracketTemplateClient := github.NewBracketTemplateClient(http.DefaultClient)
-	bracketTemplateLoader := github.NewBracketTemplateLoader(bracketTemplateClient, bracketTemplateCache)
+	bracketTemplateLoader := github.NewBracketTemplateLoader(
+		bracketTemplateClient,
+		bracketTemplateCache,
+	)
 
 	lolesportsClient := lolesports.NewClient(gololesports.NewClient())
 
 	m := ui.NewModel(lolesportsClient, bracketTemplateLoader)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to run: %v\n", err)
-		os.Exit(1)
-	}
+	_, err = p.Run()
+	return err
 }

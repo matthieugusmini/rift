@@ -23,7 +23,10 @@ type BracketTemplateLoader struct {
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
-func NewBracketTemplateLoader(bracketTemplateClient *BracketTemplateClient, cache BracketTemplateLoaderCache) *BracketTemplateLoader {
+func NewBracketTemplateLoader(
+	bracketTemplateClient *BracketTemplateClient,
+	cache BracketTemplateLoaderCache,
+) *BracketTemplateLoader {
 	return &BracketTemplateLoader{
 		client: bracketTemplateClient,
 		cache:  cache,

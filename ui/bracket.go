@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
@@ -69,8 +70,8 @@ func newBracketModel(
 	template rift.BracketTemplate,
 	stage lolesports.Stage,
 	width, height int,
-) bracketModel {
-	return bracketModel{
+) *bracketModel {
+	return &bracketModel{
 		template: template,
 		matches:  stage.Sections[0].Matches,
 		width:    width,
@@ -79,7 +80,11 @@ func newBracketModel(
 	}
 }
 
-func (m bracketModel) View() string {
+func (m *bracketModel) Update(msg tea.Msg) (*bracketModel, tea.Cmd) {
+	return m, nil
+}
+
+func (m *bracketModel) View() string {
 	nbRounds := len(m.template.Rounds)
 	nbLinkColumns := nbRounds - 1
 	widthWithoutLinks := m.width - nbLinkColumns*linkWidth
@@ -96,7 +101,7 @@ func (m bracketModel) View() string {
 
 	for _, round := range m.template.Rounds {
 		if len(round.Links) > 0 {
-			links := m.viewLinks(round.Links)
+			links := m.drawLinks(round.Links)
 			roundViews[roundViewsIndex] = links
 			roundViewsIndex++
 		}
@@ -141,7 +146,7 @@ func (m bracketModel) View() string {
 		Render(view)
 }
 
-func (m bracketModel) viewLinks(links []rift.Link) string {
+func (m *bracketModel) drawLinks(links []rift.Link) string {
 	var linksView string
 	for _, link := range links {
 		linksView += strings.Repeat("\n", link.Above)
@@ -150,7 +155,11 @@ func (m bracketModel) viewLinks(links []rift.Link) string {
 	return linksView
 }
 
-func (m bracketModel) drawMatch(match lolesports.Match, width int) string {
+func (m *bracketModel) setSize(width, height int) {
+	m.width, m.height = width, height
+}
+
+func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
 	var (
 		team1Style = m.styles.noTeamResult
 		team2Style = m.styles.noTeamResult

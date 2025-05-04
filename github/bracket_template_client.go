@@ -30,10 +30,14 @@ func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
 	}
 }
 
-func (c *BracketTemplateClient) GetTemplateByStageID(ctx context.Context, stageID string) (rift.BracketTemplate, error) {
-	var bracketTypeByStageID map[string]string
-	var data rift.BracketTemplate
-
+func (c *BracketTemplateClient) GetTemplateByStageID(
+	ctx context.Context,
+	stageID string,
+) (rift.BracketTemplate, error) {
+	var (
+		bracketTypeByStageID map[string]string
+		data                 rift.BracketTemplate
+	)
 	bracketTypeByStageID, err := c.getBracketTemplateMapper(ctx)
 	if err != nil {
 		return rift.BracketTemplate{}, err
@@ -52,7 +56,9 @@ func (c *BracketTemplateClient) GetTemplateByStageID(ctx context.Context, stageI
 	return data, nil
 }
 
-func (c *BracketTemplateClient) getBracketTemplateMapper(ctx context.Context) (map[string]string, error) {
+func (c *BracketTemplateClient) getBracketTemplateMapper(
+	ctx context.Context,
+) (map[string]string, error) {
 	var data map[string]string
 
 	bracketTypeByStageIDURL := baseURL + bracketTypeByStageIDFilename
