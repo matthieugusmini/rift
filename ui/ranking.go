@@ -64,19 +64,17 @@ func newRankingTable(rankings []lolesports.Ranking, width int) *table.Table {
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(selectedBorderColor)).
 		StyleFunc(func(row, col int) lipgloss.Style {
-			switch {
-			// Headers
-			case row != 0:
-				return lipgloss.NewStyle().
-					Align(lipgloss.Center).
-					Foreground(textPrimaryColor).
-					Bold(true)
-
-			// Rows
-			default:
+			switch row {
+			case table.HeaderRow:
 				return lipgloss.NewStyle().
 					Align(lipgloss.Center).
 					Foreground(textSecondaryColor).
+					Bold(true)
+
+			default:
+				return lipgloss.NewStyle().
+					Align(lipgloss.Center).
+					Foreground(textPrimaryColor).
 					Bold(true)
 			}
 		}).
