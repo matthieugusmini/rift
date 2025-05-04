@@ -19,6 +19,8 @@ const (
 	navItemLabelStandings = "Standings"
 
 	navigationBarHeight = 2
+
+	maxWidth = 120
 )
 
 var navItemLabels = []string{
@@ -88,7 +90,9 @@ type Model struct {
 	state state
 
 	width, height int
-	styles        modelStyles
+	pageWidth     int
+
+	styles modelStyles
 }
 
 func NewModel(lolesportsClient LoLEsportsClient, bracketLoader BracketTemplateLoader) Model {
@@ -119,8 +123,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		m.schedulePage.(*schedulePage).SetSize(msg.Width, msg.Height-navigationBarHeight)
-		m.standingsPage.(*standingsPage).SetSize(msg.Width, msg.Height-navigationBarHeight)
+		m.pageWidth = min(msg.Width, maxWidth)
+
+		m.schedulePage.(*schedulePage).SetSize(m.pageWidth, msg.Height-navigationBarHeight)
+		m.standingsPage.(*standingsPage).SetSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
 
 	return m.updateCurrentPage(msg)
@@ -128,10 +134,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	var sb strings.Builder
-	sb.WriteString(m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.width))
+	sb.WriteString(m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth))
 	sb.WriteString("\n")
 	sb.WriteString(m.currentPageView())
-	return sb.String()
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center).
+		Render(sb.String())
 }
 
 func (m Model) viewNavigationBar(
