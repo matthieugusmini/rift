@@ -100,9 +100,7 @@ func NewModel(lolesportsClient LoLEsportsClient, bracketLoader BracketTemplateLo
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.schedulePage.Init(),
-	)
+	return tea.Batch(m.schedulePage.Init())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
