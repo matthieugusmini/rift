@@ -25,4 +25,5 @@ var (
 	selectedBorderColor      = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
 	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: dimGrey}
 	red                      = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
+	spinnerColor             = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
 )

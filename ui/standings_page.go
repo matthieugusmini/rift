@@ -46,6 +46,7 @@ type standingsStyles struct {
 	tournamentType   lipgloss.Style
 	separator        lipgloss.Style
 	help             lipgloss.Style
+	spinner          lipgloss.Style
 }
 
 func newDefaultStandingsStyles() (s standingsStyles) {
@@ -69,6 +70,8 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 	s.separator = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
+
+	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
 
 	return s
 }
@@ -173,7 +176,7 @@ type standingsPage struct {
 
 	err error
 
-	spinner *wukongSpinner
+	spinner spinner.Model
 
 	keyMap standingsPageKeyMap
 	help   help.Model
@@ -187,13 +190,20 @@ func newStandingsPage(
 	lolesportsClient LoLEsportsClient,
 	bracketLoader BracketTemplateLoader,
 ) *standingsPage {
+	styles := newDefaultStandingsStyles()
+
+	sp := spinner.New(
+		spinner.WithSpinner(spinner.Dot),
+		spinner.WithStyle(styles.spinner),
+	)
+
 	return &standingsPage{
 		lolesportsClient:      lolesportsClient,
 		bracketTemplateLoader: bracketLoader,
-		styles:                newDefaultStandingsStyles(),
+		styles:                styles,
 		standingsCache:        map[string][]lolesports.Standings{},
 		bracketTemplatesCache: map[string]rift.BracketTemplate{},
-		spinner:               newWukongSpinner(),
+		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
 		help:                  help.New(),
 	}
@@ -235,14 +245,12 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchedStandingsMessage:
 		p.state = standingsPageStateStageSelection
-		p.spinner.refreshQuote()
 		p.setStandingsInCache(msg.standings)
 		p.stages = listStagesFromStandings(msg.standings)
 		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.height-p.helpHeight())
 
 	case fetchedCurrentSeasonSplitsMessage:
 		p.state = standingsPageStateSplitSelection
-		p.spinner.refreshQuote()
 		p.splits = msg.splits
 		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.height-p.helpHeight())
 

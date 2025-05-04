@@ -14,8 +14,9 @@ import (
 )
 
 type schedulePageStyles struct {
-	doc   lipgloss.Style
-	title lipgloss.Style
+	doc     lipgloss.Style
+	title   lipgloss.Style
+	spinner lipgloss.Style
 }
 
 func newDefaultSchedulePageStyles() (s schedulePageStyles) {
@@ -26,6 +27,8 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 		Foreground(textPrimaryColor).
 		Background(secondaryBackgroundColor).
 		Bold(true)
+
+	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
 
 	return s
 }
@@ -51,7 +54,7 @@ type schedulePage struct {
 
 	err error
 
-	spinner *wukongSpinner
+	spinner spinner.Model
 	loaded  bool
 
 	width, height int
@@ -59,10 +62,17 @@ type schedulePage struct {
 }
 
 func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
+	styles := newDefaultSchedulePageStyles()
+
+	sp := spinner.New(
+		spinner.WithSpinner(spinner.Dot),
+		spinner.WithStyle(styles.spinner),
+	)
+
 	return &schedulePage{
 		lolesportsClient: lolesportsClient,
-		spinner:          newWukongSpinner(),
-		styles:           newDefaultSchedulePageStyles(),
+		spinner:          sp,
+		styles:           styles,
 	}
 }
 
