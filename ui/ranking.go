@@ -14,15 +14,15 @@ import (
 	"github.com/matthieugusmini/lolesport/timeutils"
 )
 
-func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Model {
-	standingsTables := make([]*table.Table, len(stage.Sections))
+func newRankingViewport(stage lolesports.Stage, width, height int) viewport.Model {
+	rankingTable := make([]*table.Table, len(stage.Sections))
 	for i, section := range stage.Sections {
-		standingsTables[i] = newStandingsTable(section.Rankings, width)
+		rankingTable[i] = newRankingTable(section.Rankings, width)
 	}
 
 	var sb strings.Builder
 
-	for i, t := range standingsTables {
+	for i, t := range rankingTable {
 		title := lipgloss.NewStyle().
 			Width(width).
 			Align(lipgloss.Center).
@@ -42,7 +42,7 @@ func newStandingsViewport(stage lolesports.Stage, width, height int) viewport.Mo
 	return v
 }
 
-func newStandingsTable(rankings []lolesports.Ranking, width int) *table.Table {
+func newRankingTable(rankings []lolesports.Ranking, width int) *table.Table {
 	headers := []string{"Ranking", "Team", "Series Win / Loss", "Win / Loss %"}
 
 	var rows [][]string

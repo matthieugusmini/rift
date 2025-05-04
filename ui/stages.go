@@ -57,8 +57,9 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
-	l.SetShowFilter(false)
 	l.SetSpinner(spinner.Meter)
+	l.SetFilteringEnabled(false)
+	l.DisableQuitKeybindings()
 
 	return l
 }

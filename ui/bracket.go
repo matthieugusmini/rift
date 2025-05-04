@@ -22,7 +22,7 @@ const (
 	bottomTShape      = "┴"
 )
 
-type BracketModelStyles struct {
+type bracketModelStyles struct {
 	roundTitle       lipgloss.Style
 	match            lipgloss.Style
 	noTeamResult     lipgloss.Style
@@ -31,7 +31,7 @@ type BracketModelStyles struct {
 	link             lipgloss.Style
 }
 
-func NewDefaultBracketModelStyles() (s BracketModelStyles) {
+func newDefaultBracketModelStyles() (s bracketModelStyles) {
 	s.roundTitle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color(black)).
 		Background(lipgloss.Color(antiFlashWhite)).
@@ -57,29 +57,29 @@ func NewDefaultBracketModelStyles() (s BracketModelStyles) {
 	return s
 }
 
-type BracketModel struct {
+type bracketModel struct {
 	template rift.BracketTemplate
 	matches  []lolesports.Match
 
 	width, height int
-	styles        BracketModelStyles
+	styles        bracketModelStyles
 }
 
-func NewBracketModel(
+func newBracketModel(
 	template rift.BracketTemplate,
 	stage lolesports.Stage,
 	width, height int,
-) BracketModel {
-	return BracketModel{
+) bracketModel {
+	return bracketModel{
 		template: template,
 		matches:  stage.Sections[0].Matches,
 		width:    width,
 		height:   height,
-		styles:   NewDefaultBracketModelStyles(),
+		styles:   newDefaultBracketModelStyles(),
 	}
 }
 
-func (m BracketModel) View() string {
+func (m bracketModel) View() string {
 	nbRounds := len(m.template.Rounds)
 	nbLinkColumns := nbRounds - 1
 	widthWithoutLinks := m.width - nbLinkColumns*linkWidth
@@ -141,7 +141,7 @@ func (m BracketModel) View() string {
 		Render(view)
 }
 
-func (m BracketModel) viewLinks(links []rift.Link) string {
+func (m bracketModel) viewLinks(links []rift.Link) string {
 	var linksView string
 	for _, link := range links {
 		linksView += strings.Repeat("\n", link.Above)
@@ -150,7 +150,7 @@ func (m BracketModel) viewLinks(links []rift.Link) string {
 	return linksView
 }
 
-func (m BracketModel) drawMatch(match lolesports.Match, width int) string {
+func (m bracketModel) drawMatch(match lolesports.Match, width int) string {
 	var (
 		team1Style = m.styles.noTeamResult
 		team2Style = m.styles.noTeamResult

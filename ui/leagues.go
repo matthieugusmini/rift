@@ -103,6 +103,7 @@ func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.M
 	l.SetShowStatusBar(false)
 	l.SetShowHelp(false)
 	l.SetFilteringEnabled(false)
+	l.DisableQuitKeybindings()
 
 	return l
 }

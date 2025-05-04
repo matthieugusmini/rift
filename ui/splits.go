@@ -43,6 +43,8 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.DisableQuitKeybindings()
 
 	return l
 }
