@@ -40,7 +40,7 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 
 	s.match = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderSecondaryColor)
+		BorderForeground(borderPrimaryColor)
 
 	s.noTeamResult = lipgloss.NewStyle().
 		Foreground(textPrimaryColor)
@@ -52,7 +52,7 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 		Foreground(selectedBorderColor).
 		Bold(true)
 
-	s.link = lipgloss.NewStyle().Foreground(textSecondaryColor)
+	s.link = lipgloss.NewStyle().Foreground(borderPrimaryColor)
 
 	return s
 }

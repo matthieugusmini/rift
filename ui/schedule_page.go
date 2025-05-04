@@ -156,13 +156,15 @@ func (p *schedulePage) SetSize(width, height int) {
 }
 
 func (p *schedulePage) shouldFetchNextPage() bool {
-	return p.onLastItem() && p.paginationState.hasNextPage() &&
+	return p.onLastItem() &&
+		p.paginationState.hasNextPage() &&
 		!p.paginationState.loadingNextPage &&
 		!p.matches.IsFiltered()
 }
 
 func (p *schedulePage) shouldFetchPreviousPage() bool {
-	return p.onFirstItem() && p.paginationState.hasPrevPage() &&
+	return p.onFirstItem() &&
+		p.paginationState.hasPrevPage() &&
 		!p.paginationState.loadingPrevPage &&
 		!p.matches.IsFiltered()
 }
