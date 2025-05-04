@@ -6,8 +6,6 @@ Set FontSize 18
 Set Width 1280
 Set Height 1200
 
-Set Theme "Catpuccin Mocha"
-
 # Setup
 Hide
 Type "go build ."
@@ -19,6 +17,10 @@ Show
 
 # Show case schedule
 Sleep 2s
+Enter
+Sleep 2s
+Down
+Sleep 500ms
 Enter
 Sleep 2s
 Down@500ms 10
