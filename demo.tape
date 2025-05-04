@@ -40,7 +40,11 @@ Right
 # Showcase ranking
 Sleep 2s
 Right
+Sleep 1s
 Down@250ms 15
+Sleep 1s
+Up@250ms 15
+Sleep 1s
 Escape
 
 # Showcase bracket
