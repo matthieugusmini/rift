@@ -36,6 +36,7 @@ func NewBracketTemplateLoader(
 	return &BracketTemplateLoader{
 		client: bracketTemplateClient,
 		cache:  cache,
+		logger: logger.WithGroup("bracketTemplateLoader"),
 	}
 }
 

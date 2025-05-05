@@ -408,7 +408,6 @@ func (p *standingsPage) SetSize(width, height int) {
 
 	case standingsPageStateShowBracket:
 		p.bracket.setSize(p.width, p.contentViewHeight())
-		// p.bracket = newBracketModel(tmpl, selectedStage, p.width, p.contentViewHeight())
 	}
 }
 

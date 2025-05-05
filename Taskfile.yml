@@ -13,3 +13,11 @@ tasks:
   test:
     cmds:
       - go test ./... {{.CLI_ARGS}}
+
+  logs:
+    desc: Watch logs
+    cmds:
+      - cmd: tail -f ~/Library/Logs/rift/rift.log
+        platforms: [darwin]
+      - cmd: tail -f ~/.cache/rift/rift.log
+        platforms: [linux]

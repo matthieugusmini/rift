@@ -148,10 +148,12 @@ func (m *bracketModel) View() string {
 
 func (m *bracketModel) drawLinks(links []rift.Link) string {
 	var linksView string
+
 	for _, link := range links {
 		linksView += strings.Repeat("\n", link.Above)
 		linksView += m.styles.link.Render(drawLink(link))
 	}
+
 	return linksView
 }
 

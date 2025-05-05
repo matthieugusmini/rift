@@ -30,7 +30,7 @@ func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
 	}
 }
 
-// GetTemplateByStageID fetches the bracket template associated with the given stage id.GetTemplateByStageID.
+// GetTemplateByStageID fetches the bracket template associated with the given stage id.
 //
 // An error is returned if no bracket template is associated with the stage id or
 // in case of HTTP error.
