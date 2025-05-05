@@ -13,6 +13,8 @@ import (
 )
 
 const (
+	linkWidth = 3
+
 	horizontalLine    = "─"
 	verticalLine      = "│"
 	topRightCorner    = "┐"
@@ -27,7 +29,9 @@ type bracketModelStyles struct {
 	roundTitle       lipgloss.Style
 	match            lipgloss.Style
 	noTeamResult     lipgloss.Style
+	loserTeamName    lipgloss.Style
 	loserTeamResult  lipgloss.Style
+	winnerTeamName   lipgloss.Style
 	winnerTeamResult lipgloss.Style
 	link             lipgloss.Style
 }
@@ -46,8 +50,17 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 	s.noTeamResult = lipgloss.NewStyle().
 		Foreground(textPrimaryColor)
 
+	s.loserTeamName = lipgloss.NewStyle().
+		Foreground(textSecondaryColor).
+		Faint(true)
+
 	s.loserTeamResult = lipgloss.NewStyle().
-		Foreground(textSecondaryColor)
+		Foreground(textSecondaryColor).
+		Bold(true)
+
+	s.winnerTeamName = lipgloss.NewStyle().
+		Foreground(selectedBorderColor).
+		Faint(true)
 
 	s.winnerTeamResult = lipgloss.NewStyle().
 		Foreground(selectedBorderColor).
@@ -162,30 +175,50 @@ func (m *bracketModel) setSize(width, height int) {
 }
 
 func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
-	var (
-		team1Style = m.styles.noTeamResult
-		team2Style = m.styles.noTeamResult
-	)
-	if teamHasWon(match.Teams[0]) {
-		team1Style = m.styles.winnerTeamResult
-		team2Style = m.styles.loserTeamResult
-	} else if teamHasWon(match.Teams[1]) {
-		team1Style = m.styles.loserTeamResult
-		team2Style = m.styles.winnerTeamResult
-	}
-
-	borderWidth := m.styles.match.GetHorizontalFrameSize()
+	borderWidth := m.styles.match.GetHorizontalBorderSize()
 	rowWidth := width - borderWidth
 	if rowWidth <= 0 {
 		return ""
+	}
+
+	var (
+		team1Style       = m.styles.noTeamResult
+		team1ResultStyle lipgloss.Style
+
+		team2Style       = m.styles.noTeamResult
+		team2ResultStyle lipgloss.Style
+	)
+	if teamHasWon(match.Teams[0]) {
+		team1Style = m.styles.winnerTeamName
+		team1ResultStyle = m.styles.winnerTeamResult
+
+		team2Style = m.styles.loserTeamName
+		team2ResultStyle = m.styles.loserTeamResult
+	} else if teamHasWon(match.Teams[1]) {
+		team1Style = m.styles.loserTeamName
+		team1ResultStyle = m.styles.loserTeamResult
+
+		team2Style = m.styles.winnerTeamName
+		team2ResultStyle = m.styles.winnerTeamResult
 	}
 
 	rowStyle := lipgloss.NewStyle().
 		Width(rowWidth).
 		Align(lipgloss.Center)
 
-	team1Row := team1Style.Render(formatTeamRow(match.Teams[0]))
-	team2Row := team2Style.Render(formatTeamRow(match.Teams[1]))
+	team1Row := formatTeamRow(match.Teams[0])
+	team1Row = lipgloss.StyleRanges(
+		team1Row,
+		lipgloss.NewRange(0, len(match.Teams[0].Code), team1Style),
+		lipgloss.NewRange(len(match.Teams[0].Code), len(team1Row), team1ResultStyle),
+	)
+
+	team2Row := formatTeamRow(match.Teams[1])
+	team2Row = lipgloss.StyleRanges(
+		team2Row,
+		lipgloss.NewRange(0, len(match.Teams[1].Code), team2Style),
+		lipgloss.NewRange(len(match.Teams[1].Code), len(team2Row), team2ResultStyle),
+	)
 
 	content := fmt.Sprintf(
 		"%s\n%s\n%s",
@@ -196,8 +229,6 @@ func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
 
 	return m.styles.match.Render(content)
 }
-
-const linkWidth = 3
 
 func drawLink(link rift.Link) string {
 	var sb strings.Builder
