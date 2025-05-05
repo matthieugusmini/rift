@@ -74,26 +74,28 @@ func newFacilitator[T any](cache *Cache, bucket string) *facilitator[T] {
 
 func (f *facilitator[T]) set(key string, value T) error {
 	expiresAt := time.Now().Add(f.cache.ttl).Unix()
-	cached := entry[T]{
+	entry := entry[T]{
 		Value:     value,
 		ExpiresAt: expiresAt,
 	}
 
-	cachedMarshaled, err := json.Marshal(cached)
+	b, err := json.Marshal(entry)
 	if err != nil {
 		return err
 	}
 
-	err = f.cache.db.Update(func(tx *bbolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(f.bucket))
+	if err := f.cache.db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(f.bucket))
 		if err != nil {
 			return err
 		}
 
-		return b.Put([]byte(key), cachedMarshaled)
-	})
+		return bucket.Put([]byte(key), b)
+	}); err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (f *facilitator[T]) get(key string) (T, bool, error) {
@@ -102,14 +104,14 @@ func (f *facilitator[T]) get(key string) (T, bool, error) {
 		cached entry[T]
 	)
 	if err := f.cache.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(f.bucket))
-		if b == nil {
+		bucket := tx.Bucket([]byte(f.bucket))
+		if bucket == nil {
 			return errors.New("bucket does not exist")
 		}
 
-		rawValue := b.Get([]byte(key))
+		b := bucket.Get([]byte(key))
 
-		return json.Unmarshal(rawValue, &cached)
+		return json.Unmarshal(b, &cached)
 	}); err != nil {
 		return zero, false, err
 	}
@@ -126,7 +128,7 @@ func (f *facilitator[T]) get(key string) (T, bool, error) {
 
 func (f *facilitator[T]) delete(key string) error {
 	return f.cache.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(f.bucket))
-		return b.Delete([]byte(key))
+		bucket := tx.Bucket([]byte(f.bucket))
+		return bucket.Delete([]byte(key))
 	})
 }
