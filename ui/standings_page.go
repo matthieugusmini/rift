@@ -90,9 +90,9 @@ type standingsPageKeyMap struct {
 
 func (k standingsPageKeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
-		k.Up,
-		k.Down,
 		k.Select,
+		k.NextPage,
+		k.Quit,
 		k.ShowFullHelp,
 	}
 }
@@ -156,15 +156,14 @@ func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
 }
 
 type standingsPage struct {
-	lolesportsClient      LoLEsportsClient
+	lolesportsClient      LoLEsportsLoader
 	bracketTemplateLoader BracketTemplateLoader
 
 	state standingsPageState
 
-	splits         []lolesports.Split
-	leagues        []lolesports.League
-	stages         []lolesports.Stage
-	standingsCache map[string][]lolesports.Standings
+	splits  []lolesports.Split
+	leagues []lolesports.League
+	stages  []lolesports.Stage
 
 	splitOptions  list.Model
 	leagueOptions list.Model
@@ -186,7 +185,7 @@ type standingsPage struct {
 }
 
 func newStandingsPage(
-	lolesportsClient LoLEsportsClient,
+	lolesportsClient LoLEsportsLoader,
 	bracketLoader BracketTemplateLoader,
 ) *standingsPage {
 	styles := newDefaultStandingsStyles()
@@ -200,7 +199,6 @@ func newStandingsPage(
 		lolesportsClient:      lolesportsClient,
 		bracketTemplateLoader: bracketLoader,
 		styles:                styles,
-		standingsCache:        map[string][]lolesports.Standings{},
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
 		help:                  help.New(),
@@ -241,9 +239,8 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
-	case fetchedStandingsMessage:
+	case loadedStandingsMessage:
 		p.state = standingsPageStateStageSelection
-		p.setStandingsInCache(msg.standings)
 		p.stages = listStagesFromStandings(msg.standings)
 		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.contentViewHeight())
 
@@ -252,7 +249,7 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.splits = msg.splits
 		p.splitOptions = newSplitOptionsList(p.splits, p.optionListWidth(), p.contentViewHeight())
 
-	case fetchedBracketStageTemplateMessage:
+	case loadedBracketStageTemplateMessage:
 		p.state = standingsPageStateShowBracket
 		selectedStage := p.stages[p.stageOptions.Index()]
 		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.contentViewHeight())
@@ -440,19 +437,13 @@ func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
 }
 
 func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
-	if standings, ok := p.standingsFromCache(); ok {
-		p.state = standingsPageStateStageSelection
-		p.stages = listStagesFromStandings(standings)
-		p.stageOptions = newStageOptionsList(p.stages, p.optionListWidth(), p.contentViewHeight())
-		return p, nil
-	}
-
 	p.state = standingsPageStateLoadingStages
 
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	selectedLeague := p.leagues[p.leagueOptions.Index()]
 	tournamentIDs := listTournamentIDsForLeague(selectedSplit.Tournaments, selectedLeague.ID)
-	return p, tea.Batch(p.spinner.Tick, p.fetchStandings(tournamentIDs))
+
+	return p, tea.Batch(p.spinner.Tick, p.loadStandings(tournamentIDs))
 }
 
 func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
@@ -469,25 +460,10 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		p.state = standingsPageStateShowRanking
 
 	case stageTypeBracket:
-		return p, p.fetchBracketStageTemplate(selectedStage.ID)
+		return p, p.loadBracketStageTemplate(selectedStage.ID)
 	}
 
 	return p, nil
-}
-
-func (p *standingsPage) setStandingsInCache(standings []lolesports.Standings) {
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	selectedLeague := p.leagues[p.leagueOptions.Index()]
-	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
-	p.standingsCache[cacheKey] = standings
-}
-
-func (p *standingsPage) standingsFromCache() ([]lolesports.Standings, bool) {
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	selectedLeague := p.leagues[p.leagueOptions.Index()]
-	cacheKey := makeStandingsCacheKey(selectedSplit.ID, selectedLeague.ID)
-	standings, ok := p.standingsCache[cacheKey]
-	return standings, ok
 }
 
 func (p *standingsPage) goToPreviousStep() {
@@ -515,10 +491,10 @@ func (p *standingsPage) contentViewHeight() int {
 
 func (p *standingsPage) toggleFullHelp() {
 	p.help.ShowAll = !p.help.ShowAll
-	p.updateCentralViewHeight()
+	p.updateContentViewHeight()
 }
 
-func (p *standingsPage) updateCentralViewHeight() {
+func (p *standingsPage) updateContentViewHeight() {
 	switch p.state {
 	case standingsPageStateSplitSelection:
 		p.splitOptions.SetHeight(p.contentViewHeight())
@@ -553,17 +529,20 @@ func (p *standingsPage) helpHeight() int {
 	return standingsPageShortHelpHeight + padding
 }
 
-type fetchedStandingsMessage struct {
+type loadedStandingsMessage struct {
 	standings []lolesports.Standings
 }
 
-func (p *standingsPage) fetchStandings(tournamentIDs []string) tea.Cmd {
+func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 	return func() tea.Msg {
-		standings, err := p.lolesportsClient.GetStandings(context.Background(), tournamentIDs)
+		standings, err := p.lolesportsClient.LoadStandingsByTournamentIDs(
+			context.Background(),
+			tournamentIDs,
+		)
 		if err != nil {
 			return fetchErrorMessage{err}
 		}
-		return fetchedStandingsMessage{standings}
+		return loadedStandingsMessage{standings}
 	}
 }
 
@@ -581,17 +560,17 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	}
 }
 
-type fetchedBracketStageTemplateMessage struct {
+type loadedBracketStageTemplateMessage struct {
 	template rift.BracketTemplate
 }
 
-func (p *standingsPage) fetchBracketStageTemplate(stageID string) tea.Cmd {
+func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {
 	return func() tea.Msg {
 		tmpl, err := p.bracketTemplateLoader.Load(context.Background(), stageID)
 		if err != nil {
 			return fetchErrorMessage{err}
 		}
-		return fetchedBracketStageTemplateMessage{tmpl}
+		return loadedBracketStageTemplateMessage{tmpl}
 	}
 }
 
@@ -625,8 +604,4 @@ func listStagesFromStandings(standings []lolesports.Standings) []lolesports.Stag
 		stages = append(stages, standing.Stages...)
 	}
 	return stages
-}
-
-func makeStandingsCacheKey(splitID, leagueID string) string {
-	return fmt.Sprintf("%s-%s", splitID, leagueID)
 }

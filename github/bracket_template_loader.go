@@ -7,30 +7,30 @@ import (
 	"github.com/matthieugusmini/lolesport/rift"
 )
 
-// BracketTemplateLoaderCache represents a cache to retrieve bracket templates.
-type BracketTemplateLoaderCache interface {
+// BracketTemplateCache represents a cache to retrieve bracket templates.
+type BracketTemplateCache interface {
 	// GetBracketTemplate should return:
 	// - The rift.BracketTemplate associated to the given stage id that is retrieved from the cache
 	// - A boolean indicating whether the value was found or not in the cache
 	// - An error(e.g. could not invalidate entry, etc.)
-	GetBracketTemplate(stageID string) (rift.BracketTemplate, bool, error)
+	Get(stageID string) (rift.BracketTemplate, bool, error)
 
 	// SetBracketTemplate should create a new entry in the cache with a
 	// rift.BracketTemplate as value and a stageID as key.
-	SetBracketTemplate(stageID string, value rift.BracketTemplate) error
+	Set(stageID string, value rift.BracketTemplate) error
 }
 
 // BracketTemplateLoader handles loading bracket templates from multiple sources.
 type BracketTemplateLoader struct {
 	client *BracketTemplateClient
-	cache  BracketTemplateLoaderCache
+	cache  BracketTemplateCache
 	logger *slog.Logger
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
 func NewBracketTemplateLoader(
 	bracketTemplateClient *BracketTemplateClient,
-	cache BracketTemplateLoaderCache,
+	cache BracketTemplateCache,
 	logger *slog.Logger,
 ) *BracketTemplateLoader {
 	return &BracketTemplateLoader{
@@ -51,9 +51,9 @@ func (l *BracketTemplateLoader) Load(
 ) (rift.BracketTemplate, error) {
 	var tmpl rift.BracketTemplate
 
-	tmpl, ok, err := l.cache.GetBracketTemplate(stageID)
+	tmpl, ok, err := l.cache.Get(stageID)
 	if err != nil {
-		l.logger.Debug(
+		l.logger.Warn(
 			"Bracket template not present in cache",
 			slog.Any("err", err),
 			slog.String("stageId", stageID),
@@ -68,7 +68,7 @@ func (l *BracketTemplateLoader) Load(
 		return rift.BracketTemplate{}, err
 	}
 
-	if err := l.cache.SetBracketTemplate(stageID, tmpl); err != nil {
+	if err := l.cache.Set(stageID, tmpl); err != nil {
 		l.logger.Debug(
 			"Failed to cache bracket template",
 			slog.Any("err", err),

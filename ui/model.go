@@ -40,12 +40,15 @@ var stateByNavItemLabel = map[string]state{
 	navItemLabelStandings: stateShowStandings,
 }
 
-type LoLEsportsClient interface {
+type LoLEsportsLoader interface {
 	GetSchedule(
 		ctx context.Context,
 		opts *lolesports.GetScheduleOptions,
 	) (lolesports.Schedule, error)
-	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
+	LoadStandingsByTournamentIDs(
+		ctx context.Context,
+		tournamentIDs []string,
+	) ([]lolesports.Standings, error)
 	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
 
@@ -95,7 +98,7 @@ type Model struct {
 	styles modelStyles
 }
 
-func NewModel(lolesportsClient LoLEsportsClient, bracketLoader BracketTemplateLoader) Model {
+func NewModel(lolesportsClient LoLEsportsLoader, bracketLoader BracketTemplateLoader) Model {
 	return Model{
 		schedulePage:  newSchedulePage(lolesportsClient),
 		standingsPage: newStandingsPage(lolesportsClient, bracketLoader),

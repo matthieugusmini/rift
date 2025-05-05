@@ -16,6 +16,7 @@ import (
 	"github.com/matthieugusmini/lolesport/cache"
 	"github.com/matthieugusmini/lolesport/github"
 	"github.com/matthieugusmini/lolesport/lolesports"
+	"github.com/matthieugusmini/lolesport/rift"
 	"github.com/matthieugusmini/lolesport/ui"
 )
 
@@ -23,6 +24,12 @@ const (
 	appName     = "rift"
 	logFilename = "rift.log"
 	cacheFile   = "rift.db"
+
+	bucketBracketTemplate = "bracketTemplate"
+	bucketStandings       = "standings"
+	bucketSchedule        = "schedule"
+
+	cacheDefaultTTL = time.Hour * 12
 )
 
 func main() {
@@ -39,10 +46,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("could not retrieve the log file path: %w", err)
 	}
+
 	logDir := filepath.Dir(logPath)
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		return fmt.Errorf("could not make a new log directory in filesystem: %w", err)
 	}
+
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("could not open log file: %w", err)
@@ -55,9 +64,11 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("could not retrieve the user cache directory: %w", err)
 	}
+
 	if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
 		return fmt.Errorf("could not make a new cache directory in filesystem: %w", err)
 	}
+
 	cachePath := filepath.Join(cacheDir, cacheFile)
 	cacheDB, err := bbolt.Open(cachePath, 0o600, bbolt.DefaultOptions)
 	if err != nil {
@@ -65,18 +76,27 @@ func run() error {
 	}
 	defer cacheDB.Close()
 
-	bracketTemplateCache := cache.NewCache(cacheDB, 10*time.Hour)
-
 	bracketTemplateClient := github.NewBracketTemplateClient(http.DefaultClient)
+	bracketTemplateCache := cache.NewCache[rift.BracketTemplate](
+		cacheDB,
+		bucketBracketTemplate,
+		cacheDefaultTTL,
+	)
 	bracketTemplateLoader := github.NewBracketTemplateLoader(
 		bracketTemplateClient,
 		bracketTemplateCache,
 		logger,
 	)
 
-	lolesportsClient := lolesports.NewClient(gololesports.NewClient())
+	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
+	standingsCache := cache.NewCache[[]gololesports.Standings](
+		cacheDB,
+		bucketStandings,
+		cacheDefaultTTL,
+	)
+	lolesportsLoader := lolesports.NewLoader(lolesportsAPIClient, standingsCache, logger)
 
-	m := ui.NewModel(lolesportsClient, bracketTemplateLoader)
+	m := ui.NewModel(lolesportsLoader, bracketTemplateLoader)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

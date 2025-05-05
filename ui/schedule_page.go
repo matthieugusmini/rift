@@ -82,7 +82,7 @@ func (s paginationState) hasNextPage() bool { return s.nextPageToken != "" }
 func (s paginationState) hasPrevPage() bool { return s.prevPageToken != "" }
 
 type schedulePage struct {
-	lolesportsClient LoLEsportsClient
+	lolesportsClient LoLEsportsLoader
 
 	events          []lolesports.Event
 	matches         list.Model
@@ -100,7 +100,7 @@ type schedulePage struct {
 	help   help.Model
 }
 
-func newSchedulePage(lolesportsClient LoLEsportsClient) *schedulePage {
+func newSchedulePage(lolesportsClient LoLEsportsLoader) *schedulePage {
 	styles := newDefaultSchedulePageStyles()
 
 	sp := spinner.New(
@@ -294,9 +294,8 @@ func (p *schedulePage) updateMatchListTitle() {
 
 func (p *schedulePage) ShortHelp() []key.Binding {
 	return []key.Binding{
-		p.keyMap.CursorUp,
-		p.keyMap.CursorDown,
 		p.keyMap.RevealSpoiler,
+		p.keyMap.NextPage,
 		p.keyMap.Quit,
 		p.keyMap.ShowFullHelp,
 	}
