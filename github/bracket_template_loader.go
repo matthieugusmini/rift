@@ -2,7 +2,7 @@ package github
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"github.com/matthieugusmini/lolesport/rift"
 )
@@ -20,12 +20,14 @@ type BracketTemplateLoaderCache interface {
 type BracketTemplateLoader struct {
 	client *BracketTemplateClient
 	cache  BracketTemplateLoaderCache
+	logger *slog.Logger
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
 func NewBracketTemplateLoader(
 	bracketTemplateClient *BracketTemplateClient,
 	cache BracketTemplateLoaderCache,
+	logger *slog.Logger,
 ) *BracketTemplateLoader {
 	return &BracketTemplateLoader{
 		client: bracketTemplateClient,
@@ -42,23 +44,29 @@ func (l *BracketTemplateLoader) Load(
 ) (rift.BracketTemplate, error) {
 	var tmpl rift.BracketTemplate
 
-	cachedFile, ok, err := l.cache.GetBracketTemplate(stageID)
+	tmpl, ok, err := l.cache.GetBracketTemplate(stageID)
 	if err != nil {
-		log.Printf("Failed to load bracket template %s: %s", stageID, err)
+		l.logger.Debug(
+			"Bracket template not present in cache",
+			slog.Any("err", err),
+			slog.String("stageId", stageID),
+		)
 	}
-
 	if ok {
-		return cachedFile, nil
+		return tmpl, nil
 	}
 
 	tmpl, err = l.client.GetTemplateByStageID(ctx, stageID)
 	if err != nil {
-		log.Printf("Failed to fetch bracket template %s: %s", stageID, err)
 		return rift.BracketTemplate{}, err
 	}
 
 	if err := l.cache.SetBracketTemplate(stageID, tmpl); err != nil {
-		log.Printf("Failed to cache bracket template %s: %s", stageID, err)
+		l.logger.Debug(
+			"Failed to cache bracket template",
+			slog.Any("err", err),
+			slog.String("stageId", stageID),
+		)
 	}
 
 	return tmpl, nil

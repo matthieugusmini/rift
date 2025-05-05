@@ -12,7 +12,7 @@ linters:
     - funlen
     - ginkgolinter
     - gochecknoglobals
-    - gocognit # We don't focus on arbitrary complexity metrics here. 
+    - gocognit # We don't focus on arbitrary complexity metrics here.
     - gocyclo # We don't focus on arbitrary complexity metrics here.
     - godox
     - ireturn
@@ -55,10 +55,12 @@ linters:
         - name: package-comments
           disabled: true
     sloglint:
-      # Less error-prone
-      kv-only: true
+      # Less error-prone(report false-positive)
+      # kv-only: true
       # Use dependency injection instead.
       no-global: "all"
+      msg-style: capitalized
+      key-naming-case: camel
     exclusions:
       presets: std-error-handling
 formatters:
