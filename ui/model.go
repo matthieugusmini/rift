@@ -137,8 +137,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	navBar := m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth)
+
 	content := m.currentPageView()
-	return lipgloss.JoinVertical(lipgloss.Left, navBar, content)
+
+	view := lipgloss.JoinVertical(lipgloss.Left, navBar, content)
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center).
+		Render(view)
 }
 
 func (m Model) viewNavigationBar(
