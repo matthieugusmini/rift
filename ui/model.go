@@ -125,7 +125,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		m.pageWidth = min(msg.Width, maxWidth)
 
-		m.schedulePage.(*schedulePage).SetSize(m.pageWidth, msg.Height-navigationBarHeight)
+		m.schedulePage.(*schedulePage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
 		m.standingsPage.(*standingsPage).SetSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
 
@@ -133,16 +133,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	var sb strings.Builder
-	sb.WriteString(m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth))
-	sb.WriteString("\n")
-	sb.WriteString(m.currentPageView())
-
-	return lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
-		Align(lipgloss.Center).
-		Render(sb.String())
+	navBar := m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth)
+	content := m.currentPageView()
+	return lipgloss.JoinVertical(lipgloss.Left, navBar, content)
 }
 
 func (m Model) viewNavigationBar(

@@ -15,6 +15,11 @@ import (
 	"github.com/matthieugusmini/lolesport/timeutils"
 )
 
+const (
+	schedulePageShortHelpHeight = 1
+	schedulePageFullHelpHeight  = 7
+)
+
 type schedulePageStyles struct {
 	doc     lipgloss.Style
 	title   lipgloss.Style
@@ -118,7 +123,7 @@ func (p *schedulePage) Init() tea.Cmd {
 
 func (p *schedulePage) toggleHelp() {
 	p.help.ShowAll = !p.help.ShowAll
-	p.matches.SetSize(p.width, p.matchListHeight())
+	p.matches.SetSize(p.width, p.contentViewHeight())
 }
 
 func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -136,7 +141,7 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// that the page remains agnostic to its parent's layout.
 	case tea.WindowSizeMsg:
 		if p.matches.Items() != nil {
-			p.matches.SetSize(p.width, p.matchListHeight())
+			p.matches.SetSize(p.width, p.contentViewHeight())
 		}
 
 	case spinner.TickMsg:
@@ -158,10 +163,11 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	p.matches, cmd = p.matches.Update(msg)
-	cmds = append(cmds, cmd)
 
 	p.updateMatchListTitle()
+
+	p.matches, cmd = p.matches.Update(msg)
+	cmds = append(cmds, cmd)
 
 	if p.shouldFetchNextPage() {
 		p.paginationState.loadingNextPage = true
@@ -176,17 +182,19 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *schedulePage) View() string {
-	if !p.loaded {
-		return p.viewSpinner()
-	}
 	if p.err != nil {
 		return p.viewError()
 	}
 
-	sections := []string{
-		p.matches.View(),
-		p.viewHelp(),
+	var sections []string
+
+	if !p.loaded {
+		sections = append(sections, p.viewSpinner())
+	} else {
+		sections = append(sections, p.matches.View())
 	}
+
+	sections = append(sections, p.viewHelp())
 
 	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
@@ -198,19 +206,18 @@ func (p *schedulePage) viewHelp() string {
 }
 
 func (p *schedulePage) viewSpinner() string {
-	style := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Width(p.width).
-		Height(p.height).
+		Height(p.contentViewHeight()).
 		Align(lipgloss.Center, lipgloss.Center).
-		Italic(true)
-	return style.Render(p.spinner.View())
+		Render(p.spinner.View())
 }
 
 func (p *schedulePage) viewError() string {
 	return p.styles.doc.Render(p.err.Error())
 }
 
-func (p *schedulePage) SetSize(width, height int) {
+func (p *schedulePage) setSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
 
@@ -244,7 +251,7 @@ func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 	case pageDirectionInitial:
 		p.loaded = true
 		p.events = msg.events
-		p.matches = newMatchList(p.events, p.width, p.matchListHeight())
+		p.matches = newMatchList(p.events, p.width, p.contentViewHeight())
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
 
@@ -322,12 +329,12 @@ func (p *schedulePage) FullHelp() [][]key.Binding {
 func (p *schedulePage) helpHeight() int {
 	padding := p.styles.help.GetVerticalPadding()
 	if p.help.ShowAll {
-		return 7 + padding
+		return schedulePageFullHelpHeight + padding
 	}
-	return 1 + padding
+	return schedulePageShortHelpHeight + padding
 }
 
-func (p *schedulePage) matchListHeight() int {
+func (p *schedulePage) contentViewHeight() int {
 	return p.height - p.helpHeight()
 }
 
