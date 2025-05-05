@@ -7,16 +7,20 @@ import (
 	"github.com/matthieugusmini/lolesport/rift"
 )
 
+// BracketTemplateLoaderCache represents a cache to retrieve bracket templates.
 type BracketTemplateLoaderCache interface {
-	GetBracketTemplate(key string) (rift.BracketTemplate, bool, error)
-	SetBracketTemplate(key string, value rift.BracketTemplate) error
+	// GetBracketTemplate should return:
+	// - The rift.BracketTemplate associated to the given stage id that is retrieved from the cache
+	// - A boolean indicating whether the value was found or not in the cache
+	// - An error(e.g. could not invalidate entry, etc.)
+	GetBracketTemplate(stageID string) (rift.BracketTemplate, bool, error)
+
+	// SetBracketTemplate should create a new entry in the cache with a
+	// rift.BracketTemplate as value and a stageID as key.
+	SetBracketTemplate(stageID string, value rift.BracketTemplate) error
 }
 
-// BracketTemplateLoader handles loading bracket templates from JSON config files
-// stored in a GitHub repository.
-// It also use a cache package to not fetch the files each time the app reload
-//
-// Example: https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main/8SE.json
+// BracketTemplateLoader handles loading bracket templates from multiple sources.
 type BracketTemplateLoader struct {
 	client *BracketTemplateClient
 	cache  BracketTemplateLoaderCache
@@ -35,9 +39,11 @@ func NewBracketTemplateLoader(
 	}
 }
 
-// Load check the cache for the file
-// if present, returns the bracket template
-// if not present fetches the file, keep it in the cache and returns the bracket template for the given stage ID.
+// Load tries to load the bracket template associated to the given stage ID
+// from the underlying cache first and if not found fetches it using the client.
+//
+// An error is returned only if the client cannot load the template.
+// Errors returned by the cache are not forwarded and are just logged instead.
 func (l *BracketTemplateLoader) Load(
 	ctx context.Context,
 	stageID string,

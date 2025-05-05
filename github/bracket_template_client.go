@@ -15,7 +15,7 @@ const (
 	bracketTypeByStageIDFilename = "bracket-type-by-stage-id.json"
 )
 
-// BracketTemplateLoader handles fetching bracket templates from JSON config files
+// BracketTemplateClient handles fetching bracket templates from JSON config files
 // stored in a GitHub repository.
 //
 // Example: https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main/8SE.json
@@ -23,13 +23,17 @@ type BracketTemplateClient struct {
 	httpClient *http.Client
 }
 
-// NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
+// NewBracketTemplateClient creates a new instance of BracketTemplateClient.
 func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
 	return &BracketTemplateClient{
 		httpClient: httpClient,
 	}
 }
 
+// GetTemplateByStageID fetches the bracket template associated with the given stage id.GetTemplateByStageID.
+//
+// An error is returned if no bracket template is associated with the stage id or
+// in case of HTTP error.
 func (c *BracketTemplateClient) GetTemplateByStageID(
 	ctx context.Context,
 	stageID string,
@@ -75,6 +79,7 @@ func (c *BracketTemplateClient) get(ctx context.Context, url string, data any) e
 	if err != nil {
 		return fmt.Errorf("could not create new request: %w", err)
 	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
