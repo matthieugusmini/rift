@@ -25,25 +25,24 @@ linters:
     - varnamelen
     - wrapcheck
     - wsl # Too strict and opinionated. Doesn't necessarily improve code readability.
+
   settings:
-    errcheck:
-      exclude-functions:
-        - fmt.Fprint
-        - fmt.Fprintf
-        - (io.ReadCloser).Close
     gocritic:
       disabled-checks:
         - singleCaseSwitch
       settings:
         ifElseChain:
           minThreshold: 3
+
     gosec:
       excludes:
         # False positive when using math/rand/v2.
         # https://github.com/securego/gosec/issues/1241
         - G404
+
     gosmopolitan:
       allow-time-local: true
+
     revive:
       rules:
         # We don't focus on arbitrary complexity metrics here.
@@ -54,26 +53,40 @@ linters:
         # Sometimes you don't mandatorily want comments(e.g. implementing an interface)
         - name: package-comments
           disabled: true
+
     sloglint:
-      # Less error-prone(report false-positive)
+      # Less error-prone(report false-positive when arguments on multi-lines)
       # kv-only: true
       # Use dependency injection instead.
       no-global: "all"
       msg-style: capitalized
       key-naming-case: camel
-    exclusions:
-      presets: std-error-handling
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+
 formatters:
   enable:
     - gofumpt
     - goimports
     - golines
+
   settings:
     gofumpt:
       module-path: github.com/matthieugusmini/lolesport
       extra-rules: true
+
     goimports:
       local-prefixes:
         - github.com/matthieugusmini/lolesport
+
     golines:
       max-len: 100
+
+    exclusions:
+      generated: lax
