@@ -88,5 +88,5 @@ formatters:
     golines:
       max-len: 100
 
-    exclusions:
-      generated: lax
+  exclusions:
+    generated: lax
