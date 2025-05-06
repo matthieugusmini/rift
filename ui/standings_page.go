@@ -101,32 +101,6 @@ type standingsPageKeyMap struct {
 	Quit          key.Binding
 }
 
-func (k standingsPageKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{
-		k.Select,
-		k.NextPage,
-		k.Quit,
-		k.ShowFullHelp,
-	}
-}
-
-func (k standingsPageKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			k.Up,
-			k.Down,
-			k.Select,
-			k.Previous,
-			k.NextPage,
-			k.PrevPage,
-		},
-		{
-			k.Quit,
-			k.CloseFullHelp,
-		},
-	}
-}
-
 func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
 	return standingsPageKeyMap{
 		Up: key.NewBinding(
@@ -422,7 +396,7 @@ func (p *standingsPage) viewSelectionPrompt() string {
 }
 
 func (p *standingsPage) viewHelp() string {
-	return p.styles.help.Render(p.help.View(p.keyMap))
+	return p.styles.help.Render(p.help.View(p))
 }
 
 func (p *standingsPage) SetSize(width, height int) {
@@ -592,6 +566,32 @@ func (p *standingsPage) listHeight() int {
 		return max(p.contentHeight()/2, minListHeight)
 	} else {
 		return p.contentHeight()
+	}
+}
+
+func (p *standingsPage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Select,
+		p.keyMap.NextPage,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *standingsPage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			p.keyMap.Up,
+			p.keyMap.Down,
+			p.keyMap.Select,
+			p.keyMap.Previous,
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
 	}
 }
 
