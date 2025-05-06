@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -511,6 +512,11 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		p.state = standingsPageStateShowRanking
 
 	case stageTypeBracket:
+		// Disable selection for unavailable stage
+		if !p.isBracketStageTemplateAvailable(selectedStage.ID) {
+			return p, nil
+		}
+
 		return p, p.loadBracketStageTemplate(selectedStage.ID)
 	}
 
@@ -628,6 +634,16 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 
 type loadedBracketStageTemplateMessage struct {
 	template rift.BracketTemplate
+}
+
+func (p *standingsPage) isBracketStageTemplateAvailable(stageID string) bool {
+	availableStageIDs, err := p.bracketTemplateLoader.ListAvailableStageIDs(context.Background())
+	if err != nil {
+		// Ignore err for now
+		return false
+	}
+
+	return slices.Contains(availableStageIDs, stageID)
 }
 
 func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {
