@@ -77,7 +77,7 @@ func run() error {
 	defer cacheDB.Close()
 
 	bracketTemplateClient := github.NewBracketTemplateClient(http.DefaultClient)
-	bracketTemplateCache := cache.NewCache[rift.BracketTemplate](
+	bracketTemplateCache := cache.New[rift.BracketTemplate](
 		cacheDB,
 		bucketBracketTemplate,
 		cacheDefaultTTL,
@@ -89,7 +89,7 @@ func run() error {
 	)
 
 	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
-	standingsCache := cache.NewCache[[]gololesports.Standings](
+	standingsCache := cache.New[[]gololesports.Standings](
 		cacheDB,
 		bucketStandings,
 		cacheDefaultTTL,
