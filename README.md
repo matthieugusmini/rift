@@ -5,7 +5,7 @@
 Stay up to date with League of Legends eSport in your CLI!
 
 <p align="center">
-  <img src="https://vhs.charm.sh/vhs-1KR7USTXs5WB17iED9Zi7d.gif" alt="Made with VHS" width=600>
+  <img src="https://vhs.charm.sh/vhs-qNLXPtOyroqVdMQv9jLd6.gif" alt="Made with VHS" width=600>
 </p>
 
 ## Installation
