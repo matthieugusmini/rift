@@ -1,10 +1,10 @@
-package timeutils_test
+package timeutil_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 var (
@@ -38,7 +38,7 @@ func TestIsCurrentTimeBetween(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := timeutils.IsCurrentTimeBetween(tc.startTime, tc.endTime)
+			got := timeutil.IsCurrentTimeBetween(tc.startTime, tc.endTime)
 
 			if got != tc.want {
 				t.Errorf(

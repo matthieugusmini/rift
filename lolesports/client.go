@@ -5,7 +5,7 @@ import (
 
 	lolesports "github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 // Client is an adapter of the unofficial lolesports HTTP client.
@@ -55,5 +55,5 @@ func (c *Client) GetStandings(
 
 func isCurrentSeason(season lolesports.Season) bool {
 	return season.Name == "lolesports" &&
-		timeutils.IsCurrentTimeBetween(season.StartTime, season.EndTime)
+		timeutil.IsCurrentTimeBetween(season.StartTime, season.EndTime)
 }

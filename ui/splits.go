@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Model {
@@ -27,7 +27,7 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 		}
 		items[i] = item
 
-		if timeutils.IsCurrentTimeBetween(split.StartTime, split.EndTime) {
+		if timeutil.IsCurrentTimeBetween(split.StartTime, split.EndTime) {
 			cursorIndex = i
 		}
 	}
@@ -149,7 +149,7 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 
 		now        = time.Now()
 		isUpcoming = i.startTime.After(now)
-		isCurrent  = timeutils.IsCurrentTimeBetween(i.startTime, i.endTime)
+		isCurrent  = timeutil.IsCurrentTimeBetween(i.startTime, i.endTime)
 		isSelected = index == m.Index()
 		isLast     = index == len(m.Items())-1
 	)

@@ -1,10 +1,10 @@
-package timeutils_test
+package timeutil_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 var goatBirthday = time.Date(1996, time.May, 7, 0, 0, 0, 0, time.UTC)
@@ -32,7 +32,7 @@ func TestIsYesterday(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := timeutils.IsYesterday(tc.date)
+			got := timeutil.IsYesterday(tc.date)
 
 			if got != tc.want {
 				t.Errorf("IsYesterday(%s) = %t, want %t", tc.date, got, tc.want)
@@ -64,7 +64,7 @@ func TestIsToday(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := timeutils.IsToday(tc.date)
+			got := timeutil.IsToday(tc.date)
 
 			if got != tc.want {
 				t.Errorf("IsToday(%s) = %t, want %t", tc.date, got, tc.want)
@@ -96,7 +96,7 @@ func TestIsTomorrow(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := timeutils.IsTomorrow(tc.date)
+			got := timeutil.IsTomorrow(tc.date)
 
 			if got != tc.want {
 				t.Errorf("IsTomorrow(%s) = %t, want %t", tc.date, got, tc.want)

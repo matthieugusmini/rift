@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 func newRankingViewport(stage lolesports.Stage, width, height int) viewport.Model {
@@ -112,7 +112,7 @@ func computeTournamentState(startDate, endDate time.Time) tournmaentState {
 	switch {
 	case now.Before(startDate):
 		return tournmaentStateNotStarted
-	case timeutils.IsCurrentTimeBetween(startDate, endDate):
+	case timeutil.IsCurrentTimeBetween(startDate, endDate):
 		return tournmaentStateInProgress
 	case now.After(endDate):
 		return tournmaentStateCompleted

@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 const (
@@ -96,7 +96,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.SetShowHelp(false)
 
 	firstTodayMatchIndex := slices.IndexFunc(events, func(event lolesports.Event) bool {
-		return timeutils.IsToday(event.StartTime)
+		return timeutil.IsToday(event.StartTime)
 	})
 	l.Select(firstTodayMatchIndex)
 

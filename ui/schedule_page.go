@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutils"
+	"github.com/matthieugusmini/lolesport/timeutil"
 )
 
 const (
@@ -400,14 +400,14 @@ func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 
 func formatDateTitle(date time.Time) string {
 	switch {
-	case timeutils.IsYesterday(date):
+	case timeutil.IsYesterday(date):
 		return "Yesterday"
-	case timeutils.IsToday(date):
+	case timeutil.IsToday(date):
 		if date.After(time.Now()) {
 			return "Later Today"
 		}
 		return "Earlier Today"
-	case timeutils.IsTomorrow(date):
+	case timeutil.IsTomorrow(date):
 		return "Tomorrow"
 	default:
 		return date.Format("Monday 02 Jan")
