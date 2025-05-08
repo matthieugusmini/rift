@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,16 +21,22 @@ import (
 	"github.com/matthieugusmini/lolesport/ui"
 )
 
+const appName = "rift"
+
+const logFilename = "rift.log"
+
 const (
-	appName     = "rift"
-	logFilename = "rift.log"
-	cacheFile   = "rift.db"
+	cacheFile = "rift.db"
 
 	bucketBracketTemplate = "bracketTemplate"
 	bucketStandings       = "standings"
 	bucketSchedule        = "schedule"
 
-	cacheDefaultTTL = time.Hour * 12
+	cacheDefaultTTL = 12 * time.Hour
+)
+
+const (
+	httpClientDefaultTimeout = 10 * time.Second
 )
 
 func main() {
@@ -42,59 +49,25 @@ func main() {
 func run() error {
 	scope := gap.NewScope(gap.User, appName)
 
-	logPath, err := scope.LogPath(logFilename)
+	logger, logFile, err := initLogger(scope)
 	if err != nil {
-		return fmt.Errorf("could not retrieve the log file path: %w", err)
-	}
-
-	logDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
-		return fmt.Errorf("could not make a new log directory in filesystem: %w", err)
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("could not open log file: %w", err)
+		return fmt.Errorf("could not initialize the logger: %w", err)
 	}
 	defer logFile.Close()
 
-	logger := slog.New(slog.NewJSONHandler(logFile, nil))
-
-	cacheDir, err := scope.CacheDir()
+	cacheDB, err := initCache(scope)
 	if err != nil {
-		return fmt.Errorf("could not retrieve the user cache directory: %w", err)
-	}
-
-	if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
-		return fmt.Errorf("could not make a new cache directory in filesystem: %w", err)
-	}
-
-	cachePath := filepath.Join(cacheDir, cacheFile)
-	cacheDB, err := bbolt.Open(cachePath, 0o600, bbolt.DefaultOptions)
-	if err != nil {
-		return fmt.Errorf("could not open the cache database: %w", err)
+		return fmt.Errorf("could not initialize the cache: %w", err)
 	}
 	defer cacheDB.Close()
 
-	bracketTemplateClient := github.NewBracketTemplateClient(http.DefaultClient)
-	bracketTemplateCache := cache.New[rift.BracketTemplate](
-		cacheDB,
-		bucketBracketTemplate,
-		cacheDefaultTTL,
-	)
-	bracketTemplateLoader := github.NewBracketTemplateLoader(
-		bracketTemplateClient,
-		bracketTemplateCache,
-		logger,
-	)
+	httpClient := &http.Client{
+		Timeout: httpClientDefaultTimeout,
+	}
 
-	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
-	standingsCache := cache.New[[]gololesports.Standings](
-		cacheDB,
-		bucketStandings,
-		cacheDefaultTTL,
-	)
-	lolesportsLoader := lolesports.NewLoader(lolesportsAPIClient, standingsCache, logger)
+	bracketTemplateLoader := initBracketTemplateLoader(httpClient, cacheDB, logger)
+
+	lolesportsLoader := initLoLEsportsLoader(httpClient, cacheDB, logger)
 
 	m := ui.NewModel(lolesportsLoader, bracketTemplateLoader)
 
@@ -104,4 +77,80 @@ func run() error {
 	}
 
 	return nil
+}
+
+func initLogger(scope *gap.Scope) (*slog.Logger, io.Closer, error) {
+	logPath, err := scope.LogPath(logFilename)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not retrieve the log file path: %w", err)
+	}
+
+	logDir := filepath.Dir(logPath)
+	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
+		return nil, nil, fmt.Errorf("could not make a new log directory in filesystem: %w", err)
+	}
+
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not open log file: %w", err)
+	}
+
+	logger := slog.New(slog.NewJSONHandler(logFile, nil))
+
+	return logger, logFile, nil
+}
+
+func initCache(scope *gap.Scope) (*bbolt.DB, error) {
+	cacheDir, err := scope.CacheDir()
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve the user cache directory: %w", err)
+	}
+
+	if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("could not make a new cache directory in filesystem: %w", err)
+	}
+
+	cachePath := filepath.Join(cacheDir, cacheFile)
+	cacheDB, err := bbolt.Open(cachePath, 0o600, bbolt.DefaultOptions)
+	if err != nil {
+		return nil, fmt.Errorf("could not open the cache database: %w", err)
+	}
+
+	return cacheDB, nil
+}
+
+func initBracketTemplateLoader(
+	httpClient *http.Client,
+	cacheDB *bbolt.DB,
+	logger *slog.Logger,
+) *github.BracketTemplateLoader {
+	bracketTemplateClient := github.NewBracketTemplateClient(httpClient)
+
+	bracketTemplateCache := cache.New[rift.BracketTemplate](
+		cacheDB,
+		bucketBracketTemplate,
+		cacheDefaultTTL,
+	)
+
+	return github.NewBracketTemplateLoader(
+		bracketTemplateClient,
+		bracketTemplateCache,
+		logger,
+	)
+}
+
+func initLoLEsportsLoader(
+	_ *http.Client, // TODO: Add an option to configure go-lolesports internal http.Client.
+	cacheDB *bbolt.DB,
+	logger *slog.Logger,
+) *lolesports.Loader {
+	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
+
+	standingsCache := cache.New[[]gololesports.Standings](
+		cacheDB,
+		bucketStandings,
+		cacheDefaultTTL,
+	)
+
+	return lolesports.NewLoader(lolesportsAPIClient, standingsCache, logger)
 }
