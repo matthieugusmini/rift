@@ -21,6 +21,12 @@ import (
 	"github.com/matthieugusmini/lolesport/ui"
 )
 
+var (
+	Version string
+
+	Commit string
+)
+
 const appName = "rift"
 
 const logFilename = "rift.log"

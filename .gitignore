@@ -26,9 +26,5 @@ go.work.sum
 
 # Generated GIF
 demo.gif
-
-# Database
-*.db
-
-# Temporary log system
-*.log
+# Added by goreleaser init:
+dist/
