@@ -52,10 +52,21 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - "^style:"
+      - "^docs.*"
+      - "^test.*"
+      - "^chore.*"
+      - "^style.*"
+      - "^ci.*"
+      - "^refactor.*"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
 
 release:
   footer: >-
