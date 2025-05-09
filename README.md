@@ -7,6 +7,8 @@
 <p align="center">
   <a href="https://github.com/matthieugusmini/lolesport/releases"><img src="https://img.shields.io/github/release/matthieugusmini/lolesport.svg" alt="Latest Release"></a>
   <a href="https://pkg.go.dev/github.com/matthieugusmini/lolesport?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
+  <a href="https://github.com/charmbracelet/glow/actions"><img src="https://github.com/charmbracelet/glow/workflows/build/badge.svg" alt="Build Status"></a>
+
 </p>
 
 <p align="center">Never miss a match again, keep track of the results and follow your favorite leagues and players from your terminal!</p>
