@@ -48,6 +48,18 @@ brews:
       email: "simfy2602@outlook.fr"
     description: "LoL Esports in your terminal"
 
+dockers:
+  - image_templates:
+    - ghcr.io/matthieugusmini/{{ .ProjectName }}:v{{ .Version }}
+    build_flag_templates:
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.source={{ .GitURL }}
+      - --label=org.opencontainers.image.version=v{{ .Version }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses=MIT
+
 changelog:
   sort: asc
   filters:
@@ -58,6 +70,7 @@ changelog:
       - "^style.*"
       - "^ci.*"
       - "^refactor.*"
+      - Initial commit
   groups:
     - title: Features
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
