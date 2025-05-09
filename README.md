@@ -1,13 +1,18 @@
-# Rift
-
 <p>
+  <h3 align="center">Rift</h3>
+  <p align="center">LoL Esports in your terminal.</p>
+</p>
+
+---
+<p align="center">
   <a href="https://github.com/matthieugusmini/lolesport/releases"><img src="https://img.shields.io/github/release/matthieugusmini/lolesport.svg" alt="Latest Release"></a>
   <a href="https://pkg.go.dev/github.com/matthieugusmini/lolesport?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
 </p>
-  
-Stay up to date with League of Legends eSport in your CLI!
 
-<img src="https://vhs.charm.sh/vhs-qNLXPtOyroqVdMQv9jLd6.gif" alt="Made with VHS" width=600>
+<p align="center">Never miss a match again, keep track of the results and follow your favorite leagues and players from your terminal!</p>
+<p align="center">
+  <img src="https://vhs.charm.sh/vhs-qNLXPtOyroqVdMQv9jLd6.gif" alt="Made with VHS" width=700>
+</p>
 
 ## Installation
 > [!IMPORTANT]
