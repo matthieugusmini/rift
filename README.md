@@ -32,6 +32,12 @@ brew install rift
 go install github.com/matthieugusmini/rift@latest
 ```
 
+### Docker
+
+```bash
+docker run --rm ghcr.io/matthieugusmini/rift
+```
+
 ### Build
 
 ```bash
