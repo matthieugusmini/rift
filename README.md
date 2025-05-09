@@ -1,7 +1,10 @@
 # Rift
 
-<a href="https://pkg.go.dev/github.com/matthieugusmini/lolesport?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
-
+<p>
+  <a href="https://github.com/matthieugusmini/lolesport/releases"><img src="https://img.shields.io/github/release/matthieugusmini/lolesport.svg" alt="Latest Release"></a>
+  <a href="https://pkg.go.dev/github.com/matthieugusmini/lolesport?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
+</p>
+  
 Stay up to date with League of Legends eSport in your CLI!
 
 <img src="https://vhs.charm.sh/vhs-qNLXPtOyroqVdMQv9jLd6.gif" alt="Made with VHS" width=600>
