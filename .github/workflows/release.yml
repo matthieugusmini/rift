@@ -26,7 +26,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GH_PAT }}
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

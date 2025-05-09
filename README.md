@@ -35,7 +35,7 @@ go install github.com/matthieugusmini/rift@latest
 ### Docker
 
 ```bash
-docker run --rm ghcr.io/matthieugusmini/rift
+docker run --rm -it ghcr.io/matthieugusmini/rift
 ```
 
 ### Build
