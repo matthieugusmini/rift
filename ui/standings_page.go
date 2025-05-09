@@ -301,6 +301,32 @@ func (p *standingsPage) View() string {
 	return p.styles.doc.Render(view)
 }
 
+func (p *standingsPage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Select,
+		p.keyMap.NextPage,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *standingsPage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			p.keyMap.Up,
+			p.keyMap.Down,
+			p.keyMap.Select,
+			p.keyMap.Previous,
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
+}
+
 func (p *standingsPage) viewBracket() string {
 	return p.bracket.View()
 }
@@ -399,7 +425,7 @@ func (p *standingsPage) viewHelp() string {
 	return p.styles.help.Render(p.help.View(p))
 }
 
-func (p *standingsPage) SetSize(width, height int) {
+func (p *standingsPage) setSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
 
@@ -566,32 +592,6 @@ func (p *standingsPage) listHeight() int {
 		return max(p.contentHeight()/2, minListHeight)
 	} else {
 		return p.contentHeight()
-	}
-}
-
-func (p *standingsPage) ShortHelp() []key.Binding {
-	return []key.Binding{
-		p.keyMap.Select,
-		p.keyMap.NextPage,
-		p.keyMap.Quit,
-		p.keyMap.ShowFullHelp,
-	}
-}
-
-func (p *standingsPage) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			p.keyMap.Up,
-			p.keyMap.Down,
-			p.keyMap.Select,
-			p.keyMap.Previous,
-			p.keyMap.NextPage,
-			p.keyMap.PrevPage,
-		},
-		{
-			p.keyMap.Quit,
-			p.keyMap.CloseFullHelp,
-		},
 	}
 }
 

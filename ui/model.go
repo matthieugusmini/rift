@@ -129,7 +129,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.pageWidth = min(msg.Width, maxWidth)
 
 		m.schedulePage.(*schedulePage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
-		m.standingsPage.(*standingsPage).SetSize(m.pageWidth, msg.Height-navigationBarHeight)
+		m.standingsPage.(*standingsPage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
 
 	return m.updateCurrentPage(msg)

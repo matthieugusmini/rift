@@ -121,11 +121,6 @@ func (p *schedulePage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 
-func (p *schedulePage) toggleHelp() {
-	p.help.ShowAll = !p.help.ShowAll
-	p.matches.SetSize(p.width, p.contentViewHeight())
-}
-
 func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -199,6 +194,39 @@ func (p *schedulePage) View() string {
 	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
 	return p.styles.doc.Render(view)
+}
+
+func (p *schedulePage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.RevealSpoiler,
+		p.keyMap.NextPage,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *schedulePage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			p.keyMap.CursorUp,
+			p.keyMap.CursorDown,
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+			p.keyMap.GoToStart,
+			p.keyMap.GoToEnd,
+			p.keyMap.RevealSpoiler,
+		},
+		{
+			p.keyMap.Filter,
+			p.keyMap.ClearFilter,
+			p.keyMap.AcceptWhileFiltering,
+			p.keyMap.CancelWhileFiltering,
+		},
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
 }
 
 func (p *schedulePage) viewHelp() string {
@@ -292,39 +320,6 @@ func (p *schedulePage) updateMatchListTitle() {
 	p.matches.Styles.Title = p.styles.title
 }
 
-func (p *schedulePage) ShortHelp() []key.Binding {
-	return []key.Binding{
-		p.keyMap.RevealSpoiler,
-		p.keyMap.NextPage,
-		p.keyMap.Quit,
-		p.keyMap.ShowFullHelp,
-	}
-}
-
-func (p *schedulePage) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			p.keyMap.CursorUp,
-			p.keyMap.CursorDown,
-			p.keyMap.NextPage,
-			p.keyMap.PrevPage,
-			p.keyMap.GoToStart,
-			p.keyMap.GoToEnd,
-			p.keyMap.RevealSpoiler,
-		},
-		{
-			p.keyMap.Filter,
-			p.keyMap.ClearFilter,
-			p.keyMap.AcceptWhileFiltering,
-			p.keyMap.CancelWhileFiltering,
-		},
-		{
-			p.keyMap.Quit,
-			p.keyMap.CloseFullHelp,
-		},
-	}
-}
-
 func (p *schedulePage) helpHeight() int {
 	padding := p.styles.help.GetVerticalPadding()
 	if p.help.ShowAll {
@@ -335,6 +330,11 @@ func (p *schedulePage) helpHeight() int {
 
 func (p *schedulePage) contentViewHeight() int {
 	return p.height - p.helpHeight()
+}
+
+func (p *schedulePage) toggleHelp() {
+	p.help.ShowAll = !p.help.ShowAll
+	p.matches.SetSize(p.width, p.contentViewHeight())
 }
 
 type pageDirection int
