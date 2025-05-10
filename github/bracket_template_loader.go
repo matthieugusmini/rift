@@ -40,6 +40,19 @@ func NewBracketTemplateLoader(
 	}
 }
 
+// Available stageIDs
+func (l *BracketTemplateLoader) ListAvailableStageIDs(ctx context.Context) ([]string, error) {
+	// First version without cache
+
+	stageIDs, err := l.client.GetAvailableStageTemplate(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return stageIDs, nil
+}
+
 // Load tries to load the bracket template associated to the given stage ID
 // from the underlying cache first and if not found fetches it using the client.
 //
