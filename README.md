@@ -24,8 +24,7 @@
 
 ```bash
 # macOS
-brew tap matthieugusmini/tap
-brew install rift
+brew install matthieugusmini/tap/rift
 ```
 
 ### Go
