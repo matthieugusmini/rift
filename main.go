@@ -75,7 +75,7 @@ func run() error {
 
 	lolesportsLoader := initLoLEsportsLoader(httpClient, cacheDB, logger)
 
-	m := ui.NewModel(lolesportsLoader, bracketTemplateLoader)
+	m := ui.NewModel(lolesportsLoader, bracketTemplateLoader, logger)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

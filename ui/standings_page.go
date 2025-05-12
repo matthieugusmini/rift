@@ -606,7 +606,9 @@ func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 			tournamentIDs,
 		)
 		if err != nil {
-			return fetchErrorMessage{err}
+			return fetchErrorMessage{
+				err: err,
+			}
 		}
 		return loadedStandingsMessage{standings}
 	}
@@ -620,7 +622,9 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	return func() tea.Msg {
 		splits, err := p.lolesportsClient.GetCurrentSeasonSplits(context.Background())
 		if err != nil {
-			return fetchErrorMessage{err}
+			return fetchErrorMessage{
+				err: err,
+			}
 		}
 		return fetchedCurrentSeasonSplitsMessage{splits}
 	}
@@ -634,7 +638,9 @@ func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {
 	return func() tea.Msg {
 		tmpl, err := p.bracketTemplateLoader.Load(context.Background(), stageID)
 		if err != nil {
-			return fetchErrorMessage{err}
+			return fetchErrorMessage{
+				err: err,
+			}
 		}
 		return loadedBracketStageTemplateMessage{tmpl}
 	}

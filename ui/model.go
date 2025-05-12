@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -98,9 +99,13 @@ type Model struct {
 	styles modelStyles
 }
 
-func NewModel(lolesportsClient LoLEsportsLoader, bracketLoader BracketTemplateLoader) Model {
+func NewModel(
+	lolesportsClient LoLEsportsLoader,
+	bracketLoader BracketTemplateLoader,
+	logger *slog.Logger,
+) Model {
 	return Model{
-		schedulePage:  newSchedulePage(lolesportsClient),
+		schedulePage:  newSchedulePage(lolesportsClient, logger),
 		standingsPage: newStandingsPage(lolesportsClient, bracketLoader),
 		styles:        newDefaultModelStyles(),
 	}

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -20,11 +21,18 @@ const (
 	schedulePageFullHelpHeight  = 7
 )
 
+const (
+	errMessageFetchInitialPage = "Oups! Looks like something went wrong...\nPress any key to try your luck again"
+	errMessageFetchNextPage    = "Failed to fetch next events. Retry in a moment"
+	errMessageFetchPrevPage    = "Failed to fetch previous events. Retry in a moment"
+)
+
 type schedulePageStyles struct {
 	doc     lipgloss.Style
 	title   lipgloss.Style
 	spinner lipgloss.Style
 	help    lipgloss.Style
+	error   lipgloss.Style
 }
 
 func newDefaultSchedulePageStyles() (s schedulePageStyles) {
@@ -39,6 +47,11 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
+
+	s.error = lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Foreground(textPrimaryColor).
+		Italic(true)
 
 	return s
 }
@@ -83,24 +96,26 @@ func (s paginationState) hasPrevPage() bool { return s.prevPageToken != "" }
 
 type schedulePage struct {
 	lolesportsClient LoLEsportsLoader
+	logger           *slog.Logger
 
+	width, height int
+
+	loaded          bool
 	events          []lolesports.Event
 	matches         list.Model
 	paginationState paginationState
 
-	err error
+	help help.Model
 
 	spinner spinner.Model
-	loaded  bool
 
-	width, height int
+	errMsg string
 
-	styles schedulePageStyles
 	keyMap schedulePageKeyMap
-	help   help.Model
+	styles schedulePageStyles
 }
 
-func newSchedulePage(lolesportsClient LoLEsportsLoader) *schedulePage {
+func newSchedulePage(lolesportsClient LoLEsportsLoader, logger *slog.Logger) *schedulePage {
 	styles := newDefaultSchedulePageStyles()
 
 	sp := spinner.New(
@@ -110,6 +125,7 @@ func newSchedulePage(lolesportsClient LoLEsportsLoader) *schedulePage {
 
 	return &schedulePage{
 		lolesportsClient: lolesportsClient,
+		logger:           logger,
 		spinner:          sp,
 		styles:           styles,
 		keyMap:           newDefaultSchedulePageKeyMap(),
@@ -126,17 +142,31 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// When an error is displayed after failing to fetch the initial schedule data,
+		// any keypress should trigger a refetch of the initial data again.
+		if p.errMsg != "" {
+			p.errMsg = ""
+			if !p.loaded {
+				return p, tea.Batch(p.fetchEvents(pageDirectionInitial))
+			}
+		}
+
 		switch {
 		case key.Matches(msg, p.keyMap.ShowFullHelp),
 			key.Matches(msg, p.keyMap.CloseFullHelp):
 			p.toggleHelp()
-		}
 
-	// The size of this page should be managed by the parent model to ensure
-	// that the page remains agnostic to its parent's layout.
-	case tea.WindowSizeMsg:
-		if p.matches.Items() != nil {
-			p.matches.SetSize(p.width, p.contentViewHeight())
+		case msg.String() == "down":
+			if p.shouldFetchNextPage() {
+				p.paginationState.loadingNextPage = true
+				cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsNextPage())
+			}
+
+		case msg.String() == "up":
+			if p.shouldFetchPreviousPage() {
+				p.paginationState.loadingPrevPage = true
+				cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsPreviousPage())
+			}
 		}
 
 	case spinner.TickMsg:
@@ -150,7 +180,8 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.handleFetchedEvents(msg)
 
 	case fetchErrorMessage:
-		p.err = msg.err
+		cmd := p.handleFetchError(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	if !p.loaded {
@@ -164,20 +195,11 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	p.matches, cmd = p.matches.Update(msg)
 	cmds = append(cmds, cmd)
 
-	if p.shouldFetchNextPage() {
-		p.paginationState.loadingNextPage = true
-		cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsNextPage())
-	}
-	if p.shouldFetchPreviousPage() {
-		p.paginationState.loadingPrevPage = true
-		cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsPreviousPage())
-	}
-
 	return p, tea.Batch(cmds...)
 }
 
 func (p *schedulePage) View() string {
-	if p.err != nil {
+	if p.errMsg != "" {
 		return p.viewError()
 	}
 
@@ -188,7 +210,6 @@ func (p *schedulePage) View() string {
 	} else {
 		sections = append(sections, p.matches.View())
 	}
-
 	sections = append(sections, p.viewHelp())
 
 	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
@@ -236,18 +257,27 @@ func (p *schedulePage) viewHelp() string {
 func (p *schedulePage) viewSpinner() string {
 	return lipgloss.NewStyle().
 		Width(p.width).
-		Height(p.contentViewHeight()).
+		Height(p.contentHeight()).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(p.spinner.View())
 }
 
 func (p *schedulePage) viewError() string {
-	return p.styles.doc.Render(p.err.Error())
+	errMsg := p.styles.error.Render(p.errMsg)
+	return p.styles.doc.
+		Width(p.width).
+		Height(p.contentHeight()).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(errMsg)
 }
 
 func (p *schedulePage) setSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
+
+	if p.loaded {
+		p.matches.SetSize(p.width, p.contentHeight())
+	}
 
 	p.help.Width = p.width
 }
@@ -279,7 +309,7 @@ func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 	case pageDirectionInitial:
 		p.loaded = true
 		p.events = msg.events
-		p.matches = newMatchList(p.events, p.width, p.contentViewHeight())
+		p.matches = newMatchList(p.events, p.width, p.contentHeight())
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
 
@@ -311,6 +341,34 @@ func (p *schedulePage) appendMatches(events []lolesports.Event) {
 	p.matches.SetItems(items)
 }
 
+func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
+	var cmd tea.Cmd
+
+	// We log the error received after a failed fetch for debugging purpose,
+	// but we display a more user-friendly message to help the user.
+	if !p.loaded {
+		p.errMsg = errMessageFetchInitialPage
+	} else {
+		p.matches.StopSpinner()
+
+		var statusMessage string
+		switch msg.pageDirection {
+		case pageDirectionNext:
+			statusMessage = errMessageFetchNextPage
+			p.paginationState.loadingNextPage = false
+		case pageDirectionPrev:
+			statusMessage = errMessageFetchPrevPage
+			p.paginationState.loadingPrevPage = false
+		}
+
+		cmd = p.matches.NewStatusMessage(statusMessage)
+	}
+
+	p.logger.Error("Failed to fetch data", slog.Any("error", msg.err))
+
+	return cmd
+}
+
 func (p *schedulePage) updateMatchListTitle() {
 	selectedIndex := p.matches.Index()
 	selectedEvent := p.events[selectedIndex]
@@ -318,6 +376,10 @@ func (p *schedulePage) updateMatchListTitle() {
 
 	p.matches.Title = title
 	p.matches.Styles.Title = p.styles.title
+}
+
+func (p *schedulePage) contentHeight() int {
+	return p.height - p.helpHeight()
 }
 
 func (p *schedulePage) helpHeight() int {
@@ -328,13 +390,12 @@ func (p *schedulePage) helpHeight() int {
 	return schedulePageShortHelpHeight + padding
 }
 
-func (p *schedulePage) contentViewHeight() int {
-	return p.height - p.helpHeight()
-}
-
 func (p *schedulePage) toggleHelp() {
 	p.help.ShowAll = !p.help.ShowAll
-	p.matches.SetSize(p.width, p.contentViewHeight())
+
+	// Need to resize the list of matches as the help now
+	// takes up more space.
+	p.matches.SetSize(p.width, p.contentHeight())
 }
 
 type pageDirection int
@@ -353,7 +414,8 @@ type fetchedEventsMessage struct {
 }
 
 type fetchErrorMessage struct {
-	err error
+	err           error
+	pageDirection pageDirection
 }
 
 func (p *schedulePage) fetchEventsPreviousPage() tea.Cmd {
@@ -376,7 +438,10 @@ func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 
 		schedule, err := p.lolesportsClient.GetSchedule(context.Background(), &opts)
 		if err != nil {
-			return fetchErrorMessage{err}
+			return fetchErrorMessage{
+				err:           err,
+				pageDirection: pageDirection,
+			}
 		}
 
 		var prevPageToken, nextPageToken string
@@ -389,6 +454,7 @@ func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 		case pageDirectionPrev:
 			prevPageToken = schedule.Pages.Older
 		}
+
 		return fetchedEventsMessage{
 			events:        schedule.Events,
 			pageDirection: pageDirection,
