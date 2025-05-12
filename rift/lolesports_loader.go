@@ -1,4 +1,4 @@
-package lolesports
+package rift
 
 import (
 	"context"
@@ -14,26 +14,36 @@ type Cache[T any] interface {
 	Set(key string, value T) error
 }
 
+// LoLEsportsAPIClient represents an API client to retrieve data from LoL Esports.
+type LoLEsportsAPIClient interface {
+	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
+	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
+	GetSchedule(
+		ctx context.Context,
+		opts *lolesports.GetScheduleOptions,
+	) (lolesports.Schedule, error)
+}
+
 // Loader handles loading LoLEsports data from multiple sources.
 type Loader struct {
-	*Client
+	LoLEsportsAPIClient
 
 	standingsCache Cache[[]lolesports.Standings]
 	logger         *slog.Logger
 }
 
-// NewLoader creates a new instance of a Loader which loads LoLEsports
+// NewLoLEsportsLoader creates a new instance of a Loader which loads LoLEsports
 // data from different caches or apiClient to fetch the data from
 // the LoLEsports API.
-func NewLoader(
-	apiClient *Client,
+func NewLoLEsportsLoader(
+	apiClient LoLEsportsAPIClient,
 	standingsCache Cache[[]lolesports.Standings],
 	logger *slog.Logger,
 ) *Loader {
 	return &Loader{
-		Client:         apiClient,
-		standingsCache: standingsCache,
-		logger:         logger,
+		LoLEsportsAPIClient: apiClient,
+		standingsCache:      standingsCache,
+		logger:              logger,
 	}
 }
 
@@ -63,7 +73,7 @@ func (l *Loader) LoadStandingsByTournamentIDs(
 
 	//nolint:staticcheck // The client is embedded to satisfy the ui.LoLEsportsLoader interface
 	// for the moment but will changed to a named field later.
-	standings, err = l.Client.GetStandings(ctx, tournamentIDs)
+	standings, err = l.LoLEsportsAPIClient.GetStandings(ctx, tournamentIDs)
 	if err != nil {
 		return nil, err
 	}

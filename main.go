@@ -129,7 +129,7 @@ func initBracketTemplateLoader(
 	httpClient *http.Client,
 	cacheDB *bbolt.DB,
 	logger *slog.Logger,
-) *github.BracketTemplateLoader {
+) *rift.BracketTemplateLoader {
 	bracketTemplateClient := github.NewBracketTemplateClient(httpClient)
 
 	bracketTemplateCache := cache.New[rift.BracketTemplate](
@@ -138,7 +138,7 @@ func initBracketTemplateLoader(
 		cacheDefaultTTL,
 	)
 
-	return github.NewBracketTemplateLoader(
+	return rift.NewBracketTemplateLoader(
 		bracketTemplateClient,
 		bracketTemplateCache,
 		logger,
@@ -149,7 +149,7 @@ func initLoLEsportsLoader(
 	_ *http.Client, // TODO: Add an option to configure go-lolesports internal http.Client.
 	cacheDB *bbolt.DB,
 	logger *slog.Logger,
-) *lolesports.Loader {
+) *rift.Loader {
 	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
 
 	standingsCache := cache.New[[]gololesports.Standings](
@@ -158,5 +158,5 @@ func initLoLEsportsLoader(
 		cacheDefaultTTL,
 	)
 
-	return lolesports.NewLoader(lolesportsAPIClient, standingsCache, logger)
+	return rift.NewLoLEsportsLoader(lolesportsAPIClient, standingsCache, logger)
 }

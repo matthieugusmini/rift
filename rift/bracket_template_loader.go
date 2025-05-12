@@ -1,35 +1,41 @@
-package github
+package rift
 
 import (
 	"context"
 	"log/slog"
-
-	"github.com/matthieugusmini/lolesport/rift"
 )
 
 // BracketTemplateCache represents a cache to retrieve bracket templates.
 type BracketTemplateCache interface {
 	// GetBracketTemplate should return:
-	// - The rift.BracketTemplate associated to the given stage id that is retrieved from the cache
+	// - The BracketTemplate associated to the given stage id that is retrieved from the cache
 	// - A boolean indicating whether the value was found or not in the cache
 	// - An error(e.g. could not invalidate entry, etc.)
-	Get(stageID string) (rift.BracketTemplate, bool, error)
+	Get(stageID string) (BracketTemplate, bool, error)
 
 	// SetBracketTemplate should create a new entry in the cache with a
 	// rift.BracketTemplate as value and a stageID as key.
-	Set(stageID string, value rift.BracketTemplate) error
+	Set(stageID string, value BracketTemplate) error
+}
+
+// BracketTemplateClient represents a client to retrieve bracket templates
+// performing I/O (e.g. network).
+type BracketTemplateClient interface {
+	// GetTemplateByStageID shoulds return the BracketTemplate
+	// associated to the given stage id.
+	GetTemplateByStageID(ctx context.Context, stageID string) (BracketTemplate, error)
 }
 
 // BracketTemplateLoader handles loading bracket templates from multiple sources.
 type BracketTemplateLoader struct {
-	client *BracketTemplateClient
+	client BracketTemplateClient
 	cache  BracketTemplateCache
 	logger *slog.Logger
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
 func NewBracketTemplateLoader(
-	bracketTemplateClient *BracketTemplateClient,
+	bracketTemplateClient BracketTemplateClient,
 	cache BracketTemplateCache,
 	logger *slog.Logger,
 ) *BracketTemplateLoader {
@@ -48,8 +54,8 @@ func NewBracketTemplateLoader(
 func (l *BracketTemplateLoader) Load(
 	ctx context.Context,
 	stageID string,
-) (rift.BracketTemplate, error) {
-	var tmpl rift.BracketTemplate
+) (BracketTemplate, error) {
+	var tmpl BracketTemplate
 
 	tmpl, ok, err := l.cache.Get(stageID)
 	if err != nil {
@@ -65,7 +71,7 @@ func (l *BracketTemplateLoader) Load(
 
 	tmpl, err = l.client.GetTemplateByStageID(ctx, stageID)
 	if err != nil {
-		return rift.BracketTemplate{}, err
+		return BracketTemplate{}, err
 	}
 
 	if err := l.cache.Set(stageID, tmpl); err != nil {

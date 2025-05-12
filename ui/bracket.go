@@ -18,11 +18,9 @@ const (
 	horizontalLine    = "─"
 	verticalLine      = "│"
 	topRightCorner    = "┐"
-	bottomLeftCorner  = "└"
 	topLeftCorner     = "┌"
 	bottomRightCorner = "┘"
-	topTShape         = "┬"
-	bottomTShape      = "┴"
+	bottomLeftCorner  = "└"
 )
 
 type bracketModelStyles struct {
@@ -100,57 +98,60 @@ func (m *bracketModel) Update(msg tea.Msg) (*bracketModel, tea.Cmd) {
 func (m *bracketModel) View() string {
 	nbRounds := len(m.template.Rounds)
 	nbLinkColumns := nbRounds - 1
-	widthWithoutLinks := m.width - nbLinkColumns*linkWidth
-	if widthWithoutLinks <= 0 {
+	availWidthWithoutLinks := m.width - nbLinkColumns*linkWidth
+	if availWidthWithoutLinks <= 0 {
 		return ""
 	}
-	columnsWidth := widthWithoutLinks / nbRounds
+	roundColumnWidth := availWidthWithoutLinks / nbRounds
 
 	var (
-		roundViewsIndex int
-		matchIndex      int
-		roundViews      = make([]string, nbRounds+nbLinkColumns)
+		sections     = make([]string, nbRounds+nbLinkColumns)
+		sectionIndex int
+		matchIndex   int
 	)
-
 	for _, round := range m.template.Rounds {
 		if len(round.Links) > 0 {
 			links := m.drawLinks(round.Links)
-			roundViews[roundViewsIndex] = links
-			roundViewsIndex++
+
+			sections[sectionIndex] = links
+			sectionIndex++
 		}
 
 		roundView := lipgloss.PlaceHorizontal(
-			columnsWidth,
+			roundColumnWidth,
 			lipgloss.Center,
 			m.styles.roundTitle.Render(round.Title),
 			lipgloss.WithWhitespaceBackground(lipgloss.Color(antiFlashWhite)),
 		)
-
 		roundView += "\n\n"
-		for _, match := range round.Matches {
+
+		for i, match := range round.Matches {
 			roundView += strings.Repeat("\n", match.Above)
 
-			var card string
 			switch match.DisplayType {
 			case rift.DisplayTypeMatch:
-				card = m.drawMatch(m.matches[matchIndex], columnsWidth)
+				roundView += m.drawMatch(m.matches[matchIndex], roundColumnWidth)
 				matchIndex++
 			case rift.DisplayTypeHorizontalLine:
 				line := m.styles.link.Render(horizontalLine)
-				card = strings.Repeat(line, columnsWidth)
+				roundView += strings.Repeat(line, roundColumnWidth)
 			}
 
-			roundView += card + "\n\n"
+			if i < len(round.Matches)-1 {
+				roundView += "\n\n"
+			}
 		}
+
 		roundView = lipgloss.NewStyle().
-			Width(columnsWidth).
+			Width(roundColumnWidth).
 			Height(m.height).
 			Render(roundView)
-		roundViews[roundViewsIndex] = roundView
-		roundViewsIndex++
+
+		sections[sectionIndex] = roundView
+		sectionIndex++
 	}
 
-	view := lipgloss.JoinHorizontal(lipgloss.Top, roundViews...)
+	view := lipgloss.JoinHorizontal(lipgloss.Top, sections...)
 
 	return lipgloss.NewStyle().
 		Width(m.width).
@@ -170,10 +171,6 @@ func (m *bracketModel) drawLinks(links []rift.Link) string {
 	return linksView
 }
 
-func (m *bracketModel) setSize(width, height int) {
-	m.width, m.height = width, height
-}
-
 func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
 	borderWidth := m.styles.match.GetHorizontalBorderSize()
 	rowWidth := width - borderWidth
@@ -183,10 +180,9 @@ func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
 
 	var (
 		team1Style       = m.styles.noTeamResult
-		team1ResultStyle lipgloss.Style
-
 		team2Style       = m.styles.noTeamResult
 		team2ResultStyle lipgloss.Style
+		team1ResultStyle lipgloss.Style
 	)
 	if teamHasWon(match.Teams[0]) {
 		team1Style = m.styles.winnerTeamName
@@ -253,10 +249,14 @@ func drawLink(link rift.Link) string {
 	case rift.LinkTypeHorizontal:
 		sb.WriteString(strings.Repeat(horizontalLine, linkWidth))
 
-	case rift.LinkTypeReseed:
+	default:
 		sb.WriteString(strings.Repeat(" ", linkWidth))
 	}
 	return sb.String()
+}
+
+func (m *bracketModel) setSize(width, height int) {
+	m.width, m.height = width, height
 }
 
 func formatTeamRow(team lolesports.Team) string {
