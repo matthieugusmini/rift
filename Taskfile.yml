@@ -6,16 +6,19 @@ vars:
 
 tasks:
   run:
+    desc: Run the project
     cmds:
       - go run .
 
   lint:
+    desc: Run linters
     cmds:
       - golangci-lint run
 
   test:
+    desc: Run all tests
     cmds:
-      - go test ./... {{.CLI_ARGS}}
+      - go test -race ./... {{.CLI_ARGS}}
 
   logs:
     desc: Watch logs
@@ -25,13 +28,19 @@ tasks:
       - cmd: tail -f ~/.cache/{{.APP_NAME}}/{{.APP_NAME}}.log
         platforms: [linux]
 
-  generate-demo:
+  demo:generate:
     desc: Generate a new demo GIF
     cmds:
       - vhs demo.tape
 
-  publish-demo:
+  demo:publish:
     desc: Publish the demo GIF
     cmds:
       - vhs publish demo.gif
+
+  demo:
+    desc: Generate and publish a new demo GIF
+    cmds:
+      - task: demo:generate
+      - task: demo:publish
 
