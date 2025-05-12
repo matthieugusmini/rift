@@ -88,7 +88,7 @@ func newDefaultModelStyles() (s modelStyles) {
 type Model struct {
 	selectedNavIndex int
 
-	schedulePage  tea.Model
+	schedulePage  *schedulePage
 	standingsPage tea.Model
 
 	state state
@@ -133,7 +133,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		m.pageWidth = min(msg.Width, maxWidth)
 
-		m.schedulePage.(*schedulePage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
+		m.schedulePage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
 		m.standingsPage.(*standingsPage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
 

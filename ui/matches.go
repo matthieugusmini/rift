@@ -73,14 +73,10 @@ func (i matchItem) FilterValue() string {
 }
 
 func newMatchListItems(events []lolesports.Event) []list.Item {
-	items := make([]list.Item, 0, len(events))
+	items := make([]list.Item, len(events))
 
-	for _, event := range events {
-		if event.Type != lolesports.EventTypeMatch {
-			continue
-		}
-
-		items = append(items, newMatchItem(event))
+	for i, event := range events {
+		items[i] = newMatchItem(event)
 	}
 
 	return items
@@ -92,6 +88,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l := list.New(items, newMatchItemDelegate(), width, height)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
+	l.StatusMessageLifetime = time.Second * 2
 	l.SetSpinner(spinner.MiniDot)
 	l.SetShowHelp(false)
 

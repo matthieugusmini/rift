@@ -100,16 +100,28 @@ type schedulePage struct {
 
 	width, height int
 
-	loaded          bool
-	events          []lolesports.Event
-	matches         list.Model
+	// List of all matches fetched so far, filtered to include only events
+	// with the "match" type. Storing matches in memory maintains a clear
+	// separation between data and UI, avoiding the need for type assertions
+	// on the list.Model items.
+	matches []lolesports.Event
+
+	// UI representation of the matches
+	matchList list.Model
+
+	// Contains the information required to fetch schedule pages.
 	paginationState paginationState
+
+	// Indicates whether the schedule events have been fetched.
+	loaded bool
+
+	// Error message displayed to the user when failed to
+	// load the initial page data.
+	errMsg string
 
 	help help.Model
 
 	spinner spinner.Model
-
-	errMsg string
 
 	keyMap schedulePageKeyMap
 	styles schedulePageStyles
@@ -137,7 +149,7 @@ func (p *schedulePage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 
-func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -159,13 +171,13 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.String() == "down":
 			if p.shouldFetchNextPage() {
 				p.paginationState.loadingNextPage = true
-				cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsNextPage())
+				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchEventsNextPage())
 			}
 
 		case msg.String() == "up":
 			if p.shouldFetchPreviousPage() {
 				p.paginationState.loadingPrevPage = true
-				cmds = append(cmds, p.matches.StartSpinner(), p.fetchEventsPreviousPage())
+				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchEventsPreviousPage())
 			}
 		}
 
@@ -192,7 +204,7 @@ func (p *schedulePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	p.updateMatchListTitle()
 
-	p.matches, cmd = p.matches.Update(msg)
+	p.matchList, cmd = p.matchList.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return p, tea.Batch(cmds...)
@@ -208,7 +220,7 @@ func (p *schedulePage) View() string {
 	if !p.loaded {
 		sections = append(sections, p.viewSpinner())
 	} else {
-		sections = append(sections, p.matches.View())
+		sections = append(sections, p.matchList.View())
 	}
 	sections = append(sections, p.viewHelp())
 
@@ -276,7 +288,7 @@ func (p *schedulePage) setSize(width, height int) {
 	p.width, p.height = width-h, height-v
 
 	if p.loaded {
-		p.matches.SetSize(p.width, p.contentHeight())
+		p.matchList.SetSize(p.width, p.contentHeight())
 	}
 
 	p.help.Width = p.width
@@ -286,59 +298,61 @@ func (p *schedulePage) shouldFetchNextPage() bool {
 	return p.onLastItem() &&
 		p.paginationState.hasNextPage() &&
 		!p.paginationState.loadingNextPage &&
-		!p.matches.IsFiltered()
+		!p.matchList.IsFiltered()
 }
 
 func (p *schedulePage) shouldFetchPreviousPage() bool {
 	return p.onFirstItem() &&
 		p.paginationState.hasPrevPage() &&
 		!p.paginationState.loadingPrevPage &&
-		!p.matches.IsFiltered()
+		!p.matchList.IsFiltered()
 }
 
 func (p *schedulePage) onLastItem() bool {
-	return p.matches.Index() == len(p.matches.Items())-1
+	return p.matchList.Index() == len(p.matchList.Items())-1
 }
 
 func (p *schedulePage) onFirstItem() bool {
-	return p.matches.Index() == 0
+	return p.matchList.Index() == 0
 }
 
 func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
+	matches := filterMatchEvents(msg.events)
+
 	switch msg.pageDirection {
 	case pageDirectionInitial:
 		p.loaded = true
-		p.events = msg.events
-		p.matches = newMatchList(p.events, p.width, p.contentHeight())
+		p.matches = matches
+		p.matchList = newMatchList(matches, p.width, p.contentHeight())
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
 
 	case pageDirectionPrev:
-		p.matches.StopSpinner()
-		p.prependMatches(msg.events)
+		p.matchList.StopSpinner()
+		p.prependMatches(matches)
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.loadingPrevPage = false
 
 	case pageDirectionNext:
-		p.matches.StopSpinner()
-		p.appendMatches(msg.events)
+		p.matchList.StopSpinner()
+		p.appendMatches(matches)
 		p.paginationState.nextPageToken = msg.nextPageToken
 		p.paginationState.loadingNextPage = false
 	}
 }
 
 func (p *schedulePage) prependMatches(events []lolesports.Event) {
-	p.events = append(events, p.events...)
-	items := newMatchListItems(p.events)
-	p.matches.SetItems(items)
+	p.matches = append(events, p.matches...)
+	items := newMatchListItems(p.matches)
+	p.matchList.SetItems(items)
 	// We should keep the cursor on the previously selected index.
-	p.matches.Select(p.matches.Index() + len(events))
+	p.matchList.Select(p.matchList.Index() + len(events))
 }
 
 func (p *schedulePage) appendMatches(events []lolesports.Event) {
-	p.events = append(p.events, events...)
-	items := newMatchListItems(p.events)
-	p.matches.SetItems(items)
+	p.matches = append(p.matches, events...)
+	items := newMatchListItems(p.matches)
+	p.matchList.SetItems(items)
 }
 
 func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
@@ -349,7 +363,7 @@ func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
 	if !p.loaded {
 		p.errMsg = errMessageFetchInitialPage
 	} else {
-		p.matches.StopSpinner()
+		p.matchList.StopSpinner()
 
 		var statusMessage string
 		switch msg.pageDirection {
@@ -361,7 +375,7 @@ func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
 			p.paginationState.loadingPrevPage = false
 		}
 
-		cmd = p.matches.NewStatusMessage(statusMessage)
+		cmd = p.matchList.NewStatusMessage(statusMessage)
 	}
 
 	p.logger.Error("Failed to fetch data", slog.Any("error", msg.err))
@@ -370,12 +384,12 @@ func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
 }
 
 func (p *schedulePage) updateMatchListTitle() {
-	selectedIndex := p.matches.Index()
-	selectedEvent := p.events[selectedIndex]
+	selectedIndex := p.matchList.Index()
+	selectedEvent := p.matches[selectedIndex]
 	title := formatDateTitle(selectedEvent.StartTime)
 
-	p.matches.Title = title
-	p.matches.Styles.Title = p.styles.title
+	p.matchList.Title = title
+	p.matchList.Styles.Title = p.styles.title
 }
 
 func (p *schedulePage) contentHeight() int {
@@ -395,7 +409,7 @@ func (p *schedulePage) toggleHelp() {
 
 	// Need to resize the list of matches as the help now
 	// takes up more space.
-	p.matches.SetSize(p.width, p.contentHeight())
+	p.matchList.SetSize(p.width, p.contentHeight())
 }
 
 type pageDirection int
@@ -478,4 +492,18 @@ func formatDateTitle(date time.Time) string {
 	default:
 		return date.Format("Monday 02 Jan")
 	}
+}
+
+func filterMatchEvents(events []lolesports.Event) []lolesports.Event {
+	matches := make([]lolesports.Event, 0, len(events))
+
+	for _, event := range events {
+		if event.Type != lolesports.EventTypeMatch {
+			continue
+		}
+
+		matches = append(matches, event)
+	}
+
+	return matches
 }
