@@ -106,7 +106,7 @@ func NewModel(
 ) Model {
 	return Model{
 		schedulePage:  newSchedulePage(lolesportsClient, logger),
-		standingsPage: newStandingsPage(lolesportsClient, bracketLoader),
+		standingsPage: newStandingsPage(lolesportsClient, bracketLoader, logger),
 		styles:        newDefaultModelStyles(),
 	}
 }

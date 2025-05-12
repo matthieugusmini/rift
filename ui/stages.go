@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
@@ -60,6 +62,7 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 	l.SetSpinner(spinner.Meter)
 	l.SetFilteringEnabled(false)
 	l.DisableQuitKeybindings()
+	l.StatusMessageLifetime = time.Second * 2
 
 	return l
 }

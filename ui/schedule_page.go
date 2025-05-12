@@ -191,7 +191,7 @@ func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
 	case fetchedEventsMessage:
 		p.handleFetchedEvents(msg)
 
-	case fetchErrorMessage:
+	case fetchEventsErrorMessage:
 		cmd := p.handleFetchError(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -355,7 +355,7 @@ func (p *schedulePage) appendMatches(events []lolesports.Event) {
 	p.matchList.SetItems(items)
 }
 
-func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
+func (p *schedulePage) handleFetchError(msg fetchEventsErrorMessage) tea.Cmd {
 	var cmd tea.Cmd
 
 	// We log the error received after a failed fetch for debugging purpose,
@@ -378,7 +378,10 @@ func (p *schedulePage) handleFetchError(msg fetchErrorMessage) tea.Cmd {
 		cmd = p.matchList.NewStatusMessage(statusMessage)
 	}
 
-	p.logger.Error("Failed to fetch data", slog.Any("error", msg.err))
+	p.logger.Error("Failed to fetch schedule events",
+		slog.Any("error", msg.err),
+		slog.Any("pageDirection", msg.pageDirection),
+	)
 
 	return cmd
 }
@@ -420,6 +423,19 @@ const (
 	pageDirectionPrev
 )
 
+func (d pageDirection) LogValue() slog.Value {
+	switch d {
+	case pageDirectionInitial:
+		return slog.StringValue("initial")
+	case pageDirectionNext:
+		return slog.StringValue("next")
+	case pageDirectionPrev:
+		return slog.StringValue("previous")
+	default:
+		return slog.StringValue("unknown")
+	}
+}
+
 type fetchedEventsMessage struct {
 	events        []lolesports.Event
 	pageDirection pageDirection
@@ -427,8 +443,9 @@ type fetchedEventsMessage struct {
 	prevPageToken string
 }
 
-type fetchErrorMessage struct {
-	err           error
+type fetchEventsErrorMessage struct {
+	fetchErrorMessage
+
 	pageDirection pageDirection
 }
 
@@ -452,9 +469,9 @@ func (p *schedulePage) fetchEvents(pageDirection pageDirection) tea.Cmd {
 
 		schedule, err := p.lolesportsClient.GetSchedule(context.Background(), &opts)
 		if err != nil {
-			return fetchErrorMessage{
-				err:           err,
-				pageDirection: pageDirection,
+			return fetchEventsErrorMessage{
+				fetchErrorMessage: fetchErrorMessage{err: err},
+				pageDirection:     pageDirection,
 			}
 		}
 

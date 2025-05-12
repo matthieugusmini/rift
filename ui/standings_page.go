@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -29,6 +30,10 @@ const (
 )
 
 const (
+	errMessageFetchError = "Oups! Something went wrong...\nPress any key to try your luck again."
+)
+
+const (
 	captionSelectSplit  = "SELECT A SPLIT"
 	captionSelectLeague = "SELECT A LEAGUE"
 	captionSelectStage  = "SELECT A STAGE"
@@ -42,6 +47,7 @@ const (
 	standingsPageStateLeagueSelection
 	standingsPageStateLoadingStages
 	standingsPageStateStageSelection
+	standingsPageStateLoadingBracketTemplate
 	standingsPageStateShowRanking
 	standingsPageStateShowBracket
 )
@@ -56,6 +62,7 @@ type standingsStyles struct {
 	separator        lipgloss.Style
 	help             lipgloss.Style
 	spinner          lipgloss.Style
+	error            lipgloss.Style
 }
 
 func newDefaultStandingsStyles() (s standingsStyles) {
@@ -85,6 +92,11 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
 
 	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
+
+	s.error = lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Foreground(textPrimaryColor).
+		Italic(true)
 
 	return s
 }
@@ -145,6 +157,7 @@ func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
 type standingsPage struct {
 	lolesportsClient      LoLEsportsLoader
 	bracketTemplateLoader BracketTemplateLoader
+	logger                *slog.Logger
 
 	state standingsPageState
 
@@ -159,7 +172,7 @@ type standingsPage struct {
 	ranking viewport.Model
 	bracket *bracketModel
 
-	err error
+	errMsg string
 
 	spinner spinner.Model
 
@@ -174,6 +187,7 @@ type standingsPage struct {
 func newStandingsPage(
 	lolesportsClient LoLEsportsLoader,
 	bracketLoader BracketTemplateLoader,
+	logger *slog.Logger,
 ) *standingsPage {
 	styles := newDefaultStandingsStyles()
 
@@ -185,6 +199,7 @@ func newStandingsPage(
 	return &standingsPage{
 		lolesportsClient:      lolesportsClient,
 		bracketTemplateLoader: bracketLoader,
+		logger:                logger,
 		styles:                styles,
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
@@ -204,6 +219,15 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// When an error is displayed after failing to fetch the initial schedule data,
+		// any keypress should trigger a refetch of the initial data again.
+		if p.errMsg != "" {
+			p.errMsg = ""
+			if p.state == standingsPageStateLoadingSplits {
+				return p, tea.Batch(p.fetchCurrentSeasonSplits())
+			}
+		}
+
 		switch {
 		case key.Matches(msg, p.keyMap.Quit):
 			return p, tea.Quit
@@ -242,7 +266,7 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.contentHeight())
 
 	case fetchErrorMessage:
-		p.err = msg.err
+		p.handleErrorMessage(msg)
 	}
 
 	var cmd tea.Cmd
@@ -268,8 +292,8 @@ func (p *standingsPage) View() string {
 		return ""
 	}
 
-	if p.err != nil {
-		return p.err.Error()
+	if p.errMsg != "" {
+		return p.viewError()
 	}
 
 	var sections []string
@@ -327,34 +351,13 @@ func (p *standingsPage) FullHelp() [][]key.Binding {
 	}
 }
 
-func (p *standingsPage) viewBracket() string {
-	return p.bracket.View()
-}
-
-func (p *standingsPage) viewRanking() string {
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	selectedLeague := p.leagues[p.leagueOptions.Index()]
-	stageName := p.styles.stageName.Render(
-		fmt.Sprintf("%s: %s Standings", selectedSplit.Name, selectedLeague.Name),
-	)
-
-	tournamentState := computeTournamentState(selectedSplit.StartTime, selectedSplit.EndTime)
-	tournamentPeriod := formatTournamentPeriod(selectedSplit.StartTime, selectedSplit.EndTime)
-	tournamentType := selectedSplit.Region
-	stageInfo := strings.Join(
-		[]string{
-			p.styles.tournamentState.Render(string(tournamentState)),
-			p.styles.tournamentPeriod.Render(tournamentPeriod),
-			p.styles.tournamentType.Render(tournamentType),
-		},
-		separatorBullet,
-	)
-
-	sep := p.styles.separator.Render(strings.Repeat(separatorLine, p.width))
-
-	header := fmt.Sprintf("%s\n\n%s\n%s\n", stageName, stageInfo, sep)
-
-	return lipgloss.JoinVertical(lipgloss.Left, header, p.ranking.View())
+func (p *standingsPage) viewError() string {
+	errMsg := p.styles.error.Render(p.errMsg)
+	return p.styles.doc.
+		Width(p.width).
+		Height(p.contentHeight()).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(errMsg)
 }
 
 func (p *standingsPage) viewSelection() string {
@@ -421,6 +424,36 @@ func (p *standingsPage) viewSelectionPrompt() string {
 	)
 }
 
+func (p *standingsPage) viewBracket() string {
+	return p.bracket.View()
+}
+
+func (p *standingsPage) viewRanking() string {
+	selectedSplit := p.splits[p.splitOptions.Index()]
+	selectedLeague := p.leagues[p.leagueOptions.Index()]
+	stageName := p.styles.stageName.Render(
+		fmt.Sprintf("%s: %s Standings", selectedSplit.Name, selectedLeague.Name),
+	)
+
+	tournamentState := computeTournamentState(selectedSplit.StartTime, selectedSplit.EndTime)
+	tournamentPeriod := formatTournamentPeriod(selectedSplit.StartTime, selectedSplit.EndTime)
+	tournamentType := selectedSplit.Region
+	stageInfo := strings.Join(
+		[]string{
+			p.styles.tournamentState.Render(string(tournamentState)),
+			p.styles.tournamentPeriod.Render(tournamentPeriod),
+			p.styles.tournamentType.Render(tournamentType),
+		},
+		separatorBullet,
+	)
+
+	sep := p.styles.separator.Render(strings.Repeat(separatorLine, p.width))
+
+	header := fmt.Sprintf("%s\n\n%s\n%s\n", stageName, stageInfo, sep)
+
+	return lipgloss.JoinVertical(lipgloss.Left, header, p.ranking.View())
+}
+
 func (p *standingsPage) viewHelp() string {
 	return p.styles.help.Render(p.help.View(p))
 }
@@ -462,6 +495,20 @@ func (p *standingsPage) setSize(width, height int) {
 func (p *standingsPage) isLoading() bool {
 	return p.state == standingsPageStateLoadingSplits ||
 		p.state == standingsPageStateLoadingStages
+}
+
+func (p *standingsPage) handleErrorMessage(msg fetchErrorMessage) {
+	p.errMsg = errMessageFetchError
+
+	switch p.state {
+	case standingsPageStateLoadingStages:
+		p.state = standingsPageStateLeagueSelection
+
+	case standingsPageStateLoadingBracketTemplate:
+		p.state = standingsPageStateStageSelection
+	}
+
+	p.logger.Error("Failed to fetch standings", slog.Any("error", msg.err))
 }
 
 func (p *standingsPage) handleSelection() tea.Cmd {
@@ -511,6 +558,7 @@ func (p *standingsPage) selectStage() tea.Cmd {
 		p.state = standingsPageStateShowRanking
 
 	case stageTypeBracket:
+		p.state = standingsPageStateLoadingBracketTemplate
 		return p.loadBracketStageTemplate(selectedStage.ID)
 	}
 
@@ -599,6 +647,10 @@ type loadedStandingsMessage struct {
 	standings []lolesports.Standings
 }
 
+type fetchErrorMessage struct {
+	err error
+}
+
 func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 	return func() tea.Msg {
 		standings, err := p.lolesportsClient.LoadStandingsByTournamentIDs(
@@ -606,9 +658,7 @@ func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 			tournamentIDs,
 		)
 		if err != nil {
-			return fetchErrorMessage{
-				err: err,
-			}
+			return fetchErrorMessage{err: err}
 		}
 		return loadedStandingsMessage{standings}
 	}
@@ -622,9 +672,7 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	return func() tea.Msg {
 		splits, err := p.lolesportsClient.GetCurrentSeasonSplits(context.Background())
 		if err != nil {
-			return fetchErrorMessage{
-				err: err,
-			}
+			return fetchErrorMessage{err: err}
 		}
 		return fetchedCurrentSeasonSplitsMessage{splits}
 	}
@@ -638,9 +686,7 @@ func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {
 	return func() tea.Msg {
 		tmpl, err := p.bracketTemplateLoader.Load(context.Background(), stageID)
 		if err != nil {
-			return fetchErrorMessage{
-				err: err,
-			}
+			return fetchErrorMessage{err: err}
 		}
 		return loadedBracketStageTemplateMessage{tmpl}
 	}
