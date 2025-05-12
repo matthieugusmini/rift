@@ -199,7 +199,7 @@ func (p *standingsPage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchCurrentSeasonSplits())
 }
 
-func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -216,7 +216,7 @@ func (p *standingsPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.goToPreviousStep()
 
 		case key.Matches(msg, p.keyMap.Select):
-			return p.handleSelection()
+			cmds = append(cmds, p.handleSelection())
 		}
 
 	case spinner.TickMsg:
@@ -464,40 +464,40 @@ func (p *standingsPage) isLoading() bool {
 		p.state == standingsPageStateLoadingStages
 }
 
-func (p *standingsPage) handleSelection() (tea.Model, tea.Cmd) {
+func (p *standingsPage) handleSelection() tea.Cmd {
+	var cmd tea.Cmd
+
 	switch p.state {
 	case standingsPageStateSplitSelection:
-		return p.selectSplit()
+		p.selectSplit()
 	case standingsPageStateLeagueSelection:
-		return p.selectLeague()
+		cmd = p.selectLeague()
 	case standingsPageStateStageSelection:
-		return p.selectStage()
-	default:
-		return p, nil
+		cmd = p.selectStage()
 	}
+
+	return cmd
 }
 
-func (p *standingsPage) selectSplit() (tea.Model, tea.Cmd) {
+func (p *standingsPage) selectSplit() {
 	p.state = standingsPageStateLeagueSelection
 
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	p.leagues = listLeaguesFromTournaments(selectedSplit.Tournaments)
 	p.leagueOptions = newLeagueOptionsList(p.leagues, p.listWidth(), p.listHeight())
-
-	return p, nil
 }
 
-func (p *standingsPage) selectLeague() (tea.Model, tea.Cmd) {
+func (p *standingsPage) selectLeague() tea.Cmd {
 	p.state = standingsPageStateLoadingStages
 
 	selectedSplit := p.splits[p.splitOptions.Index()]
 	selectedLeague := p.leagues[p.leagueOptions.Index()]
 	tournamentIDs := listTournamentIDsForLeague(selectedSplit.Tournaments, selectedLeague.ID)
 
-	return p, tea.Batch(p.spinner.Tick, p.loadStandings(tournamentIDs))
+	return tea.Batch(p.spinner.Tick, p.loadStandings(tournamentIDs))
 }
 
-func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
+func (p *standingsPage) selectStage() tea.Cmd {
 	selectedStage := p.stages[p.stageOptions.Index()]
 
 	stageType := getStageType(selectedStage)
@@ -511,10 +511,10 @@ func (p *standingsPage) selectStage() (tea.Model, tea.Cmd) {
 		p.state = standingsPageStateShowRanking
 
 	case stageTypeBracket:
-		return p, p.loadBracketStageTemplate(selectedStage.ID)
+		return p.loadBracketStageTemplate(selectedStage.ID)
 	}
 
-	return p, nil
+	return nil
 }
 
 func (p *standingsPage) goToPreviousStep() {

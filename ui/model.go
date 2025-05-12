@@ -89,7 +89,7 @@ type Model struct {
 	selectedNavIndex int
 
 	schedulePage  *schedulePage
-	standingsPage tea.Model
+	standingsPage *standingsPage
 
 	state state
 
@@ -134,7 +134,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.pageWidth = min(msg.Width, maxWidth)
 
 		m.schedulePage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
-		m.standingsPage.(*standingsPage).setSize(m.pageWidth, msg.Height-navigationBarHeight)
+		m.standingsPage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
 
 	return m.updateCurrentPage(msg)

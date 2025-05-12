@@ -66,19 +66,21 @@ func (d leagueItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func (d leagueItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	var title string
-	if leagueItem, ok := item.(leagueItem); ok {
-		title = leagueItem.Title()
-	} else {
+	leagueItem, ok := item.(leagueItem)
+	if !ok {
 		return
 	}
 
-	isSelected := index == m.Index()
+	var (
+		title      string
+		isSelected = index == m.Index()
+	)
 	if isSelected {
-		title = d.styles.selectedTitle.Render(title)
+		title = d.styles.selectedTitle.Render(leagueItem.Title())
 	} else {
-		title = d.styles.normalTitle.Render(title)
+		title = d.styles.normalTitle.Render(leagueItem.Title())
 	}
+
 	fmt.Fprint(w, title)
 }
 
