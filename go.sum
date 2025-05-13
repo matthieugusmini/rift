@@ -30,6 +30,8 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/matthieugusmini/go-lolesports v0.3.0 h1:b83zrYfQto54mNoxkYv3zy1Mvrmx5Suwj1eCZKbtL2k=
 github.com/matthieugusmini/go-lolesports v0.3.0/go.mod h1:iW1DYEh9V+/aJH7qZouKJvXZlv0MVR3gVM9azvkt+5U=
+github.com/matthieugusmini/lolesport v0.0.0-dev.2 h1:mwHuSFqUsPdm9luoqb7Gl4WYXNtOlF0cReHLXqEGVBw=
+github.com/matthieugusmini/lolesport v0.0.0-dev.2/go.mod h1:gSccgeBlS4sOPZlDLHpFuBRqitiGJdAHmfMQXL7/aXw=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-localereader v0.0.1 h1:ygSAOl7ZXTx4RdPYinUpg6W99U8jWvWi9Ye2JC/oIi4=

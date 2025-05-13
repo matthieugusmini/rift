@@ -24,8 +24,8 @@ type LoLEsportsAPIClient interface {
 	) (lolesports.Schedule, error)
 }
 
-// Loader handles loading LoLEsports data from multiple sources.
-type Loader struct {
+// LoLEsportsLoader handles loading LoL Esports data from multiple sources.
+type LoLEsportsLoader struct {
 	LoLEsportsAPIClient
 
 	standingsCache Cache[[]lolesports.Standings]
@@ -39,8 +39,8 @@ func NewLoLEsportsLoader(
 	apiClient LoLEsportsAPIClient,
 	standingsCache Cache[[]lolesports.Standings],
 	logger *slog.Logger,
-) *Loader {
-	return &Loader{
+) *LoLEsportsLoader {
+	return &LoLEsportsLoader{
 		LoLEsportsAPIClient: apiClient,
 		standingsCache:      standingsCache,
 		logger:              logger,
@@ -52,7 +52,7 @@ func NewLoLEsportsLoader(
 //
 // An error is returned only if the client cannot load the standings.
 // Errors returned by the cache are not forwarded and are just logged instead.
-func (l *Loader) LoadStandingsByTournamentIDs(
+func (l *LoLEsportsLoader) LoadStandingsByTournamentIDs(
 	ctx context.Context,
 	tournamentIDs []string,
 ) ([]lolesports.Standings, error) {

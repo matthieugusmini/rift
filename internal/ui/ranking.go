@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutil"
+	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
 func newRankingViewport(stage lolesports.Stage, width, height int) viewport.Model {

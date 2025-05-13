@@ -43,6 +43,10 @@ linters:
     gosmopolitan:
       allow-time-local: true
 
+    funcorder:
+      # We just want logical ordering.
+      struct-method: false
+
     revive:
       rules:
         # We don't focus on arbitrary complexity metrics here.
@@ -59,6 +63,7 @@ linters:
       # kv-only: true
       # Use dependency injection instead.
       no-global: "all"
+      # https://go.dev/wiki/CodeReviewComments#error-strings
       msg-style: capitalized
       key-naming-case: camel
 

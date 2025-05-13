@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutil"
+	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
 func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Model {

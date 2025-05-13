@@ -1,4 +1,4 @@
-module github.com/matthieugusmini/lolesport
+module github.com/matthieugusmini/rift
 
 go 1.24.0
 
@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/matthieugusmini/go-lolesports v0.3.0
+	github.com/matthieugusmini/lolesport v0.0.0-dev.2
 	github.com/muesli/go-app-paths v0.2.2
 	go.etcd.io/bbolt v1.4.0
 )

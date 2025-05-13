@@ -14,11 +14,11 @@ import (
 	gap "github.com/muesli/go-app-paths"
 	"go.etcd.io/bbolt"
 
-	"github.com/matthieugusmini/lolesport/cache"
-	"github.com/matthieugusmini/lolesport/github"
-	"github.com/matthieugusmini/lolesport/lolesports"
-	"github.com/matthieugusmini/lolesport/rift"
-	"github.com/matthieugusmini/lolesport/ui"
+	"github.com/matthieugusmini/rift/internal/cache"
+	"github.com/matthieugusmini/rift/internal/github"
+	"github.com/matthieugusmini/rift/internal/lolesports"
+	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/matthieugusmini/rift/internal/ui"
 )
 
 var (
@@ -149,7 +149,7 @@ func initLoLEsportsLoader(
 	_ *http.Client, // TODO: Add an option to configure go-lolesports internal http.Client.
 	cacheDB *bbolt.DB,
 	logger *slog.Logger,
-) *rift.Loader {
+) *rift.LoLEsportsLoader {
 	lolesportsAPIClient := lolesports.NewClient(gololesports.NewClient())
 
 	standingsCache := cache.New[[]gololesports.Standings](

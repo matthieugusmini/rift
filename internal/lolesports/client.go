@@ -5,7 +5,7 @@ import (
 
 	lolesports "github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/timeutil"
+	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
 // Client is an adapter of the unofficial lolesports HTTP client.

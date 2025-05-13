@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/lolesport/rift"
+	"github.com/matthieugusmini/rift/internal/rift"
 )
 
 const (
