@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/timeutil"
@@ -154,18 +155,20 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 		Align(lipgloss.Center)
 
 	// Description
-	s.desc = lipgloss.NewStyle().Padding(0, 1)
-
 	s.flags = lipgloss.NewStyle().
+		Padding(0, 1).
 		Align(lipgloss.Left).
-		Foreground(textSecondaryColor) // for separator
+		Foreground(textSecondaryColor).
+		Bold(true)
 
 	s.leagueAndBlockName = lipgloss.NewStyle().
+		Padding(0, 1).
 		Align(lipgloss.Center).
 		Foreground(textSecondaryColor).
 		Bold(true)
 
 	s.strategy = lipgloss.NewStyle().
+		Padding(0, 1).
 		Align(lipgloss.Right).
 		Foreground(textSecondaryColor).
 		Bold(true)
@@ -282,23 +285,34 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
 }
 
+//	┌────────────┬────────────────────────────┬────────────┐
+//	│   FLAGS    │    LEAGUE • BLOCK NAME     │  STRATEGY  │
+//	└────────────┴────────────────────────────┴────────────┘
+//
+// - LEAGUE & BLOCK NAME gets content-based width + its padding.
+// - Remaining space is split evenly between FLAGS and STRATEGY.
+// - FLAGS is truncated with ellipsis when necessary.
 func (d matchItemDelegate) viewDescription(item matchItem, width int) string {
-	padding := d.styles.desc.GetHorizontalFrameSize()
-	sideColumnWidth := max(lipgloss.Width(item.flags), lipgloss.Width(item.strategy))
+	leagueAndBlockName := d.styles.leagueAndBlockName.Render(
+		item.leagueName + separatorBullet + item.blockName,
+	)
 
-	flags := d.styles.flags.
-		Width(sideColumnWidth).
-		Render(item.flags)
+	availWidth := width - lipgloss.Width(leagueAndBlockName)
 
+	sideColumnWidth := availWidth / 2
 	strategy := d.styles.strategy.
 		Width(sideColumnWidth).
 		Render(item.strategy)
 
-	leagueAndBlockName := d.styles.leagueAndBlockName.
-		Width(width - padding - sideColumnWidth*2).
-		Render(item.leagueName + separatorBullet + item.blockName)
+	// We don't use sideColumnWidth as it would be incorrect when
+	// availWidth is an odd number.
+	flagsMaxWidth := availWidth - lipgloss.Width(strategy)
+	flags := d.styles.flags.
+		Width(flagsMaxWidth).
+		Render(item.flags)
+	flags = ansi.Truncate(flags, flagsMaxWidth, "…")
 
-	return d.styles.desc.Render(flags + leagueAndBlockName + strategy)
+	return flags + leagueAndBlockName + strategy
 }
 
 func formatMatchStrategy(strategy lolesports.Strategy) string {
