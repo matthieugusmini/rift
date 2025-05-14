@@ -8,9 +8,9 @@ Set Height 1200
 
 # Setup
 Hide
-Type "go build ."
+Type "go build"
 Enter
-Type "./lolesport"
+Type "./rift"
 Enter
 Wait+Screen /Rift/
 Show
