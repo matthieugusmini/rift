@@ -57,11 +57,11 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 		Bold(true)
 
 	s.winnerTeamName = lipgloss.NewStyle().
-		Foreground(selectedBorderColor).
+		Foreground(selectedColor).
 		Faint(true)
 
 	s.winnerTeamResult = lipgloss.NewStyle().
-		Foreground(selectedBorderColor).
+		Foreground(selectedColor).
 		Bold(true)
 
 	s.link = lipgloss.NewStyle().Foreground(borderPrimaryColor)

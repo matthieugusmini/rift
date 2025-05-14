@@ -40,7 +40,7 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 
 	s.title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textPrimaryColor).
+		Foreground(blackAndWhite).
 		Background(secondaryBackgroundColor).
 		Bold(true)
 

@@ -130,8 +130,8 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 		BorderForeground(borderPrimaryColor)
 
 	s.selectedItem = itemStyle.
-		Foreground(selectedBorderColor).
-		BorderForeground(selectedBorderColor)
+		Foreground(selectedColor).
+		BorderForeground(selectedColor)
 
 	// Title
 	s.title = lipgloss.NewStyle().Padding(0, 1)

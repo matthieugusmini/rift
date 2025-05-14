@@ -37,7 +37,7 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 	l.Title = "EVENTS"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textPrimaryColor).
+		Foreground(blackAndWhite).
 		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowHelp(false)
@@ -82,8 +82,7 @@ func newSplitItemStyles() (s splitItemStyles) {
 	baseTitleStyle := lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
-		Foreground(textPrimaryColor).
-		Bold(true)
+		Foreground(textPrimaryColor)
 
 	s.normalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
@@ -95,11 +94,12 @@ func newSplitItemStyles() (s splitItemStyles) {
 
 	s.selectedTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		BorderForeground(red)
+		BorderForeground(red).
+		Foreground(selectedColor).
+		Bold(true)
 
 	baseDescStyle := lipgloss.NewStyle().
-		Foreground(textSecondaryColor).
-		Bold(true)
+		Foreground(textDimmedSecondaryColor)
 
 	s.normalDescription = baseDescStyle.
 		Padding(0, 0, 0, 2).
@@ -161,6 +161,7 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		} else if isCurrent || isUpcoming {
 			descStyle = d.styles.upcomingNormalDescription
 		}
+		descStyle = descStyle.Foreground(textSecondaryColor)
 
 	case isLast:
 		titleStyle = d.styles.upcomingNormalTitle

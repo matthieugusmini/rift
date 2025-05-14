@@ -18,12 +18,14 @@ var (
 )
 
 var (
-	textPrimaryColor         = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
+	blackAndWhite            = lipgloss.AdaptiveColor{Light: black, Dark: white}
+	textPrimaryColor         = lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}
 	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: lightGray}
+	textDimmedSecondaryColor = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}
 	borderPrimaryColor       = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
 	borderSecondaryColor     = lipgloss.AdaptiveColor{Light: lightGray, Dark: dimGrey}
-	selectedBorderColor      = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
-	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: dimGrey}
+	selectedColor            = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
+	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: imperialRed}
 	red                      = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
 	spinnerColor             = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
 )
