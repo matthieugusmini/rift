@@ -115,7 +115,6 @@ type matchItemStyles struct {
 	startTime           lipgloss.Style
 
 	// Description
-	desc               lipgloss.Style
 	flags              lipgloss.Style
 	leagueAndBlockName lipgloss.Style
 	strategy           lipgloss.Style

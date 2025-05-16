@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
@@ -13,7 +14,8 @@ import (
 )
 
 const (
-	linkWidth = 3
+	matchWidth = 16
+	linkWidth  = 3
 
 	horizontalLine    = "─"
 	verticalLine      = "│"
@@ -64,7 +66,7 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 		Foreground(selectedColor).
 		Bold(true)
 
-	s.link = lipgloss.NewStyle().Foreground(borderPrimaryColor)
+	s.link = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 
 	return s
 }
@@ -73,54 +75,57 @@ type bracketModel struct {
 	template rift.BracketTemplate
 	matches  []lolesports.Match
 
+	vp viewport.Model
+
 	width, height int
 	styles        bracketModelStyles
 }
 
 func newBracketModel(
 	template rift.BracketTemplate,
-	stage lolesports.Stage,
+	matches []lolesports.Match,
 	width, height int,
 ) *bracketModel {
+	styles := newDefaultBracketModelStyles()
+
+	vp := newBracketViewport(template, matches, width, height, styles)
+
 	return &bracketModel{
 		template: template,
-		matches:  stage.Sections[0].Matches,
+		matches:  matches,
 		width:    width,
 		height:   height,
-		styles:   newDefaultBracketModelStyles(),
+		vp:       vp,
+		styles:   styles,
 	}
 }
 
-func (m *bracketModel) Update(msg tea.Msg) (*bracketModel, tea.Cmd) {
-	return m, nil
-}
-
-func (m *bracketModel) View() string {
-	nbRounds := len(m.template.Rounds)
+func newBracketViewport(
+	tmpl rift.BracketTemplate,
+	matches []lolesports.Match,
+	width, height int,
+	styles bracketModelStyles,
+) viewport.Model {
+	nbRounds := len(tmpl.Rounds)
 	nbLinkColumns := nbRounds - 1
-	availWidthWithoutLinks := m.width - nbLinkColumns*linkWidth
-	if availWidthWithoutLinks <= 0 {
-		return ""
-	}
-	roundColumnWidth := availWidthWithoutLinks / nbRounds
 
 	var (
 		sections     = make([]string, nbRounds+nbLinkColumns)
 		sectionIndex int
 		matchIndex   int
 	)
-	for _, round := range m.template.Rounds {
+	for _, round := range tmpl.Rounds {
 		if len(round.Links) > 0 {
-			links := m.drawLinks(round.Links)
+			links := drawLinks(round.Links, styles)
 
 			sections[sectionIndex] = links
 			sectionIndex++
 		}
 
 		roundView := lipgloss.PlaceHorizontal(
-			roundColumnWidth,
+			matchWidth,
 			lipgloss.Center,
-			m.styles.roundTitle.Render(round.Title),
+			styles.roundTitle.Render(round.Title),
 			lipgloss.WithWhitespaceBackground(lipgloss.Color(antiFlashWhite)),
 		)
 		roundView += "\n\n"
@@ -130,11 +135,11 @@ func (m *bracketModel) View() string {
 
 			switch match.DisplayType {
 			case rift.DisplayTypeMatch:
-				roundView += m.drawMatch(m.matches[matchIndex], roundColumnWidth)
+				roundView += drawMatch(matches[matchIndex], matchWidth, styles)
 				matchIndex++
 			case rift.DisplayTypeHorizontalLine:
-				line := m.styles.link.Render(horizontalLine)
-				roundView += strings.Repeat(line, roundColumnWidth)
+				line := styles.link.Render(horizontalLine)
+				roundView += strings.Repeat(line, matchWidth)
 			}
 
 			if i < len(round.Matches)-1 {
@@ -143,8 +148,8 @@ func (m *bracketModel) View() string {
 		}
 
 		roundView = lipgloss.NewStyle().
-			Width(roundColumnWidth).
-			Height(m.height).
+			Width(matchWidth).
+			Height(height).
 			Render(roundView)
 
 		sections[sectionIndex] = roundView
@@ -153,49 +158,65 @@ func (m *bracketModel) View() string {
 
 	view := lipgloss.JoinHorizontal(lipgloss.Top, sections...)
 
-	return lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
+	view = lipgloss.NewStyle().
+		Width(max(lipgloss.Width(view), width)).
+		Height(height).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(view)
+
+	vp := viewport.New(width, height)
+	vp.SetContent(view)
+	vp.SetHorizontalStep(5)
+
+	return vp
 }
 
-func (m *bracketModel) drawLinks(links []rift.Link) string {
+func (m *bracketModel) Update(msg tea.Msg) (*bracketModel, tea.Cmd) {
+	var cmd tea.Cmd
+	m.vp, cmd = m.vp.Update(msg)
+	return m, cmd
+}
+
+func (m *bracketModel) View() string {
+	return m.vp.View()
+}
+
+func drawLinks(links []rift.Link, styles bracketModelStyles) string {
 	var linksView string
 
 	for _, link := range links {
 		linksView += strings.Repeat("\n", link.Above)
-		linksView += m.styles.link.Render(drawLink(link))
+		linksView += styles.link.Render(drawLink(link))
 	}
 
 	return linksView
 }
 
-func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
-	borderWidth := m.styles.match.GetHorizontalBorderSize()
+func drawMatch(match lolesports.Match, width int, styles bracketModelStyles) string {
+	borderWidth := styles.match.GetHorizontalBorderSize()
 	rowWidth := width - borderWidth
 	if rowWidth <= 0 {
 		return ""
 	}
 
 	var (
-		team1Style       = m.styles.noTeamResult
-		team2Style       = m.styles.noTeamResult
+		team1Style       = styles.noTeamResult
+		team2Style       = styles.noTeamResult
 		team2ResultStyle lipgloss.Style
 		team1ResultStyle lipgloss.Style
 	)
 	if teamHasWon(match.Teams[0]) {
-		team1Style = m.styles.winnerTeamName
-		team1ResultStyle = m.styles.winnerTeamResult
+		team1Style = styles.winnerTeamName
+		team1ResultStyle = styles.winnerTeamResult
 
-		team2Style = m.styles.loserTeamName
-		team2ResultStyle = m.styles.loserTeamResult
+		team2Style = styles.loserTeamName
+		team2ResultStyle = styles.loserTeamResult
 	} else if teamHasWon(match.Teams[1]) {
-		team1Style = m.styles.loserTeamName
-		team1ResultStyle = m.styles.loserTeamResult
+		team1Style = styles.loserTeamName
+		team1ResultStyle = styles.loserTeamResult
 
-		team2Style = m.styles.winnerTeamName
-		team2ResultStyle = m.styles.winnerTeamResult
+		team2Style = styles.winnerTeamName
+		team2ResultStyle = styles.winnerTeamResult
 	}
 
 	rowStyle := lipgloss.NewStyle().
@@ -219,11 +240,11 @@ func (m *bracketModel) drawMatch(match lolesports.Match, width int) string {
 	content := fmt.Sprintf(
 		"%s\n%s\n%s",
 		rowStyle.Render(team1Row),
-		m.styles.link.Render(strings.Repeat(horizontalLine, rowWidth)),
+		styles.link.Render(strings.Repeat(horizontalLine, rowWidth)),
 		rowStyle.Render(team2Row),
 	)
 
-	return m.styles.match.Render(content)
+	return styles.match.Render(content)
 }
 
 func drawLink(link rift.Link) string {
@@ -257,6 +278,10 @@ func drawLink(link rift.Link) string {
 
 func (m *bracketModel) setSize(width, height int) {
 	m.width, m.height = width, height
+
+	// Setting the Height and Width field doesn't seem to work
+	// so we recreate it with the right size.
+	m.vp = newBracketViewport(m.template, m.matches, width, height, m.styles)
 }
 
 func formatTeamRow(team lolesports.Team) string {

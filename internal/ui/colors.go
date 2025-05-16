@@ -3,29 +3,50 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	black          = "#000000"
+	//nolint:godot
+	// Black
+	black       = "#000000"
+	almostBlack = "#1a1a1a"
+	eerieBlack  = "#1f1f1f"
+
+	//nolint:godot
+	// White
 	white          = "#ffffff"
 	antiFlashWhite = "#f2f3f4"
-	eerieBlack     = "#1f1f1f"
-	lightGray      = "#848482"
-	sonicSilver    = "#757575"
-	gold           = "#ffd700"
-	dimGrey        = "#696969"
 	darkVanilla    = "#d1bea8"
-	imperialRed    = "#ed2939"
-	crimson        = "#dc143c"
-	neonFuchsia    = "#fe4164"
+
+	//nolint:godot
+	// Grey
+	grey        = "#808080"
+	lightGrey   = "#dddddd"
+	dimGrey     = "#777777"
+	sonicSilver = "#757575"
+
+	//nolint:godot
+	// Red
+	imperialRed = "#ed2939"
+	crimson     = "#dc143c"
+	neonFuchsia = "#fe4164"
+
+	//nolint:godot
+	// Yellow
+	gold = "#ffd700"
 )
 
 var (
-	blackAndWhite            = lipgloss.AdaptiveColor{Light: black, Dark: white}
-	textPrimaryColor         = lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}
-	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: lightGray}
-	textDimmedSecondaryColor = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}
-	borderPrimaryColor       = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
-	borderSecondaryColor     = lipgloss.AdaptiveColor{Light: lightGray, Dark: dimGrey}
-	selectedColor            = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
+	textPrimaryColor         = lipgloss.AdaptiveColor{Light: almostBlack, Dark: lightGrey}
+	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: grey}
+	textDimmedSecondaryColor = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: dimGrey}
+	textTitleColor           = lipgloss.AdaptiveColor{Light: black, Dark: white}
+
+	borderPrimaryColor   = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
+	borderSecondaryColor = lipgloss.AdaptiveColor{Light: grey, Dark: dimGrey}
+
 	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: imperialRed}
-	red                      = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
-	spinnerColor             = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
+
+	selectedColor = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
+
+	red = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
+
+	spinnerColor = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
 )

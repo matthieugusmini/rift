@@ -53,7 +53,7 @@ func newStageOptionsList(stages []lolesports.Stage, width, height int) list.Mode
 	l.Title = "STAGES"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(blackAndWhite).
+		Foreground(textTitleColor).
 		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowHelp(false)

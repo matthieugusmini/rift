@@ -96,7 +96,7 @@ func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.M
 	// TODO: Where should we define this style?
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(blackAndWhite).
+		Foreground(textTitleColor).
 		Background(secondaryBackgroundColor).
 		Bold(true)
 	l.SetShowPagination(false)

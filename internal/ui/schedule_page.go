@@ -40,7 +40,7 @@ func newDefaultSchedulePageStyles() (s schedulePageStyles) {
 
 	s.title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(blackAndWhite).
+		Foreground(textTitleColor).
 		Background(secondaryBackgroundColor).
 		Bold(true)
 
@@ -146,6 +146,9 @@ func newSchedulePage(lolesportsClient LoLEsportsLoader, logger *slog.Logger) *sc
 }
 
 func (p *schedulePage) Init() tea.Cmd {
+	if p.loaded {
+		return nil
+	}
 	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 

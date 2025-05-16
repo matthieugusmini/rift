@@ -67,7 +67,7 @@ type modelStyles struct {
 func newDefaultModelStyles() (s modelStyles) {
 	s.logo = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textPrimaryColor).
+		Foreground(textTitleColor).
 		Bold(true)
 
 	s.normalNavItem = lipgloss.NewStyle().

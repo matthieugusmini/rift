@@ -237,7 +237,10 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 			p.toggleFullHelp()
 
 		case key.Matches(msg, p.keyMap.Previous):
-			p.goToPreviousStep()
+			if p.state != standingsPageStateShowBracket ||
+				(p.state == standingsPageStateShowBracket && msg.String() == "esc") {
+				p.goToPreviousStep()
+			}
 
 		case key.Matches(msg, p.keyMap.Select):
 			cmds = append(cmds, p.handleSelection())
@@ -263,7 +266,9 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 	case loadedBracketStageTemplateMessage:
 		p.state = standingsPageStateShowBracket
 		selectedStage := p.stages[p.stageOptions.Index()]
-		p.bracket = newBracketModel(msg.template, selectedStage, p.width, p.contentHeight())
+		// Bracket stages always have a single section.
+		matches := selectedStage.Sections[0].Matches
+		p.bracket = newBracketModel(msg.template, matches, p.width, p.contentHeight())
 
 	case fetchErrorMessage:
 		p.handleErrorMessage(msg)
@@ -481,11 +486,8 @@ func (p *standingsPage) setSize(width, height int) {
 
 	case standingsPageStateShowRanking:
 		selectedStage := p.stages[p.stageOptions.Index()]
-		p.ranking = newRankingViewport(
-			selectedStage,
-			p.width,
-			p.contentHeight()-rankingViewHeaderHeight,
-		)
+		rankingContentHeight := p.contentHeight() - rankingViewHeaderHeight
+		p.ranking = newRankingViewport(selectedStage, p.width, rankingContentHeight)
 
 	case standingsPageStateShowBracket:
 		p.bracket.setSize(p.width, p.contentHeight())
