@@ -4,7 +4,6 @@ linters:
   disable:
     - cyclop # We don't focus on arbitrary complexity metrics here.
     - contextcheck # Too many false positives (e.g., during graceful shutdowns).
-    - depguard
     - err113
     - exhaustive
     - exhaustruct
@@ -20,6 +19,7 @@ linters:
     - mnd
     - nlreturn
     - nonamedreturns
+    - paralleltest # https://groups.google.com/g/golang-dev/c/RAKiqi44GEU/m/WkD64zvPR_0J
     - tagalign
     - testifylint
     - varnamelen
@@ -27,6 +27,15 @@ linters:
     - wsl # Too strict and opinionated. Doesn't necessarily improve code readability.
 
   settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: math/rand$
+              desc: Please use math/rand/v2
+            - pkg: github.com/pkg/errors
+              desc: Please use stdlib instead
+
     gocritic:
       disabled-checks:
         - singleCaseSwitch

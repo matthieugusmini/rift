@@ -26,5 +26,12 @@ go.work.sum
 
 # Generated GIF
 demo.gif
+
 # Added by goreleaser init:
 dist/
+
+# Binary
+/rift
+
+# Go coverage tool output
+coverage.txt

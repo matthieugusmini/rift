@@ -59,7 +59,7 @@ func (l *BracketTemplateLoader) Load(
 
 	tmpl, ok, err := l.cache.Get(stageID)
 	if err != nil {
-		l.logger.Warn(
+		l.logger.Debug(
 			"Bracket template not present in cache",
 			slog.Any("err", err),
 			slog.String("stageId", stageID),
@@ -75,7 +75,7 @@ func (l *BracketTemplateLoader) Load(
 	}
 
 	if err := l.cache.Set(stageID, tmpl); err != nil {
-		l.logger.Debug(
+		l.logger.Warn(
 			"Failed to cache bracket template",
 			slog.Any("err", err),
 			slog.String("stageId", stageID),

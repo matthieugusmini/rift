@@ -13,8 +13,6 @@ var (
 )
 
 func TestIsCurrentTimeBetween(t *testing.T) {
-	t.Parallel()
-
 	tt := []struct {
 		name      string
 		startTime time.Time
@@ -22,13 +20,13 @@ func TestIsCurrentTimeBetween(t *testing.T) {
 		want      bool
 	}{
 		{
-			name:      "returns true if range between yesterday and tomorrow",
+			name:      "with range between yesterday and tomorrow returns true",
 			startTime: time.Now().AddDate(0, 0, -1),
 			endTime:   time.Now().AddDate(0, 0, 1),
 			want:      true,
 		},
 		{
-			name:      "returns false with World War II range",
+			name:      "with range between World War II start and end date returns false",
 			startTime: worldWarIIStartDate,
 			endTime:   worldWarIIEndDate,
 			want:      false,
@@ -36,8 +34,6 @@ func TestIsCurrentTimeBetween(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := timeutil.IsCurrentTimeBetween(tc.startTime, tc.endTime)
 
 			if got != tc.want {

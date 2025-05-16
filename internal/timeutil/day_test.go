@@ -10,28 +10,24 @@ import (
 var goatBirthday = time.Date(1996, time.May, 7, 0, 0, 0, 0, time.UTC)
 
 func TestIsYesterday(t *testing.T) {
-	t.Parallel()
-
 	tt := []struct {
 		name string
 		date time.Time
 		want bool
 	}{
 		{
-			name: "returns true with yesterday date",
+			name: "with yesterday date returns true",
 			date: time.Now().AddDate(0, 0, -1),
 			want: true,
 		},
 		{
-			name: "returns false with Faker birthday",
+			name: "with Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := timeutil.IsYesterday(tc.date)
 
 			if got != tc.want {
@@ -42,28 +38,24 @@ func TestIsYesterday(t *testing.T) {
 }
 
 func TestIsToday(t *testing.T) {
-	t.Parallel()
-
 	tt := []struct {
 		name string
 		date time.Time
 		want bool
 	}{
 		{
-			name: "returns true with current date",
+			name: "with current date returns true",
 			date: time.Now(),
 			want: true,
 		},
 		{
-			name: "returns false with faker birthday",
+			name: "with Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := timeutil.IsToday(tc.date)
 
 			if got != tc.want {
@@ -74,28 +66,24 @@ func TestIsToday(t *testing.T) {
 }
 
 func TestIsTomorrow(t *testing.T) {
-	t.Parallel()
-
 	tt := []struct {
 		name string
 		date time.Time
 		want bool
 	}{
 		{
-			name: "returns true with tomorrow date",
+			name: "with tomorrow date returns true",
 			date: time.Now().AddDate(0, 0, 1),
 			want: true,
 		},
 		{
-			name: "returns false with faker birthday",
+			name: "with Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := timeutil.IsTomorrow(tc.date)
 
 			if got != tc.want {

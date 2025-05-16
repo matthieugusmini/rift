@@ -23,7 +23,12 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - go test -race ./... {{.CLI_ARGS}}
+      - go test -race ./... {{.CLI_ARGS}} -coverprofile=coverage.txt
+
+  coverage:
+    desc: Open HTML page for the test coverage
+    cmds:
+      - go tool cover -html=coverage.txt
 
   logs:
     desc: Watch logs

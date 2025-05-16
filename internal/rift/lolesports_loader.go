@@ -48,7 +48,7 @@ func NewLoLEsportsLoader(
 }
 
 // LoadStandingsByTournamentIDs tries to load all the standings of all the tournamentIDs
-// from the underlying cache first and if not found fetches it using the client.
+// from the underlying cache first and if not found, fetches it using the client.
 //
 // An error is returned only if the client cannot load the standings.
 // Errors returned by the cache are not forwarded and are just logged instead.
@@ -71,7 +71,8 @@ func (l *LoLEsportsLoader) LoadStandingsByTournamentIDs(
 		return standings, nil
 	}
 
-	//nolint:staticcheck // The client is embedded to satisfy the ui.LoLEsportsLoader interface
+	//nolint:staticcheck
+	// The client is embedded to satisfy the ui.LoLEsportsLoader interface
 	// for the moment but will changed to a named field later.
 	standings, err = l.LoLEsportsAPIClient.GetStandings(ctx, tournamentIDs)
 	if err != nil {
