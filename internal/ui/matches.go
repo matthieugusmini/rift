@@ -93,6 +93,7 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.SetSpinner(spinner.MiniDot)
 	l.SetShowHelp(false)
 
+	// We use the first match of the day as the starting position for the list cursor.
 	firstTodayMatchIndex := slices.IndexFunc(events, func(event lolesports.Event) bool {
 		return timeutil.IsToday(event.StartTime)
 	})
@@ -243,6 +244,11 @@ func (d matchItemDelegate) revealSpoiler(m *list.Model) {
 	m.SetItem(m.Index(), item)
 }
 
+//	┌──────┬────────────────────────────────────────┬──────┐
+//	│ time │             TEAM1 / TEAM2              │      │
+//	└──────┴────────────────────────────────────────┴──────┘
+//
+// Used for upcoming matches.
 func (d matchItemDelegate) viewTitleWithStartTime(item matchItem, width int) string {
 	padding := d.styles.title.GetHorizontalFrameSize()
 
@@ -255,11 +261,17 @@ func (d matchItemDelegate) viewTitleWithStartTime(item matchItem, width int) str
 		Width(width - padding - lipgloss.Width(startTime)*2).
 		Render(team1Name + sep + team2Name)
 
+	// Place a filler with the same size as startTime to maintain alignment.
 	filler := strings.Repeat(" ", lipgloss.Width(startTime))
 
 	return d.styles.title.Render(startTime + score + filler)
 }
 
+//	┌──────────────────────────────────────────────────────┐
+//	│                  TEAM1 [ EYE ] TEAM2                 │
+//	└──────────────────────────────────────────────────────┘
+//
+// Used for completed matches with spoiler block still hidden.
 func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width int) string {
 	team1Name := d.styles.teamName.Render(item.team1.name)
 	team2Name := d.styles.teamName.Render(item.team2.name)
@@ -270,6 +282,11 @@ func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width 
 	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
 }
 
+//	┌──────────────────────────────────────────────────────┐
+//	│              TEAM1 SCORE / SCORE TEAM2               │
+//	└──────────────────────────────────────────────────────┘
+//
+// Used for completed matches with scores revealed.
 func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string {
 	team1NameAndScore := d.styles.teamName.Render(
 		fmt.Sprintf("%s %d", item.team1.name, item.team1.gameWins),
@@ -288,9 +305,9 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 //	│   FLAGS    │    LEAGUE • BLOCK NAME     │  STRATEGY  │
 //	└────────────┴────────────────────────────┴────────────┘
 //
-// - LEAGUE & BLOCK NAME gets content-based width + its padding.
-// - Remaining space is split evenly between FLAGS and STRATEGY.
-// - FLAGS is truncated with ellipsis when necessary.
+// LEAGUE & BLOCK NAME gets content-based width + its padding.
+// The remaining space is split evenly between FLAGS and STRATEGY.
+// FLAGS is truncated with ellipsis when necessary.
 func (d matchItemDelegate) viewDescription(item matchItem, width int) string {
 	leagueAndBlockName := d.styles.leagueAndBlockName.Render(
 		item.leagueName + separatorBullet + item.blockName,
