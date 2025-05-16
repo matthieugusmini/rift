@@ -101,11 +101,7 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 	return s
 }
 
-type standingsPageKeyMap struct {
-	Select        key.Binding
-	Previous      key.Binding
-	Up            key.Binding
-	Down          key.Binding
+type baseKeyMap struct {
 	NextPage      key.Binding
 	PrevPage      key.Binding
 	ShowFullHelp  key.Binding
@@ -113,24 +109,8 @@ type standingsPageKeyMap struct {
 	Quit          key.Binding
 }
 
-func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
-	return standingsPageKeyMap{
-		Up: key.NewBinding(
-			key.WithKeys("up", "k"),
-			key.WithHelp("↑/k", "up"),
-		),
-		Down: key.NewBinding(
-			key.WithKeys("down", "j"),
-			key.WithHelp("↓/j", "down"),
-		),
-		Select: key.NewBinding(
-			key.WithKeys("enter", "right"),
-			key.WithHelp("enter/→", "select"),
-		),
-		Previous: key.NewBinding(
-			key.WithKeys("esc", "left"),
-			key.WithHelp("esc/←", "previous"),
-		),
+func newBaseKeyMap() baseKeyMap {
+	return baseKeyMap{
 		PrevPage: key.NewBinding(
 			key.WithKeys("shift+tab"),
 			key.WithHelp("shift+tab", "prev page"),
@@ -150,6 +130,73 @@ func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
 		Quit: key.NewBinding(
 			key.WithKeys("q"),
 			key.WithHelp("q", "quit"),
+		),
+	}
+}
+
+type bracketPageKeyMap struct {
+	baseKeyMap
+
+	Up       key.Binding
+	Down     key.Binding
+	Left     key.Binding
+	Right    key.Binding
+	Previous key.Binding
+}
+
+func newDefaultBracketPageKeypMap() bracketPageKeyMap {
+	return bracketPageKeyMap{
+		baseKeyMap: newBaseKeyMap(),
+		Up: key.NewBinding(
+			key.WithKeys("up", "k"),
+			key.WithHelp("↑/k", "up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys("down", "j"),
+			key.WithHelp("↓/j", "down"),
+		),
+		Right: key.NewBinding(
+			key.WithKeys("right", "l"),
+			key.WithHelp("→/l", "right"),
+		),
+		Left: key.NewBinding(
+			key.WithKeys("left", "h"),
+			key.WithHelp("←/h", "left"),
+		),
+		Previous: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "previous"),
+		),
+	}
+}
+
+type standingsPageKeyMap struct {
+	baseKeyMap
+
+	Select   key.Binding
+	Previous key.Binding
+	Up       key.Binding
+	Down     key.Binding
+}
+
+func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
+	return standingsPageKeyMap{
+		baseKeyMap: newBaseKeyMap(),
+		Up: key.NewBinding(
+			key.WithKeys("up", "k"),
+			key.WithHelp("↑/k", "up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys("down", "j"),
+			key.WithHelp("↓/j", "down"),
+		),
+		Select: key.NewBinding(
+			key.WithKeys("enter", "right"),
+			key.WithHelp("enter/→", "select"),
+		),
+		Previous: key.NewBinding(
+			key.WithKeys("esc", "left"),
+			key.WithHelp("esc/←", "previous"),
 		),
 	}
 }
@@ -181,7 +228,8 @@ type standingsPage struct {
 
 	height, width int
 
-	styles standingsStyles
+	styles        standingsStyles
+	bracketKeyMap bracketPageKeyMap
 }
 
 func newStandingsPage(
@@ -203,6 +251,7 @@ func newStandingsPage(
 		styles:                styles,
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
+		bracketKeyMap:         newDefaultBracketPageKeypMap(),
 		help:                  help.New(),
 	}
 }
@@ -237,8 +286,9 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 			p.toggleFullHelp()
 
 		case key.Matches(msg, p.keyMap.Previous):
-			if p.state != standingsPageStateShowBracket ||
-				(p.state == standingsPageStateShowBracket && msg.String() == "esc") {
+			if (p.state != standingsPageStateShowBracket && p.state != standingsPageStateShowRanking) ||
+				(p.state == standingsPageStateShowBracket && msg.String() == "esc") ||
+				(p.state == standingsPageStateShowRanking && msg.String() == "esc") {
 				p.goToPreviousStep()
 			}
 
@@ -331,29 +381,77 @@ func (p *standingsPage) View() string {
 }
 
 func (p *standingsPage) ShortHelp() []key.Binding {
-	return []key.Binding{
-		p.keyMap.Select,
-		p.keyMap.NextPage,
-		p.keyMap.Quit,
-		p.keyMap.ShowFullHelp,
+	switch p.state {
+	case standingsPageStateLoadingSplits,
+		standingsPageStateSplitSelection,
+		standingsPageStateLeagueSelection,
+		standingsPageStateLoadingStages,
+		standingsPageStateStageSelection:
+		return []key.Binding{
+			p.keyMap.Select,
+			p.keyMap.NextPage,
+			p.keyMap.Quit,
+			p.keyMap.ShowFullHelp,
+		}
+
+	case standingsPageStateShowRanking, standingsPageStateShowBracket:
+		return []key.Binding{
+			p.bracketKeyMap.Right,
+			p.bracketKeyMap.Left,
+			p.bracketKeyMap.Previous,
+			p.bracketKeyMap.Quit,
+			p.bracketKeyMap.ShowFullHelp,
+		}
 	}
+
+	return nil
 }
 
 func (p *standingsPage) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			p.keyMap.Up,
-			p.keyMap.Down,
-			p.keyMap.Select,
-			p.keyMap.Previous,
-			p.keyMap.NextPage,
-			p.keyMap.PrevPage,
-		},
-		{
-			p.keyMap.Quit,
-			p.keyMap.CloseFullHelp,
-		},
+	switch p.state {
+	case standingsPageStateLoadingSplits,
+		standingsPageStateSplitSelection,
+		standingsPageStateLeagueSelection,
+		standingsPageStateLoadingStages,
+		standingsPageStateStageSelection:
+		return [][]key.Binding{
+			{
+				p.keyMap.Up,
+				p.keyMap.Down,
+				p.keyMap.Select,
+				p.keyMap.Previous,
+			},
+			{
+				p.keyMap.NextPage,
+				p.keyMap.PrevPage,
+			},
+			{
+				p.keyMap.Quit,
+				p.keyMap.CloseFullHelp,
+			},
+		}
+
+	case standingsPageStateShowRanking, standingsPageStateShowBracket:
+		return [][]key.Binding{
+			{
+				p.bracketKeyMap.Up,
+				p.bracketKeyMap.Down,
+				p.bracketKeyMap.Right,
+				p.bracketKeyMap.Left,
+				p.bracketKeyMap.Previous,
+			},
+			{
+				p.bracketKeyMap.NextPage,
+				p.bracketKeyMap.PrevPage,
+			},
+			{
+				p.bracketKeyMap.Quit,
+				p.bracketKeyMap.CloseFullHelp,
+			},
+		}
 	}
+
+	return nil
 }
 
 func (p *standingsPage) viewError() string {

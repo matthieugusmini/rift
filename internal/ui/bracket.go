@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	matchWidth = 16
+	matchWidth = 20
 	linkWidth  = 3
 
 	horizontalLine    = "─"

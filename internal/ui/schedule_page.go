@@ -119,12 +119,10 @@ type schedulePage struct {
 	// load the initial page data.
 	errMsg string
 
-	help help.Model
-
+	help    help.Model
 	spinner spinner.Model
-
-	keyMap schedulePageKeyMap
-	styles schedulePageStyles
+	keyMap  schedulePageKeyMap
+	styles  schedulePageStyles
 }
 
 func newSchedulePage(lolesportsClient LoLEsportsLoader, logger *slog.Logger) *schedulePage {
