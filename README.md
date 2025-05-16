@@ -49,12 +49,12 @@ go build
 
 ## Supported terminals
 
-| Terminal          | Supported | Issues                                |
-|:-----------------:|:---------:|:-------------------------------------:|
-| WezTerm           | Yes       | None                                  |
-| iTerm2            | Yes       | None                                  |
-| macOS Terminal    | Partially | Match borders doesn't render properly |
-| Windows Terminal  | Yes       | None                                  |
+| Terminal          | Supported | Issues                                            |
+|:-----------------:|:---------:|:-------------------------------------------------:|
+| WezTerm           | Yes       | None                                              |
+| iTerm2            | Yes       | None                                              |
+| macOS Terminal    | Partially | Match borders doesn't render properly             |
+| Windows Terminal  | Yes       | Country flags emojis are not supported on Windows |
 
 ## License
 
