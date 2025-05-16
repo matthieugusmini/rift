@@ -1,7 +1,7 @@
 Output demo.gif
 
 Set FontFamily "JetBrainsMono Nerd Font"
-Set FontSize 18
+Set FontSize 22
 
 Set Width 1280
 Set Height 1200
@@ -52,4 +52,8 @@ Sleep 2s
 Down
 Sleep 500ms
 Right
-Sleep 5s
+Sleep 1s
+Right@250ms 15
+Down@250ms 5
+Left@250ms 15
+Sleep 4s
