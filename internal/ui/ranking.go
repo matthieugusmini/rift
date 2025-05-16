@@ -31,9 +31,13 @@ func newRankingViewport(stage lolesports.Stage, width, height int) viewport.Mode
 			Background(lipgloss.Color(antiFlashWhite)).
 			Foreground(lipgloss.Color(black)).
 			Render(stage.Sections[i].Name)
+
 		sb.WriteString(title + "\n")
 		sb.WriteString(t.Render())
-		sb.WriteString("\n\n")
+
+		if i < len(rankingTable)-1 {
+			sb.WriteString("\n\n")
+		}
 	}
 
 	v := viewport.New(width, height)
