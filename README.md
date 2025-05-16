@@ -13,7 +13,7 @@
 
 <p align="center">Never miss a match again, keep track of the results and follow your favorite leagues and players from your terminal!</p>
 <p align="center">
-  <img src="https://vhs.charm.sh/vhs-6lepG3Lg72yRCLBtJtaF3T.gif" alt="Made with VHS" width=700>
+  <img src="https://vhs.charm.sh/vhs-159DB9Zm1KES7xyOzKE44E.gif" alt="Made with VHS" width=700>
 </p>
 
 ## Installation
@@ -55,3 +55,7 @@ go build
 | iTerm2            | Yes       | None                                  |
 | macOS Terminal    | Partially | Match borders doesn't render properly |
 | Windows Terminal  | Yes       | None                                  |
+
+## License
+
+[MIT](https://github.com/charmbracelet/glow/raw/master/LICENSE)
