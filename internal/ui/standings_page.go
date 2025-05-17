@@ -170,13 +170,14 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// When an error is displayed after failing to fetch the initial schedule data,
-		// any keypress should trigger a refetch of the initial data again.
+		// When an error is displayed is displayed to the user, any keypress should
+		// revert to the state before the error occurred.
 		if p.errMsg != "" {
 			p.errMsg = ""
 			if p.state == standingsPageStateLoadingSplits {
 				return p, tea.Batch(p.fetchCurrentSeasonSplits())
 			}
+			return p, nil
 		}
 
 		switch {
