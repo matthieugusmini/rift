@@ -18,7 +18,7 @@ import (
 
 const (
 	schedulePageShortHelpHeight = 1
-	schedulePageFullHelpHeight  = 7
+	schedulePageFullHelpHeight  = 5
 )
 
 const (
@@ -172,13 +172,13 @@ func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
 		case msg.String() == "down":
 			if p.shouldFetchNextPage() {
 				p.paginationState.loadingNextPage = true
-				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchEventsNextPage())
+				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchNextPageEvents())
 			}
 
 		case msg.String() == "up":
 			if p.shouldFetchPreviousPage() {
 				p.paginationState.loadingPrevPage = true
-				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchEventsPreviousPage())
+				cmds = append(cmds, p.matchList.StartSpinner(), p.fetchPreviousPageEvents())
 			}
 		}
 
@@ -201,10 +201,9 @@ func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
 		return p, tea.Batch(cmds...)
 	}
 
-	var cmd tea.Cmd
-
 	p.updateMatchListTitle()
 
+	var cmd tea.Cmd
 	p.matchList, cmd = p.matchList.Update(msg)
 	cmds = append(cmds, cmd)
 
@@ -217,7 +216,6 @@ func (p *schedulePage) View() string {
 	}
 
 	var sections []string
-
 	if !p.loaded {
 		sections = append(sections, p.viewSpinner())
 	} else {
@@ -226,41 +224,7 @@ func (p *schedulePage) View() string {
 	sections = append(sections, p.viewHelp())
 
 	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
-
 	return p.styles.doc.Render(view)
-}
-
-func (p *schedulePage) ShortHelp() []key.Binding {
-	return []key.Binding{
-		p.keyMap.RevealSpoiler,
-		p.keyMap.NextPage,
-		p.keyMap.Quit,
-		p.keyMap.ShowFullHelp,
-	}
-}
-
-func (p *schedulePage) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{
-			p.keyMap.CursorUp,
-			p.keyMap.CursorDown,
-			p.keyMap.NextPage,
-			p.keyMap.PrevPage,
-			p.keyMap.GoToStart,
-			p.keyMap.GoToEnd,
-			p.keyMap.RevealSpoiler,
-		},
-		{
-			p.keyMap.Filter,
-			p.keyMap.ClearFilter,
-			p.keyMap.AcceptWhileFiltering,
-			p.keyMap.CancelWhileFiltering,
-		},
-		{
-			p.keyMap.Quit,
-			p.keyMap.CloseFullHelp,
-		},
-	}
 }
 
 func (p *schedulePage) viewHelp() string {
@@ -400,6 +364,45 @@ func (p *schedulePage) contentHeight() int {
 	return p.height - p.helpHeight()
 }
 
+func (p *schedulePage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.RevealSpoiler,
+		p.keyMap.NextPage,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *schedulePage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		// Motions
+		{
+			p.keyMap.CursorUp,
+			p.keyMap.CursorDown,
+			p.keyMap.GoToStart,
+			p.keyMap.GoToEnd,
+			p.keyMap.RevealSpoiler,
+		},
+		// App Navigation
+		{
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		// Filter
+		{
+			p.keyMap.Filter,
+			p.keyMap.ClearFilter,
+			p.keyMap.AcceptWhileFiltering,
+			p.keyMap.CancelWhileFiltering,
+		},
+		// Others
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
+}
+
 func (p *schedulePage) helpHeight() int {
 	padding := p.styles.help.GetVerticalPadding()
 	if p.help.ShowAll {
@@ -437,24 +440,29 @@ func (d pageDirection) LogValue() slog.Value {
 	}
 }
 
-type fetchedEventsMessage struct {
-	events        []lolesports.Event
-	pageDirection pageDirection
-	nextPageToken string
-	prevPageToken string
-}
+// Msgs
+type (
+	fetchedEventsMessage struct {
+		events        []lolesports.Event
+		pageDirection pageDirection
+		nextPageToken string
+		prevPageToken string
+	}
 
-type fetchEventsErrorMessage struct {
-	fetchErrorMessage
+	fetchEventsErrorMessage struct {
+		fetchErrorMessage
 
-	pageDirection pageDirection
-}
+		pageDirection pageDirection
+	}
+)
 
-func (p *schedulePage) fetchEventsPreviousPage() tea.Cmd {
+// Cmds
+
+func (p *schedulePage) fetchPreviousPageEvents() tea.Cmd {
 	return p.fetchEvents(pageDirectionPrev)
 }
 
-func (p *schedulePage) fetchEventsNextPage() tea.Cmd {
+func (p *schedulePage) fetchNextPageEvents() tea.Cmd {
 	return p.fetchEvents(pageDirectionNext)
 }
 

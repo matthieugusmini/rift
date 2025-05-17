@@ -56,4 +56,4 @@ Sleep 1s
 Right@250ms 15
 Down@250ms 5
 Left@250ms 15
-Sleep 4s
+Sleep 2s

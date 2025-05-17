@@ -2,15 +2,12 @@ package ui
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
@@ -22,8 +19,6 @@ const (
 	selectionListCount       = 3
 	minListHeight            = 18
 	minSelectionPromptHeight = 3
-
-	rankingViewHeaderHeight = 5
 
 	standingsPageShortHelpHeight = 1
 	standingsPageFullHelpHeight  = 6
@@ -48,46 +43,24 @@ const (
 	standingsPageStateLoadingStages
 	standingsPageStateStageSelection
 	standingsPageStateLoadingBracketTemplate
-	standingsPageStateShowRanking
-	standingsPageStateShowBracket
+	standingsPageStateShowRankingPage
+	standingsPageStateShowBracketPage
 )
 
 type standingsStyles struct {
-	doc              lipgloss.Style
-	caption          lipgloss.Style
-	stageName        lipgloss.Style
-	tournamentState  lipgloss.Style
-	tournamentPeriod lipgloss.Style
-	tournamentType   lipgloss.Style
-	separator        lipgloss.Style
-	help             lipgloss.Style
-	spinner          lipgloss.Style
-	error            lipgloss.Style
+	doc     lipgloss.Style
+	prompt  lipgloss.Style
+	spinner lipgloss.Style
+	error   lipgloss.Style
+	help    lipgloss.Style
 }
 
 func newDefaultStandingsStyles() (s standingsStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
-	s.caption = lipgloss.NewStyle().
+	s.prompt = lipgloss.NewStyle().
 		Foreground(textPrimaryColor).
 		Bold(true)
-
-	s.stageName = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
-		Bold(true)
-
-	s.tournamentState = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(lipgloss.Color(black)).
-		Background(lipgloss.Color(antiFlashWhite))
-
-	s.tournamentPeriod = lipgloss.NewStyle().
-		Foreground(textPrimaryColor)
-
-	s.tournamentType = lipgloss.NewStyle().
-		Foreground(textPrimaryColor)
-
-	s.separator = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
 
@@ -99,75 +72,6 @@ func newDefaultStandingsStyles() (s standingsStyles) {
 		Italic(true)
 
 	return s
-}
-
-type baseKeyMap struct {
-	NextPage      key.Binding
-	PrevPage      key.Binding
-	ShowFullHelp  key.Binding
-	CloseFullHelp key.Binding
-	Quit          key.Binding
-}
-
-func newBaseKeyMap() baseKeyMap {
-	return baseKeyMap{
-		PrevPage: key.NewBinding(
-			key.WithKeys("shift+tab"),
-			key.WithHelp("shift+tab", "prev page"),
-		),
-		NextPage: key.NewBinding(
-			key.WithKeys("tab"),
-			key.WithHelp("tab", "next page"),
-		),
-		ShowFullHelp: key.NewBinding(
-			key.WithKeys("?"),
-			key.WithHelp("?", "more"),
-		),
-		CloseFullHelp: key.NewBinding(
-			key.WithKeys("?"),
-			key.WithHelp("?", "close help"),
-		),
-		Quit: key.NewBinding(
-			key.WithKeys("q"),
-			key.WithHelp("q", "quit"),
-		),
-	}
-}
-
-type bracketPageKeyMap struct {
-	baseKeyMap
-
-	Up       key.Binding
-	Down     key.Binding
-	Left     key.Binding
-	Right    key.Binding
-	Previous key.Binding
-}
-
-func newDefaultBracketPageKeypMap() bracketPageKeyMap {
-	return bracketPageKeyMap{
-		baseKeyMap: newBaseKeyMap(),
-		Up: key.NewBinding(
-			key.WithKeys("up", "k"),
-			key.WithHelp("↑/k", "up"),
-		),
-		Down: key.NewBinding(
-			key.WithKeys("down", "j"),
-			key.WithHelp("↓/j", "down"),
-		),
-		Right: key.NewBinding(
-			key.WithKeys("right", "l"),
-			key.WithHelp("→/l", "right"),
-		),
-		Left: key.NewBinding(
-			key.WithKeys("left", "h"),
-			key.WithHelp("←/h", "left"),
-		),
-		Previous: key.NewBinding(
-			key.WithKeys("esc"),
-			key.WithHelp("esc", "previous"),
-		),
-	}
 }
 
 type standingsPageKeyMap struct {
@@ -216,8 +120,8 @@ type standingsPage struct {
 	leagueOptions list.Model
 	stageOptions  list.Model
 
-	ranking viewport.Model
-	bracket *bracketModel
+	rankingView *rankingPage
+	bracket     *bracketPage
 
 	errMsg string
 
@@ -228,8 +132,7 @@ type standingsPage struct {
 
 	height, width int
 
-	styles        standingsStyles
-	bracketKeyMap bracketPageKeyMap
+	styles standingsStyles
 }
 
 func newStandingsPage(
@@ -251,7 +154,6 @@ func newStandingsPage(
 		styles:                styles,
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
-		bracketKeyMap:         newDefaultBracketPageKeypMap(),
 		help:                  help.New(),
 	}
 }
@@ -286,9 +188,7 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 			p.toggleFullHelp()
 
 		case key.Matches(msg, p.keyMap.Previous):
-			if (p.state != standingsPageStateShowBracket && p.state != standingsPageStateShowRanking) ||
-				(p.state == standingsPageStateShowBracket && msg.String() == "esc") ||
-				(p.state == standingsPageStateShowRanking && msg.String() == "esc") {
+			if !p.isShowingSubModel() || (p.isShowingSubModel() && p.isSubModelPreviousKey(msg)) {
 				p.goToPreviousStep()
 			}
 
@@ -303,28 +203,28 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
-	case loadedStandingsMessage:
-		p.state = standingsPageStateStageSelection
-		p.stages = listStagesFromStandings(msg.standings)
-		p.stageOptions = newStageOptionsList(p.stages, p.listWidth(), p.listHeight())
-
 	case fetchedCurrentSeasonSplitsMessage:
-		p.state = standingsPageStateSplitSelection
-		p.splits = msg.splits
-		p.splitOptions = newSplitOptionsList(p.splits, p.listWidth(), p.listHeight())
+		p.handleSplitsLoaded(msg)
+
+	case loadedStandingsMessage:
+		p.handleStandingsLoaded(msg)
 
 	case loadedBracketStageTemplateMessage:
-		p.state = standingsPageStateShowBracket
-		selectedStage := p.stages[p.stageOptions.Index()]
-		// Bracket stages always have a single section.
-		matches := selectedStage.Sections[0].Matches
-		p.bracket = newBracketModel(msg.template, matches, p.width, p.contentHeight())
+		p.handleBracketTemplateLoaded(msg)
 
 	case fetchErrorMessage:
 		p.handleErrorMessage(msg)
 	}
 
+	cmd := p.updateActiveModel(msg)
+	cmds = append(cmds, cmd)
+
+	return p, tea.Batch(cmds...)
+}
+
+func (p *standingsPage) updateActiveModel(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
+
 	switch p.state {
 	case standingsPageStateSplitSelection:
 		p.splitOptions, cmd = p.splitOptions.Update(msg)
@@ -332,14 +232,35 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 		p.leagueOptions, cmd = p.leagueOptions.Update(msg)
 	case standingsPageStateStageSelection:
 		p.stageOptions, cmd = p.stageOptions.Update(msg)
-	case standingsPageStateShowRanking:
-		p.ranking, cmd = p.ranking.Update(msg)
-	case standingsPageStateShowBracket:
+	case standingsPageStateShowRankingPage:
+		p.rankingView, cmd = p.rankingView.Update(msg)
+	case standingsPageStateShowBracketPage:
 		p.bracket, cmd = p.bracket.Update(msg)
 	}
-	cmds = append(cmds, cmd)
 
-	return p, tea.Batch(cmds...)
+	return cmd
+}
+
+func (p *standingsPage) handleSplitsLoaded(msg fetchedCurrentSeasonSplitsMessage) {
+	p.state = standingsPageStateSplitSelection
+
+	p.splits = msg.splits
+	p.splitOptions = newSplitOptionsList(p.splits, p.listWidth(), p.listHeight())
+}
+
+func (p *standingsPage) handleStandingsLoaded(msg loadedStandingsMessage) {
+	p.state = standingsPageStateStageSelection
+
+	p.stages = listStagesFromStandings(msg.standings)
+	p.stageOptions = newStageOptionsList(p.stages, p.listWidth(), p.listHeight())
+}
+
+func (p *standingsPage) handleBracketTemplateLoaded(msg loadedBracketStageTemplateMessage) {
+	p.state = standingsPageStateShowBracketPage
+
+	// Bracket stages always have a single section.
+	matches := p.selectedStage().Sections[0].Matches
+	p.bracket = newBracketPage(msg.template, matches, p.width, p.height)
 }
 
 func (p *standingsPage) View() string {
@@ -360,98 +281,22 @@ func (p *standingsPage) View() string {
 		standingsPageStateLoadingSplits,
 		standingsPageStateLoadingStages:
 		sections = append(sections, p.viewSelection())
-
 		showPrompt := p.contentHeight() >= minListHeight+minSelectionPromptHeight
 		if showPrompt {
 			sections = append(sections, p.viewSelectionPrompt())
 		}
+		sections = append(sections, p.viewHelp())
 
-	case standingsPageStateShowBracket:
-		sections = append(sections, p.viewBracket())
+	case standingsPageStateShowBracketPage:
+		sections = append(sections, p.bracket.View())
 
-	case standingsPageStateShowRanking:
-		sections = append(sections, p.viewRanking())
+	case standingsPageStateShowRankingPage:
+		sections = append(sections, p.rankingView.View())
 	}
-
-	sections = append(sections, p.viewHelp())
 
 	view := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
 	return p.styles.doc.Render(view)
-}
-
-func (p *standingsPage) ShortHelp() []key.Binding {
-	switch p.state {
-	case standingsPageStateLoadingSplits,
-		standingsPageStateSplitSelection,
-		standingsPageStateLeagueSelection,
-		standingsPageStateLoadingStages,
-		standingsPageStateStageSelection:
-		return []key.Binding{
-			p.keyMap.Select,
-			p.keyMap.NextPage,
-			p.keyMap.Quit,
-			p.keyMap.ShowFullHelp,
-		}
-
-	case standingsPageStateShowRanking, standingsPageStateShowBracket:
-		return []key.Binding{
-			p.bracketKeyMap.Right,
-			p.bracketKeyMap.Left,
-			p.bracketKeyMap.Previous,
-			p.bracketKeyMap.Quit,
-			p.bracketKeyMap.ShowFullHelp,
-		}
-	}
-
-	return nil
-}
-
-func (p *standingsPage) FullHelp() [][]key.Binding {
-	switch p.state {
-	case standingsPageStateLoadingSplits,
-		standingsPageStateSplitSelection,
-		standingsPageStateLeagueSelection,
-		standingsPageStateLoadingStages,
-		standingsPageStateStageSelection:
-		return [][]key.Binding{
-			{
-				p.keyMap.Up,
-				p.keyMap.Down,
-				p.keyMap.Select,
-				p.keyMap.Previous,
-			},
-			{
-				p.keyMap.NextPage,
-				p.keyMap.PrevPage,
-			},
-			{
-				p.keyMap.Quit,
-				p.keyMap.CloseFullHelp,
-			},
-		}
-
-	case standingsPageStateShowRanking, standingsPageStateShowBracket:
-		return [][]key.Binding{
-			{
-				p.bracketKeyMap.Up,
-				p.bracketKeyMap.Down,
-				p.bracketKeyMap.Right,
-				p.bracketKeyMap.Left,
-				p.bracketKeyMap.Previous,
-			},
-			{
-				p.bracketKeyMap.NextPage,
-				p.bracketKeyMap.PrevPage,
-			},
-			{
-				p.bracketKeyMap.Quit,
-				p.bracketKeyMap.CloseFullHelp,
-			},
-		}
-	}
-
-	return nil
 }
 
 func (p *standingsPage) viewError() string {
@@ -511,11 +356,11 @@ func (p *standingsPage) viewSelectionPrompt() string {
 
 	switch p.state {
 	case standingsPageStateSplitSelection:
-		prompt = p.styles.caption.Render(captionSelectSplit)
+		prompt = p.styles.prompt.Render(captionSelectSplit)
 	case standingsPageStateLeagueSelection:
-		prompt = p.styles.caption.Render(captionSelectLeague)
+		prompt = p.styles.prompt.Render(captionSelectLeague)
 	case standingsPageStateStageSelection:
-		prompt = p.styles.caption.Render(captionSelectStage)
+		prompt = p.styles.prompt.Render(captionSelectStage)
 	}
 
 	return lipgloss.Place(
@@ -525,36 +370,6 @@ func (p *standingsPage) viewSelectionPrompt() string {
 		lipgloss.Center,
 		prompt,
 	)
-}
-
-func (p *standingsPage) viewBracket() string {
-	return p.bracket.View()
-}
-
-func (p *standingsPage) viewRanking() string {
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	selectedLeague := p.leagues[p.leagueOptions.Index()]
-	stageName := p.styles.stageName.Render(
-		fmt.Sprintf("%s: %s Standings", selectedSplit.Name, selectedLeague.Name),
-	)
-
-	tournamentState := computeTournamentState(selectedSplit.StartTime, selectedSplit.EndTime)
-	tournamentPeriod := formatTournamentPeriod(selectedSplit.StartTime, selectedSplit.EndTime)
-	tournamentType := selectedSplit.Region
-	stageInfo := strings.Join(
-		[]string{
-			p.styles.tournamentState.Render(string(tournamentState)),
-			p.styles.tournamentPeriod.Render(tournamentPeriod),
-			p.styles.tournamentType.Render(tournamentType),
-		},
-		separatorBullet,
-	)
-
-	sep := p.styles.separator.Render(strings.Repeat(separatorLine, p.width))
-
-	header := fmt.Sprintf("%s\n\n%s\n%s\n", stageName, stageInfo, sep)
-
-	return lipgloss.JoinVertical(lipgloss.Left, header, p.ranking.View())
 }
 
 func (p *standingsPage) viewHelp() string {
@@ -582,19 +397,19 @@ func (p *standingsPage) setSize(width, height int) {
 		p.leagueOptions.SetSize(listWidth, listHeight)
 		p.stageOptions.SetSize(listWidth, listHeight)
 
-	case standingsPageStateShowRanking:
-		selectedStage := p.stages[p.stageOptions.Index()]
-		rankingContentHeight := p.contentHeight() - rankingViewHeaderHeight
-		p.ranking = newRankingViewport(selectedStage, p.width, rankingContentHeight)
+		// Give full height to Sub-models.
+	case standingsPageStateShowRankingPage:
+		p.rankingView.setSize(p.width, p.height)
 
-	case standingsPageStateShowBracket:
-		p.bracket.setSize(p.width, p.contentHeight())
+	case standingsPageStateShowBracketPage:
+		p.bracket.setSize(p.width, p.height)
 	}
 }
 
 func (p *standingsPage) isLoading() bool {
 	return p.state == standingsPageStateLoadingSplits ||
-		p.state == standingsPageStateLoadingStages
+		p.state == standingsPageStateLoadingStages ||
+		p.state == standingsPageStateLoadingBracketTemplate
 }
 
 func (p *standingsPage) handleErrorMessage(msg fetchErrorMessage) {
@@ -629,37 +444,37 @@ func (p *standingsPage) handleSelection() tea.Cmd {
 func (p *standingsPage) selectSplit() {
 	p.state = standingsPageStateLeagueSelection
 
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	p.leagues = listLeaguesFromTournaments(selectedSplit.Tournaments)
+	p.leagues = listLeaguesFromTournaments(p.selectedSplit().Tournaments)
 	p.leagueOptions = newLeagueOptionsList(p.leagues, p.listWidth(), p.listHeight())
 }
 
 func (p *standingsPage) selectLeague() tea.Cmd {
 	p.state = standingsPageStateLoadingStages
 
-	selectedSplit := p.splits[p.splitOptions.Index()]
-	selectedLeague := p.leagues[p.leagueOptions.Index()]
-	tournamentIDs := listTournamentIDsForLeague(selectedSplit.Tournaments, selectedLeague.ID)
+	tournamentIDs := listTournamentIDsForLeague(
+		p.selectedSplit().Tournaments,
+		p.selectedLeague().ID,
+	)
 
 	return tea.Batch(p.spinner.Tick, p.loadStandings(tournamentIDs))
 }
 
 func (p *standingsPage) selectStage() tea.Cmd {
-	selectedStage := p.stages[p.stageOptions.Index()]
-
-	stageType := getStageType(selectedStage)
+	stageType := getStageType(p.selectedStage())
 	switch stageType {
 	case stageTypeGroups:
-		p.ranking = newRankingViewport(
-			selectedStage,
+		p.rankingView = newRankingPage(
+			p.selectedSplit(),
+			p.selectedLeague(),
+			p.selectedStage(),
 			p.width,
-			p.contentHeight()-rankingViewHeaderHeight,
+			p.height,
 		)
-		p.state = standingsPageStateShowRanking
+		p.state = standingsPageStateShowRankingPage
 
 	case stageTypeBracket:
 		p.state = standingsPageStateLoadingBracketTemplate
-		return p.loadBracketStageTemplate(selectedStage.ID)
+		return p.loadBracketStageTemplate(p.selectedStage().ID)
 	}
 
 	return nil
@@ -675,14 +490,24 @@ func (p *standingsPage) goToPreviousStep() {
 		p.state = standingsPageStateLeagueSelection
 		p.stageOptions = list.Model{}
 
-	case standingsPageStateShowRanking, standingsPageStateShowBracket:
+	case standingsPageStateShowRankingPage, standingsPageStateShowBracketPage:
 		p.state = standingsPageStateStageSelection
 	}
 }
 
-func (p *standingsPage) toggleFullHelp() {
-	p.help.ShowAll = !p.help.ShowAll
-	p.updateContentViewHeight()
+func (p *standingsPage) isShowingSubModel() bool {
+	return p.state == standingsPageStateShowRankingPage ||
+		p.state == standingsPageStateShowBracketPage
+}
+
+func (p *standingsPage) isSubModelPreviousKey(k tea.KeyMsg) bool {
+	switch p.state {
+	case standingsPageStateShowRankingPage:
+		return key.Matches(k, p.rankingView.keyMap.Previous)
+	case standingsPageStateShowBracketPage:
+		return key.Matches(k, p.bracket.keyMap.Previous)
+	}
+	return false
 }
 
 func (p *standingsPage) updateContentViewHeight() {
@@ -700,30 +525,11 @@ func (p *standingsPage) updateContentViewHeight() {
 		p.splitOptions.SetHeight(listHeight)
 		p.leagueOptions.SetHeight(listHeight)
 		p.stageOptions.SetHeight(listHeight)
-
-	case standingsPageStateShowRanking:
-		selectedStage := p.stages[p.stageOptions.Index()]
-		p.ranking = newRankingViewport(
-			selectedStage,
-			p.width,
-			p.contentHeight()-rankingViewHeaderHeight,
-		)
-
-	case standingsPageStateShowBracket:
-		p.bracket.setSize(p.width, p.contentHeight())
 	}
 }
 
 func (p *standingsPage) contentHeight() int {
 	return p.height - p.helpHeight()
-}
-
-func (p *standingsPage) helpHeight() int {
-	padding := p.styles.help.GetVerticalPadding()
-	if p.help.ShowAll {
-		return standingsPageFullHelpHeight + padding
-	}
-	return standingsPageShortHelpHeight + padding
 }
 
 func (p *standingsPage) listSize() (width, height int) {
@@ -735,21 +541,79 @@ func (p *standingsPage) listWidth() int {
 }
 
 func (p *standingsPage) listHeight() int {
-	showMessage := p.contentHeight() >= minListHeight+minSelectionPromptHeight
-	if showMessage {
+	showPrompt := p.contentHeight() >= minListHeight+minSelectionPromptHeight
+	if showPrompt {
 		return max(p.contentHeight()/2, minListHeight)
 	} else {
 		return p.contentHeight()
 	}
 }
 
-type loadedStandingsMessage struct {
-	standings []lolesports.Standings
+func (p *standingsPage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Select,
+		p.keyMap.NextPage,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
 }
 
-type fetchErrorMessage struct {
-	err error
+func (p *standingsPage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		// Motions
+		{
+			p.keyMap.Up,
+			p.keyMap.Down,
+			p.keyMap.Select,
+			p.keyMap.Previous,
+		},
+		// App navigation
+		{
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		// Others
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
 }
+
+func (p *standingsPage) toggleFullHelp() {
+	// Sub-models displays their own help.
+	if p.isShowingSubModel() {
+		return
+	}
+
+	p.help.ShowAll = !p.help.ShowAll
+	p.updateContentViewHeight()
+}
+
+func (p *standingsPage) helpHeight() int {
+	padding := p.styles.help.GetVerticalPadding()
+	if p.help.ShowAll {
+		return standingsPageFullHelpHeight + padding
+	}
+	return standingsPageShortHelpHeight + padding
+}
+
+func (p *standingsPage) selectedSplit() lolesports.Split { return p.splits[p.splitOptions.Index()] }
+
+func (p *standingsPage) selectedLeague() lolesports.League { return p.leagues[p.leagueOptions.Index()] }
+
+func (p *standingsPage) selectedStage() lolesports.Stage { return p.stages[p.stageOptions.Index()] }
+
+// Msgs
+
+type (
+	fetchedCurrentSeasonSplitsMessage struct{ splits []lolesports.Split }
+	loadedBracketStageTemplateMessage struct{ template rift.BracketTemplate }
+	loadedStandingsMessage            struct{ standings []lolesports.Standings }
+	fetchErrorMessage                 struct{ err error }
+)
+
+// Cmds
 
 func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 	return func() tea.Msg {
@@ -764,10 +628,6 @@ func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 	}
 }
 
-type fetchedCurrentSeasonSplitsMessage struct {
-	splits []lolesports.Split
-}
-
 func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	return func() tea.Msg {
 		splits, err := p.lolesportsClient.GetCurrentSeasonSplits(context.Background())
@@ -776,10 +636,6 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 		}
 		return fetchedCurrentSeasonSplitsMessage{splits}
 	}
-}
-
-type loadedBracketStageTemplateMessage struct {
-	template rift.BracketTemplate
 }
 
 func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {

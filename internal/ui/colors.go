@@ -3,32 +3,27 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	//nolint:godot
 	// Black
 	black       = "#000000"
 	almostBlack = "#1a1a1a"
 	eerieBlack  = "#1f1f1f"
 
-	//nolint:godot
 	// White
 	white          = "#ffffff"
 	antiFlashWhite = "#f2f3f4"
 	darkVanilla    = "#d1bea8"
 
-	//nolint:godot
 	// Grey
 	grey        = "#808080"
 	lightGrey   = "#dddddd"
 	dimGrey     = "#777777"
 	sonicSilver = "#757575"
 
-	//nolint:godot
 	// Red
 	imperialRed = "#ed2939"
 	crimson     = "#dc143c"
 	neonFuchsia = "#fe4164"
 
-	//nolint:godot
 	// Yellow
 	gold = "#ffd700"
 )

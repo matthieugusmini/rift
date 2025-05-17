@@ -13,6 +13,7 @@ linters:
     - gochecknoglobals
     - gocognit # We don't focus on arbitrary complexity metrics here.
     - gocyclo # We don't focus on arbitrary complexity metrics here.
+    - godot
     - godox
     - ireturn
     - lll # golines already handle that job.

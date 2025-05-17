@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -15,7 +17,10 @@ import (
 
 const (
 	matchWidth = 20
-	linkWidth  = 3
+)
+
+const (
+	linkWidth = 3
 
 	horizontalLine    = "─"
 	verticalLine      = "│"
@@ -25,7 +30,48 @@ const (
 	bottomLeftCorner  = "└"
 )
 
-type bracketModelStyles struct {
+const (
+	bracketPageShortHelpHeight = 1
+	bracketPageFullHelpHeight  = 5
+)
+
+type bracketPageKeyMap struct {
+	baseKeyMap
+
+	Up       key.Binding
+	Down     key.Binding
+	Left     key.Binding
+	Right    key.Binding
+	Previous key.Binding
+}
+
+func newDefaultBracketPageKeyMap() bracketPageKeyMap {
+	return bracketPageKeyMap{
+		baseKeyMap: newBaseKeyMap(),
+		Up: key.NewBinding(
+			key.WithKeys("up", "k"),
+			key.WithHelp("↑/k", "up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys("down", "j"),
+			key.WithHelp("↓/j", "down"),
+		),
+		Right: key.NewBinding(
+			key.WithKeys("right", "l"),
+			key.WithHelp("→/l", "right"),
+		),
+		Left: key.NewBinding(
+			key.WithKeys("left", "h"),
+			key.WithHelp("←/h", "left"),
+		),
+		Previous: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "previous"),
+		),
+	}
+}
+
+type bracketPageStyles struct {
 	roundTitle       lipgloss.Style
 	match            lipgloss.Style
 	noTeamResult     lipgloss.Style
@@ -34,9 +80,10 @@ type bracketModelStyles struct {
 	winnerTeamName   lipgloss.Style
 	winnerTeamResult lipgloss.Style
 	link             lipgloss.Style
+	help             lipgloss.Style
 }
 
-func newDefaultBracketModelStyles() (s bracketModelStyles) {
+func newDefaultBracketPageStyles() (s bracketPageStyles) {
 	s.roundTitle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color(black)).
 		Background(lipgloss.Color(antiFlashWhite)).
@@ -68,43 +115,46 @@ func newDefaultBracketModelStyles() (s bracketModelStyles) {
 
 	s.link = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 
+	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
+
 	return s
 }
 
-type bracketModel struct {
-	template rift.BracketTemplate
-	matches  []lolesports.Match
-
-	vp viewport.Model
-
+type bracketPage struct {
 	width, height int
-	styles        bracketModelStyles
+	template      rift.BracketTemplate
+	matches       []lolesports.Match
+	viewport      viewport.Model
+	help          help.Model
+	keyMap        bracketPageKeyMap
+	styles        bracketPageStyles
 }
 
-func newBracketModel(
+func newBracketPage(
 	template rift.BracketTemplate,
 	matches []lolesports.Match,
 	width, height int,
-) *bracketModel {
-	styles := newDefaultBracketModelStyles()
-
-	vp := newBracketViewport(template, matches, width, height, styles)
-
-	return &bracketModel{
+) *bracketPage {
+	m := &bracketPage{
 		template: template,
 		matches:  matches,
 		width:    width,
 		height:   height,
-		vp:       vp,
-		styles:   styles,
+		help:     help.New(),
+		keyMap:   newDefaultBracketPageKeyMap(),
+		styles:   newDefaultBracketPageStyles(),
 	}
+
+	m.viewport = newBracketViewport(template, matches, width, m.contentHeight(), m.styles)
+
+	return m
 }
 
 func newBracketViewport(
 	tmpl rift.BracketTemplate,
 	matches []lolesports.Match,
 	width, height int,
-	styles bracketModelStyles,
+	styles bracketPageStyles,
 ) viewport.Model {
 	nbRounds := len(tmpl.Rounds)
 	nbLinkColumns := nbRounds - 1
@@ -171,17 +221,34 @@ func newBracketViewport(
 	return vp
 }
 
-func (m *bracketModel) Update(msg tea.Msg) (*bracketModel, tea.Cmd) {
+func (m *bracketPage) Update(msg tea.Msg) (*bracketPage, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keyMap.ShowFullHelp),
+			key.Matches(msg, m.keyMap.CloseFullHelp):
+			m.toggleFullHelp()
+		}
+	}
+
 	var cmd tea.Cmd
-	m.vp, cmd = m.vp.Update(msg)
+	m.viewport, cmd = m.viewport.Update(msg)
 	return m, cmd
 }
 
-func (m *bracketModel) View() string {
-	return m.vp.View()
+func (m *bracketPage) View() string {
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		m.viewport.View(),
+		m.viewHelp(),
+	)
 }
 
-func drawLinks(links []rift.Link, styles bracketModelStyles) string {
+func (m *bracketPage) viewHelp() string {
+	return m.styles.help.Render(m.help.View(m))
+}
+
+func drawLinks(links []rift.Link, styles bracketPageStyles) string {
 	var linksView string
 
 	for _, link := range links {
@@ -192,7 +259,7 @@ func drawLinks(links []rift.Link, styles bracketModelStyles) string {
 	return linksView
 }
 
-func drawMatch(match lolesports.Match, width int, styles bracketModelStyles) string {
+func drawMatch(match lolesports.Match, width int, styles bracketPageStyles) string {
 	borderWidth := styles.match.GetHorizontalBorderSize()
 	rowWidth := width - borderWidth
 	if rowWidth <= 0 {
@@ -247,6 +314,65 @@ func drawMatch(match lolesports.Match, width int, styles bracketModelStyles) str
 	return styles.match.Render(content)
 }
 
+func (m *bracketPage) setSize(width, height int) {
+	m.width, m.height = width, height
+
+	// Setting the Height and Width field doesn't seem to work
+	// so we recreate it with the right size.
+	m.viewport = newBracketViewport(m.template, m.matches, width, m.contentHeight(), m.styles)
+}
+
+func (p *bracketPage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Right,
+		p.keyMap.Left,
+		p.keyMap.Previous,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
+	}
+}
+
+func (p *bracketPage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		// Motions
+		{
+			p.keyMap.Up,
+			p.keyMap.Down,
+			p.keyMap.Right,
+			p.keyMap.Left,
+			p.keyMap.Previous,
+		},
+		// Navigation
+		{
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		// Others
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
+}
+
+func (m *bracketPage) toggleFullHelp() {
+	m.help.ShowAll = !m.help.ShowAll
+	// Resize the viewport as the full help takes up more space.
+	m.viewport = newBracketViewport(m.template, m.matches, m.width, m.contentHeight(), m.styles)
+}
+
+func (m *bracketPage) contentHeight() int {
+	return m.height - m.helpHeight()
+}
+
+func (m *bracketPage) helpHeight() int {
+	padding := m.styles.help.GetVerticalPadding()
+	if m.help.ShowAll {
+		return bracketPageFullHelpHeight + padding
+	}
+	return bracketPageShortHelpHeight + padding
+}
+
 func drawLink(link rift.Link) string {
 	var sb strings.Builder
 	switch link.Type {
@@ -274,14 +400,6 @@ func drawLink(link rift.Link) string {
 		sb.WriteString(strings.Repeat(" ", linkWidth))
 	}
 	return sb.String()
-}
-
-func (m *bracketModel) setSize(width, height int) {
-	m.width, m.height = width, height
-
-	// Setting the Height and Width field doesn't seem to work
-	// so we recreate it with the right size.
-	m.vp = newBracketViewport(m.template, m.matches, width, height, m.styles)
 }
 
 func formatTeamRow(team lolesports.Team) string {

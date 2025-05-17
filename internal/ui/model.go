@@ -112,7 +112,7 @@ func NewModel(
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.schedulePage.Init())
+	return m.schedulePage.Init()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -121,9 +121,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+
 		case "tab":
 			m.selectedNavIndex = moveNavigationBarCursorRight(m.selectedNavIndex)
 			return m.navigate()
+
 		case "shift+tab":
 			m.selectedNavIndex = moveNavigationBarCursorLeft(m.selectedNavIndex)
 			return m.navigate()
@@ -131,9 +133,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-
 		m.pageWidth = min(msg.Width, maxWidth)
-
 		m.schedulePage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
 		m.standingsPage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
 	}
