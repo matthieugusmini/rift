@@ -29,9 +29,10 @@ const (
 )
 
 const (
-	captionSelectSplit  = "SELECT A SPLIT"
-	captionSelectLeague = "SELECT A LEAGUE"
-	captionSelectStage  = "SELECT A STAGE"
+	captionSelectSplit             = "SELECT A SPLIT"
+	captionSelectLeague            = "SELECT A LEAGUE"
+	captionSelectStage             = "SELECT A STAGE"
+	captionUnavailableStageBracket = "UNAVAILABLE STAGE"
 )
 
 type standingsPageState int
@@ -119,6 +120,8 @@ type standingsPage struct {
 	splitOptions  list.Model
 	leagueOptions list.Model
 	stageOptions  list.Model
+
+	availableStageTemplates []string
 
 	rankingView *rankingPage
 	bracket     *bracketPage
@@ -210,6 +213,9 @@ func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
 	case loadedStandingsMessage:
 		p.handleStandingsLoaded(msg)
 
+	case fetchedAvailableStageTemplates:
+		p.handleAvailableStageTemplates(msg)
+
 	case loadedBracketStageTemplateMessage:
 		p.handleBracketTemplateLoaded(msg)
 
@@ -253,7 +259,22 @@ func (p *standingsPage) handleStandingsLoaded(msg loadedStandingsMessage) {
 	p.state = standingsPageStateStageSelection
 
 	p.stages = listStagesFromStandings(msg.standings)
-	p.stageOptions = newStageOptionsList(p.stages, p.listWidth(), p.listHeight())
+	p.stageOptions = newStageOptionsList(
+		p.stages,
+		p.availableStageTemplates,
+		p.listWidth(),
+		p.listHeight(),
+	)
+}
+
+func (p *standingsPage) handleAvailableStageTemplates(msg fetchedAvailableStageTemplates) {
+	p.availableStageTemplates = msg.availableTemplates
+	p.stageOptions = newStageOptionsList(
+		p.stages,
+		p.availableStageTemplates,
+		p.listWidth(),
+		p.listHeight(),
+	)
 }
 
 func (p *standingsPage) handleBracketTemplateLoaded(msg loadedBracketStageTemplateMessage) {
@@ -361,7 +382,11 @@ func (p *standingsPage) viewSelectionPrompt() string {
 	case standingsPageStateLeagueSelection:
 		prompt = p.styles.prompt.Render(captionSelectLeague)
 	case standingsPageStateStageSelection:
-		prompt = p.styles.prompt.Render(captionSelectStage)
+		if isStageAvailable(p.selectedStage(), p.availableStageTemplates) {
+			prompt = p.styles.prompt.Render(captionSelectStage)
+		} else {
+			prompt = p.styles.prompt.Render(captionUnavailableStageBracket)
+		}
 	}
 
 	return lipgloss.Place(
@@ -457,7 +482,11 @@ func (p *standingsPage) selectLeague() tea.Cmd {
 		p.selectedLeague().ID,
 	)
 
-	return tea.Batch(p.spinner.Tick, p.loadStandings(tournamentIDs))
+	return tea.Batch(
+		p.spinner.Tick,
+		p.loadStandings(tournamentIDs),
+		p.fetchAvailableStageTemplates(),
+	)
 }
 
 func (p *standingsPage) selectStage() tea.Cmd {
@@ -474,6 +503,10 @@ func (p *standingsPage) selectStage() tea.Cmd {
 		p.state = standingsPageStateShowRankingPage
 
 	case stageTypeBracket:
+		if !isStageAvailable(p.selectedStage(), p.availableStageTemplates) {
+			return nil
+		}
+
 		p.state = standingsPageStateLoadingBracketTemplate
 		return p.loadBracketStageTemplate(p.selectedStage().ID)
 	}
@@ -609,6 +642,7 @@ func (p *standingsPage) selectedStage() lolesports.Stage { return p.stages[p.sta
 
 type (
 	fetchedCurrentSeasonSplitsMessage struct{ splits []lolesports.Split }
+	fetchedAvailableStageTemplates    struct{ availableTemplates []string }
 	loadedBracketStageTemplateMessage struct{ template rift.BracketTemplate }
 	loadedStandingsMessage            struct{ standings []lolesports.Standings }
 	fetchErrorMessage                 struct{ err error }
@@ -636,6 +670,18 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 			return fetchErrorMessage{err: err}
 		}
 		return fetchedCurrentSeasonSplitsMessage{splits}
+	}
+}
+
+func (p *standingsPage) fetchAvailableStageTemplates() tea.Cmd {
+	return func() tea.Msg {
+		availableStageIDs, err := p.bracketTemplateLoader.ListAvailableStageIDs(
+			context.Background(),
+		)
+		if err != nil {
+			return fetchErrorMessage{err: err}
+		}
+		return fetchedAvailableStageTemplates{availableTemplates: availableStageIDs}
 	}
 }
 

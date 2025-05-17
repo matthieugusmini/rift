@@ -24,6 +24,7 @@ type BracketTemplateClient interface {
 	// GetTemplateByStageID shoulds return the BracketTemplate
 	// associated to the given stage id.
 	GetTemplateByStageID(ctx context.Context, stageID string) (BracketTemplate, error)
+	GetAvailableStageTemplate(ctx context.Context) ([]string, error)
 }
 
 // BracketTemplateLoader handles loading bracket templates from multiple sources.
@@ -44,6 +45,16 @@ func NewBracketTemplateLoader(
 		cache:  cache,
 		logger: logger.WithGroup("bracketTemplateLoader"),
 	}
+}
+
+// ListAvailableStageIDs returns the list of known stageIDs.
+func (l *BracketTemplateLoader) ListAvailableStageIDs(ctx context.Context) ([]string, error) {
+	stageIDs, err := l.client.GetAvailableStageTemplate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return stageIDs, nil
 }
 
 // Load tries to load the bracket template associated to the given stage ID

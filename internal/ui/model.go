@@ -67,6 +67,7 @@ type LoLEsportsLoader interface {
 
 // BracketTemplateLoader loads bracket templates.
 type BracketTemplateLoader interface {
+	ListAvailableStageIDs(ctx context.Context) ([]string, error)
 	// Load returns the [rift.BracketTemplate] associated with stageID.
 	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
 }
