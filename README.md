@@ -20,11 +20,32 @@
 > [!IMPORTANT]
 > For the best experience a [Nerd Font](https://www.nerdfonts.com/) installed and enabled is required.
 
-### Package manager
+### Homebrew tap
 
 ```bash
 # macOS
 brew install matthieugusmini/tap/rift
+```
+
+### apt
+
+```bash
+# Debian/Ubuntu
+echo 'deb [trusted=yes] https://apt.fury.io/matthieugusmini/ /' | sudo tee /etc/apt/sources.list.d/fury.list
+sudo apt update
+sudo apt install rift
+```
+
+### yum
+
+```bash
+# Fedora/RHEL
+echo '[fury]
+name=Gemfury Private Repo
+baseurl=https://yum.fury.io/matthieugusmini/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/fury.repo
+sudo yum install rift
 ```
 
 ### Go
@@ -38,6 +59,10 @@ go install github.com/matthieugusmini/rift@latest
 ```bash
 docker run --rm -it ghcr.io/matthieugusmini/rift
 ```
+
+### Linux packages(`.deb`, `.apk`, `.rpm`)
+
+Download one of the `.deb`, `.rpm` or `.apk` file from the [releases page](https://github.com/matthieugusmini/rift/releases) and install it using your tool of choice.
 
 ### Build
 
