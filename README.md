@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/a423fb14-5dd6-498c-8628-07a4272c033f" height=240>
+  <img src="https://github.com/user-attachments/assets/ce2e7963-420f-4d7a-9264-fd382ff54048" height=240>
   <p align="center">LoL Esports in your terminal.</p>
 </p>
 
