@@ -6,6 +6,9 @@ before:
   hooks:
     - go mod tidy
 
+gomod:
+  proxy: true
+
 builds:
   - ldflags:
     - -s -w -X main.Version=v{{.Version}} -X main.Commit={{.Commit}}
@@ -33,11 +36,20 @@ brews:
   - repository:
       owner: matthieugusmini
       name: homebrew-tap
-      token: "{{ .Env.GITHUB_TOKEN }}"
     commit_author:
       name: "Matthieu Gusmini"
       email: "simfy2602@outlook.fr"
+    homepage: "https://github.com/matthieugusmini/rift"
     description: "LoL Esports in your terminal"
+    license: mit
+
+nix:
+  - repository:
+      owner: matthieugusmini
+      name: nur
+    homepage: "https://github.com/matthieugusmini/rift"
+    description: "LoL Esports in your terminal"
+    license: mit
 
 dockers:
   - image_templates:
