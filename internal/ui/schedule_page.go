@@ -201,11 +201,11 @@ func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
 		return p, tea.Batch(cmds...)
 	}
 
-	p.updateMatchListTitle()
-
 	var cmd tea.Cmd
 	p.matchList, cmd = p.matchList.Update(msg)
 	cmds = append(cmds, cmd)
+
+	p.updateMatchListTitle()
 
 	return p, tea.Batch(cmds...)
 }
