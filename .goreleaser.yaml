@@ -51,6 +51,20 @@ nix:
     description: "LoL Esports in your terminal"
     license: mit
 
+nfpms:
+  - vendor: Matthieu Corp.
+    homepage: "https://github.com/matthieugusmini/rift"
+    maintainer: Matthieu Gusmini <simfy2602@outlook.fr>
+    description: |-
+      LoL Esports in your terminal
+    file_name_template: "{{ .ConventionalFileName }}"
+    license: mit
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
+
 dockers:
   - image_templates:
     - ghcr.io/matthieugusmini/{{ .ProjectName }}:v{{ .Version }}-arm64
