@@ -41,19 +41,33 @@ var stateByNavItemLabel = map[string]state{
 	navItemLabelStandings: stateShowStandings,
 }
 
+// LoLEsportsLoader loads LoL Esports data.
 type LoLEsportsLoader interface {
+	// GetSchedule fetches and returns the LoL Esports schedule data.
+	//
+	// You can use the [github.com/matthieugusmini/rift/internal/rift.GetScheduleOptions] to:
+	// - Fetch events only for specific leagues
+	// - Specify which page to fetch
 	GetSchedule(
 		ctx context.Context,
 		opts *lolesports.GetScheduleOptions,
 	) (lolesports.Schedule, error)
+
+	// LoadStandingsByTournamentIDs loads the standings associated with
+	// each given tournament ids.
 	LoadStandingsByTournamentIDs(
 		ctx context.Context,
 		tournamentIDs []string,
 	) ([]lolesports.Standings, error)
+
+	// GetCurrentSeasonSplits fetches and returns all the LoL Esports splits
+	// for the current season.
 	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
 
+// BracketTemplateLoader loads bracket templates.
 type BracketTemplateLoader interface {
+	// Load returns the [rift.BracketTemplate] associated with stageID.
 	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
 }
 
@@ -85,6 +99,10 @@ func newDefaultModelStyles() (s modelStyles) {
 	return s
 }
 
+// Model implements the [github.com/charmbracelet/bubbletea.Model] interface.
+//
+// It is the main model of the application which dictate which sub-model
+// should be displayed and how to navigate between pages.
 type Model struct {
 	selectedNavIndex int
 
@@ -99,22 +117,26 @@ type Model struct {
 	styles modelStyles
 }
 
+// NewModel returns a new [Model] initialized with all its sub-models
+// and default styles.
 func NewModel(
-	lolesportsClient LoLEsportsLoader,
+	lolesportsLoader LoLEsportsLoader,
 	bracketLoader BracketTemplateLoader,
 	logger *slog.Logger,
 ) Model {
 	return Model{
-		schedulePage:  newSchedulePage(lolesportsClient, logger),
-		standingsPage: newStandingsPage(lolesportsClient, bracketLoader, logger),
+		schedulePage:  newSchedulePage(lolesportsLoader, logger),
+		standingsPage: newStandingsPage(lolesportsLoader, bracketLoader, logger),
 		styles:        newDefaultModelStyles(),
 	}
 }
 
+// Init implements the [github.com/charmbracelet/bubbletea.Model] interface.
 func (m Model) Init() tea.Cmd {
 	return m.schedulePage.Init()
 }
 
+// Update implements the [github.com/charmbracelet/bubbletea.Model] interface.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -141,6 +163,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.updateCurrentPage(msg)
 }
 
+// View implements the [github.com/charmbracelet/bubbletea.Model] interface.
 func (m Model) View() string {
 	navBar := m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth)
 

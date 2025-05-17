@@ -8,12 +8,10 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// Cache represents a file based cache which uses a [bbolt] file database under the hood
+// Cache represents a file based cache which uses a [go.etcd.io.bbol.DB] under the hood
 // for fast reads and persistency across sessions.
 //
 // Entries stored in the cache can be invalidated using a TTL.
-//
-// [bbolt]: https://github.com/etcd-io/bbolt
 type Cache[T any] struct {
 	db         *bbolt.DB
 	bucketName string
