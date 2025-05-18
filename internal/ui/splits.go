@@ -27,6 +27,7 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 		}
 		items[i] = item
 
+		// Set the initial cursor position on the current split.
 		if timeutil.IsCurrentTimeBetween(split.StartTime, split.EndTime) {
 			cursorIndex = i
 		}

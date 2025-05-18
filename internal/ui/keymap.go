@@ -2,6 +2,7 @@ package ui
 
 import "github.com/charmbracelet/bubbles/key"
 
+// These key bindings are available across all the application.
 type baseKeyMap struct {
 	NextPage      key.Binding
 	PrevPage      key.Binding

@@ -145,17 +145,17 @@ func newBracketPage(
 		styles:   newDefaultBracketPageStyles(),
 	}
 
-	m.viewport = newBracketViewport(template, matches, width, m.contentHeight(), m.styles)
+	m.initViewport()
 
 	return m
 }
 
-func newBracketViewport(
+func renderBracket(
 	tmpl rift.BracketTemplate,
 	matches []lolesports.Match,
 	width, height int,
 	styles bracketPageStyles,
-) viewport.Model {
+) string {
 	nbRounds := len(tmpl.Rounds)
 	nbLinkColumns := nbRounds - 1
 
@@ -208,17 +208,11 @@ func newBracketViewport(
 
 	view := lipgloss.JoinHorizontal(lipgloss.Top, sections...)
 
-	view = lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Width(max(lipgloss.Width(view), width)).
 		Height(height).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(view)
-
-	vp := viewport.New(width, height)
-	vp.SetContent(view)
-	vp.SetHorizontalStep(5)
-
-	return vp
 }
 
 func (m *bracketPage) Update(msg tea.Msg) (*bracketPage, tea.Cmd) {
@@ -248,15 +242,70 @@ func (m *bracketPage) viewHelp() string {
 	return m.styles.help.Render(m.help.View(m))
 }
 
-func drawLinks(links []rift.Link, styles bracketPageStyles) string {
-	var linksView string
+func (m *bracketPage) setSize(width, height int) {
+	m.width, m.height = width, height
 
-	for _, link := range links {
-		linksView += strings.Repeat("\n", link.Above)
-		linksView += styles.link.Render(drawLink(link))
+	// Setting the Height and Width field doesn't seem to work
+	// so we recreate it with the right size.
+	m.initViewport()
+}
+
+func (p *bracketPage) ShortHelp() []key.Binding {
+	return []key.Binding{
+		p.keyMap.Right,
+		p.keyMap.Left,
+		p.keyMap.Previous,
+		p.keyMap.Quit,
+		p.keyMap.ShowFullHelp,
 	}
+}
 
-	return linksView
+func (p *bracketPage) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		// Motions
+		{
+			p.keyMap.Up,
+			p.keyMap.Down,
+			p.keyMap.Right,
+			p.keyMap.Left,
+			p.keyMap.Previous,
+		},
+		// Navigation
+		{
+			p.keyMap.NextPage,
+			p.keyMap.PrevPage,
+		},
+		// Others
+		{
+			p.keyMap.Quit,
+			p.keyMap.CloseFullHelp,
+		},
+	}
+}
+
+func (m *bracketPage) toggleFullHelp() {
+	m.help.ShowAll = !m.help.ShowAll
+	// Resize the viewport as the full help takes up more space.
+	m.initViewport()
+}
+
+func (m *bracketPage) initViewport() {
+	content := renderBracket(m.template, m.matches, m.width, m.contentHeight(), m.styles)
+	m.viewport = viewport.New(m.width, m.contentHeight())
+	m.viewport.SetContent(content)
+	m.viewport.SetHorizontalStep(5)
+}
+
+func (m *bracketPage) contentHeight() int {
+	return m.height - m.helpHeight()
+}
+
+func (m *bracketPage) helpHeight() int {
+	padding := m.styles.help.GetVerticalPadding()
+	if m.help.ShowAll {
+		return bracketPageFullHelpHeight + padding
+	}
+	return bracketPageShortHelpHeight + padding
 }
 
 func drawMatch(match lolesports.Match, width int, styles bracketPageStyles) string {
@@ -314,63 +363,15 @@ func drawMatch(match lolesports.Match, width int, styles bracketPageStyles) stri
 	return styles.match.Render(content)
 }
 
-func (m *bracketPage) setSize(width, height int) {
-	m.width, m.height = width, height
+func drawLinks(links []rift.Link, styles bracketPageStyles) string {
+	var linksView string
 
-	// Setting the Height and Width field doesn't seem to work
-	// so we recreate it with the right size.
-	m.viewport = newBracketViewport(m.template, m.matches, width, m.contentHeight(), m.styles)
-}
-
-func (p *bracketPage) ShortHelp() []key.Binding {
-	return []key.Binding{
-		p.keyMap.Right,
-		p.keyMap.Left,
-		p.keyMap.Previous,
-		p.keyMap.Quit,
-		p.keyMap.ShowFullHelp,
+	for _, link := range links {
+		linksView += strings.Repeat("\n", link.Above)
+		linksView += styles.link.Render(drawLink(link))
 	}
-}
 
-func (p *bracketPage) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		// Motions
-		{
-			p.keyMap.Up,
-			p.keyMap.Down,
-			p.keyMap.Right,
-			p.keyMap.Left,
-			p.keyMap.Previous,
-		},
-		// Navigation
-		{
-			p.keyMap.NextPage,
-			p.keyMap.PrevPage,
-		},
-		// Others
-		{
-			p.keyMap.Quit,
-			p.keyMap.CloseFullHelp,
-		},
-	}
-}
-
-func (m *bracketPage) toggleFullHelp() {
-	m.help.ShowAll = !m.help.ShowAll
-	// Resize the viewport as the full help takes up more space.
-	m.viewport = newBracketViewport(m.template, m.matches, m.width, m.contentHeight(), m.styles)
-}
-
-func (m *bracketPage) contentHeight() int {
-	return m.height - m.helpHeight()
-}
-
-func (m *bracketPage) helpHeight() int {
-	padding := m.styles.help.GetVerticalPadding()
-	if m.help.ShowAll {
-		return bracketPageFullHelpHeight + padding
-	}
-	return bracketPageShortHelpHeight + padding
+	return linksView
 }
 
 func drawLink(link rift.Link) string {

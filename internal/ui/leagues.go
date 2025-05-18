@@ -93,7 +93,6 @@ func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.M
 
 	l := list.New(leagueItems, newLeagueItemDelegate(), width, height)
 	l.Title = "LEAGUES"
-	// TODO: Where should we define this style?
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
 		Foreground(textTitleColor).

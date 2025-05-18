@@ -44,7 +44,7 @@ func newStageOptionsList(
 		item := stageItem{
 			name:      stage.Name,
 			stageType: getStageType(stage),
-			disabled:  !isStageAvailable(stage, availableStages),
+			disabled:  !isAvailableBracketStage(stage, availableStages),
 		}
 		stageItems[i] = item
 	}
@@ -181,7 +181,7 @@ func getStageType(stage lolesports.Stage) stageType {
 	return stageTypeGroups
 }
 
-func isStageAvailable(stage lolesports.Stage, availableStages []string) bool {
+func isAvailableBracketStage(stage lolesports.Stage, availableStages []string) bool {
 	if getStageType(stage) == stageTypeBracket {
 		return slices.Contains(availableStages, stage.ID)
 	}
