@@ -60,10 +60,6 @@ go install github.com/matthieugusmini/rift@latest
 docker run --rm -it ghcr.io/matthieugusmini/rift
 ```
 
-### Linux packages(`.deb`, `.apk`, `.rpm`)
-
-Download one of the `.deb`, `.rpm` or `.apk` file from the [releases page](https://github.com/matthieugusmini/rift/releases) and install it using your tool of choice.
-
 ### Build
 
 ```bash
@@ -71,6 +67,10 @@ git clone https://github.com/matthieugusmini/rift.git
 cd rift
 go build
 ```
+
+### Linux packages (`.deb`, `.apk`, `.rpm`)
+
+Download one of the `.deb`, `.rpm` or `.apk` file from the [releases page](https://github.com/matthieugusmini/rift/releases) and install it using your tool of choice.
 
 ## Supported terminals
 
