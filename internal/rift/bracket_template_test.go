@@ -12,14 +12,14 @@ import (
 
 func TestBracketTemplateLoader_Load(t *testing.T) {
 	stageID := "Chunin Exams"
-	want := chuninExamsBracketTemplate
+	want := testBracketTemplate
 
 	t.Run("when template present in cache returns bracket template", func(t *testing.T) {
 		fakeCache := newFakeCacheWith(map[string]rift.BracketTemplate{stageID: want})
 		stubAPIClient := newStubBracketTemplateAPIClient()
 		loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
 
-		got := mustLoad(t, loader, stageID)
+		got := mustLoadBracketTemplate(t, loader, stageID)
 
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf(
@@ -36,7 +36,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 			stubAPIClient := newStubBracketTemplateAPIClient()
 			loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
 
-			got := mustLoad(t, loader, stageID)
+			got := mustLoadBracketTemplate(t, loader, stageID)
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf(
@@ -77,7 +77,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 			stubAPIClient := newStubBracketTemplateAPIClient()
 			loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
 
-			got := mustLoad(t, loader, stageID)
+			got := mustLoadBracketTemplate(t, loader, stageID)
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf(
@@ -105,7 +105,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 		stubAPIClient := newStubBracketTemplateAPIClient()
 		loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
 
-		got := mustLoad(t, loader, stageID)
+		got := mustLoadBracketTemplate(t, loader, stageID)
 
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf(
@@ -116,7 +116,40 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 	})
 }
 
-func mustLoad(
+func TestBracketTemplateLoader_ListAvailableStageIDs(t *testing.T) {
+	want := testAvailableStageIDs
+
+	t.Run("returns available stage ids when successfully fetch", func(t *testing.T) {
+		fakeCache := newFakeCache[rift.BracketTemplate]()
+		stubAPIClient := newStubBracketTemplateAPIClient()
+		loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
+
+		got, err := loader.ListAvailableStageIDs(t.Context())
+		if err != nil {
+			t.Fatalf("got unexpected error %q, want nil", err)
+		}
+
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf(
+				"BracketTemplateLoader.ListAvailableStageIDs() returned unexpected diffs(-want +got):\n%s",
+				diff,
+			)
+		}
+	})
+
+	t.Run("returns error when cannot fetch", func(t *testing.T) {
+		fakeCache := newFakeCache[rift.BracketTemplate]()
+		stubAPIClient := newNotFoundBracketTemplateAPIClient()
+		loader := rift.NewBracketTemplateLoader(stubAPIClient, fakeCache, slog.Default())
+
+		_, err := loader.ListAvailableStageIDs(t.Context())
+		if err == nil {
+			t.Error("expected an error, got nil")
+		}
+	})
+}
+
+func mustLoadBracketTemplate(
 	t *testing.T,
 	loader *rift.BracketTemplateLoader,
 	stageID string,
@@ -131,10 +164,10 @@ func mustLoad(
 	return got
 }
 
-var chuninExamsBracketTemplate = rift.BracketTemplate{
+var testBracketTemplate = rift.BracketTemplate{
 	Rounds: []rift.Round{
 		{
-			Title: "Forest of Death",
+			Title: "Quarterfinals Worlds 2020",
 			Links: []rift.Link{
 				{Type: rift.LinkTypeZDown, Height: 42},
 			},
@@ -145,7 +178,11 @@ var chuninExamsBracketTemplate = rift.BracketTemplate{
 	},
 }
 
-var errAPINotFound = errors.New("not found")
+var testAvailableStageIDs = []string{"caliste", "vladi"}
+
+var errAPINotFound = errors.New(
+	"체력 4700 방어력 329 마저201 인 챔피언👤이 저지불가🚫, 쉴드🛡, 벽🧱 넘기는 거 있고요. 에어본🌪 있고, 심지어 쿨타임은 1️⃣초밖에 안되고 마나🧙‍♂️는 1️⃣5️⃣ 들고 w는 심지어 변신💫하면 쿨 초기화에다가 패시브는 고정피해🗡가 들어가며 그 다음에 방마저🥋 올리면📈 올릴수록📈 스킬 가속⏰이 생기고! q에 스킬가속⏰이 생기고 스킬 속도🚀가 빨라지고📈 그 다음에 공격력🗡 계수가 있어가지고 W가 그 이익-으아아아악😱😱---",
+)
 
 type stubBracketTemplateAPIClient struct {
 	template          rift.BracketTemplate
@@ -155,8 +192,8 @@ type stubBracketTemplateAPIClient struct {
 
 func newStubBracketTemplateAPIClient() *stubBracketTemplateAPIClient {
 	return &stubBracketTemplateAPIClient{
-		template:          chuninExamsBracketTemplate,
-		availableStageIDs: []string{"1", "2"},
+		template:          testBracketTemplate,
+		availableStageIDs: testAvailableStageIDs,
 	}
 }
 

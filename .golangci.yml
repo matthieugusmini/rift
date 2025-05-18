@@ -15,6 +15,7 @@ linters:
     - gocyclo # We don't focus on arbitrary complexity metrics here.
     - godot
     - godox
+    - gosmopolitan
     - ireturn
     - lll # golines already handle that job.
     - mnd
@@ -49,9 +50,6 @@ linters:
         # False positive when using math/rand/v2.
         # https://github.com/securego/gosec/issues/1241
         - G404
-
-    gosmopolitan:
-      allow-time-local: true
 
     funcorder:
       # We just want logical ordering.
