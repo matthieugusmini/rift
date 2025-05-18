@@ -165,13 +165,13 @@ var testStandings = []lolesports.Standings{
 	{
 		Stages: []lolesports.Stage{
 			{
-				ID:   "",
-				Name: "",
-				Type: "",
-				Slug: "",
+				ID:   "EU",
+				Name: "will",
+				Type: "never",
+				Slug: "win",
 				Sections: []lolesports.Section{
 					{
-						Name: "",
+						Name: "Worlds",
 						Matches: []lolesports.Match{
 							{},
 						},
@@ -213,7 +213,10 @@ func (c *stubLoLEsportsAPIClient) GetSeasons(
 	ctx context.Context,
 	opts *lolesports.GetSeasonsOptions,
 ) ([]lolesports.Season, error) {
-	return nil, nil
+	if c.err != nil {
+		return nil, c.err
+	}
+	return c.seasons, nil
 }
 
 func (c *stubLoLEsportsAPIClient) GetSchedule(

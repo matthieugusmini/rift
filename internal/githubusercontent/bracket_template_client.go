@@ -5,29 +5,49 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/matthieugusmini/rift/internal/rift"
 )
 
 const (
-	baseURL = "https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main/"
+	baseURL = "https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main"
 
 	bracketTypeByStageIDFilename = "bracket-type-by-stage-id.json"
 )
+
+type BracketTemplateClientOption func(*BracketTemplateClient)
+
+func WithBaseURL(url string) BracketTemplateClientOption {
+	return func(c *BracketTemplateClient) {
+		c.baseURL = url
+	}
+}
 
 // BracketTemplateClient handles fetching bracket templates from JSON config files
 // stored in a GitHub repository.
 //
 // Example: https://raw.githubusercontent.com/matthieugusmini/lolesports-bracket-templates/refs/heads/main/8SE.json
 type BracketTemplateClient struct {
+	baseURL    string
 	httpClient *http.Client
 }
 
 // NewBracketTemplateClient creates a new instance of [BracketTemplateClient].
-func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
-	return &BracketTemplateClient{
+func NewBracketTemplateClient(
+	httpClient *http.Client,
+	opts ...BracketTemplateClientOption,
+) *BracketTemplateClient {
+	c := &BracketTemplateClient{
+		baseURL:    baseURL,
 		httpClient: httpClient,
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
 // GetAvailableStageTemplate fetches the list of stage ids
@@ -74,7 +94,12 @@ func (c *BracketTemplateClient) GetTemplateByStageID(
 		return rift.BracketTemplate{}, fmt.Errorf("stage ID %q is not supported", stageID)
 	}
 
-	bracketTemplateURL := fmt.Sprintf("%s%s.json", baseURL, bracketType)
+	bracketTypeFilename := bracketType + ".json"
+	bracketTemplateURL, err := url.JoinPath(c.baseURL, bracketTypeFilename)
+	if err != nil {
+		return rift.BracketTemplate{}, err
+	}
+
 	if err := c.get(ctx, bracketTemplateURL, &data); err != nil {
 		return rift.BracketTemplate{}, err
 	}
@@ -85,7 +110,10 @@ func (c *BracketTemplateClient) GetTemplateByStageID(
 func (c *BracketTemplateClient) getBracketTemplateMapper(
 	ctx context.Context,
 ) (map[string]string, error) {
-	bracketTypeByStageIDURL := baseURL + bracketTypeByStageIDFilename
+	bracketTypeByStageIDURL, err := url.JoinPath(c.baseURL, bracketTypeByStageIDFilename)
+	if err != nil {
+		return nil, err
+	}
 
 	var data map[string]string
 	if err := c.get(ctx, bracketTypeByStageIDURL, &data); err != nil {
