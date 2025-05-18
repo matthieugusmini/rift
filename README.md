@@ -18,7 +18,7 @@
 
 ## Installation
 > [!IMPORTANT]
-> For the best experience a [Nerd Font](https://www.nerdfonts.com/) installed and enabled is required.
+> For the best experience, a [Nerd Font](https://www.nerdfonts.com/) should be installed and enabled, along with a terminal that supports emojis.
 
 ### Homebrew tap
 
@@ -74,12 +74,15 @@ go build
 
 ## Supported terminals
 
-| Terminal          | Supported | Issues                                             |
-|:-----------------:|:---------:|:--------------------------------------------------:|
-| WezTerm           | Yes       | None                                               |
-| iTerm2            | Yes       | None                                               |
-| macOS Terminal    | Yes       | Match borders doesn't render properly              |
-| Windows Terminal  | Yes       | Country flags emojis are not supported on Windows  |
+| Terminal          | Supported | Issues                                                                                                                                                     |
+|:-----------------:|:---------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------:|
+| WezTerm           | Yes       | None                                                                                                                                                       |
+| iTerm2            | Yes       | None                                                                                                                                                       |
+| Alacritty         | Partially | [Doesn't display emojis](https://github.com/alacritty/alacritty/issues/153)                                                                                |
+| macOS Terminal    | Partially | Emojis rendering messes up with the UI                                                                                                                     |
+| Windows Terminal  | Partially | [Country flags emojis are not supported on Windows](https://answers.microsoft.com/en-us/windows/forum/all/flag-emoji/85b163bc-786a-4918-9042-763ccf4b6c05) |
+
+If your terminal does not appear in the above list, feel free to open a pull request to add it.
 
 ## License
 
