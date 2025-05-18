@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -31,9 +30,9 @@ func (i stageItem) Title() string { return i.name }
 
 func (i stageItem) Description() string { return string(i.stageType) }
 
-func (i stageItem) IsDisabled() bool { return i.disabled }
-
 func (i stageItem) FilterValue() string { return i.name }
+
+func (i stageItem) isDisabled() bool { return i.disabled }
 
 func newStageOptionsList(
 	stages []lolesports.Stage,
@@ -73,10 +72,10 @@ func newStageOptionsList(
 type stageItemStyles struct {
 	list.DefaultItemStyles
 
-	DisabledTitle         lipgloss.Style
-	DisabledDesc          lipgloss.Style
-	DisabledSelectedTitle lipgloss.Style
-	DisabledSelectedDesc  lipgloss.Style
+	disabledTitle         lipgloss.Style
+	disabledDesc          lipgloss.Style
+	disabledSelectedTitle lipgloss.Style
+	disabledSelectedDesc  lipgloss.Style
 }
 
 func newStageItemStyles() (s stageItemStyles) {
@@ -97,23 +96,21 @@ func newStageItemStyles() (s stageItemStyles) {
 		BorderForeground(selectedColor)
 
 	// Disabled but selected
-	s.DisabledSelectedTitle = defaultStyles.SelectedTitle.
+	s.disabledSelectedTitle = defaultStyles.SelectedTitle.
 		Foreground(textDisabledColor).
-		Bold(false).
 		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(textDisabledColor)
 
-	s.DisabledSelectedDesc = defaultStyles.SelectedDesc.
+	s.disabledSelectedDesc = defaultStyles.SelectedDesc.
 		Foreground(textDisabledColor).
-		Bold(false).
 		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(textDisabledColor)
 
 	// Disabled not selected
-	s.DisabledTitle = defaultStyles.NormalTitle.
+	s.disabledTitle = defaultStyles.NormalTitle.
 		Foreground(textDisabledColor)
 
-	s.DisabledDesc = defaultStyles.NormalDesc.
+	s.disabledDesc = defaultStyles.NormalDesc.
 		Foreground(textDisabledColor)
 
 	return s
@@ -122,72 +119,59 @@ func newStageItemStyles() (s stageItemStyles) {
 type stageItemDelegate struct {
 	list.DefaultDelegate
 
-	Styles stageItemStyles
+	styles stageItemStyles
 }
 
 func newStageItemDelegate() stageItemDelegate {
 	return stageItemDelegate{
 		DefaultDelegate: list.NewDefaultDelegate(),
-		Styles:          newStageItemStyles(),
+		styles:          newStageItemStyles(),
 	}
 }
 
 func (d stageItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	var (
-		title, desc string
-		isDisabled  bool
-		s           = &d.Styles
-	)
-
-	if i, ok := item.(stageItem); ok {
-		title = i.Title()
-		desc = i.Description()
-		isDisabled = i.IsDisabled()
-	} else {
-		return
-	}
-
 	if m.Width() <= 0 {
 		// short-circuit
 		return
 	}
 
-	// Prevent text from exceeding list width
-	textwidth := m.Width() - s.NormalTitle.GetPaddingLeft() - s.NormalTitle.GetPaddingRight()
-	title = ansi.Truncate(title, textwidth, "…")
-	if d.ShowDescription {
-		var lines []string
-		for i, line := range strings.Split(desc, "\n") {
-			if i >= d.Height()-1 {
-				break
-			}
-			lines = append(lines, ansi.Truncate(line, textwidth, "…"))
-		}
-		desc = strings.Join(lines, "\n")
+	i, ok := item.(stageItem)
+	if !ok {
+		return
 	}
 
-	isSelected := index == m.Index()
+	var (
+		title      = i.Title()
+		desc       = i.Description()
+		isDisabled = i.isDisabled()
+		s          = &d.styles
+	)
 
+	// Prevent text from exceeding list width
+	textWidth := m.Width() - s.NormalTitle.GetPaddingLeft() - s.NormalTitle.GetPaddingRight()
+	title = ansi.Truncate(title, textWidth, "…")
+	desc = ansi.Truncate(desc, textWidth, "…")
+
+	isSelected := index == m.Index()
 	switch {
 	case isDisabled && isSelected:
-		title = s.DisabledSelectedTitle.Render(title)
-		desc = s.DisabledSelectedDesc.Render(desc)
+		title = s.disabledSelectedTitle.Render(title)
+		desc = s.disabledSelectedDesc.Render(desc)
+
 	case isDisabled && !isSelected:
-		title = s.DisabledTitle.Render(title)
-		desc = s.DisabledDesc.Render(desc)
+		title = s.disabledTitle.Render(title)
+		desc = s.disabledDesc.Render(desc)
+
 	case !isDisabled && isSelected:
 		title = s.SelectedTitle.Render(title)
 		desc = s.SelectedDesc.Render(desc)
+
 	case !isDisabled && !isSelected:
 		title = s.NormalTitle.Render(title)
 		desc = s.NormalDesc.Render(desc)
 	}
 
-	if d.ShowDescription {
-		fmt.Fprintf(w, "%s\n%s", title, desc)
-		return
-	}
-	fmt.Fprintf(w, "%s", title)
+	fmt.Fprintf(w, "%s\n%s", title, desc)
 }
 
 func getStageType(stage lolesports.Stage) stageType {
@@ -201,6 +185,5 @@ func isStageAvailable(stage lolesports.Stage, availableStages []string) bool {
 	if getStageType(stage) == stageTypeBracket {
 		return slices.Contains(availableStages, stage.ID)
 	}
-
 	return true
 }

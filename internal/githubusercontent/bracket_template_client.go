@@ -1,4 +1,4 @@
-package github
+package githubusercontent
 
 import (
 	"context"
@@ -23,18 +23,22 @@ type BracketTemplateClient struct {
 	httpClient *http.Client
 }
 
-// NewBracketTemplateClient creates a new instance of BracketTemplateClient.
+// NewBracketTemplateClient creates a new instance of [BracketTemplateClient].
 func NewBracketTemplateClient(httpClient *http.Client) *BracketTemplateClient {
 	return &BracketTemplateClient{
 		httpClient: httpClient,
 	}
 }
 
-func (c *BracketTemplateClient) GetAvailableStageTemplate(ctx context.Context) ([]string, error) {
+// GetAvailableStageTemplate fetches the list of stage ids
+// which have a bracket template associated with them.
+//
+// An error is returned in case of HTTP error.
+func (c *BracketTemplateClient) ListAvailableStageIDs(ctx context.Context) ([]string, error) {
 	var bracketTypeByStageID map[string]string
 	bracketTypeByStageID, err := c.getBracketTemplateMapper(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not fetch the bracket type mapper: %w", err)
 	}
 
 	keys := make([]string, 0, len(bracketTypeByStageID))
@@ -59,12 +63,15 @@ func (c *BracketTemplateClient) GetTemplateByStageID(
 	)
 	bracketTypeByStageID, err := c.getBracketTemplateMapper(ctx)
 	if err != nil {
-		return rift.BracketTemplate{}, err
+		return rift.BracketTemplate{}, fmt.Errorf(
+			"could not fetch the bracket type mapper: %w",
+			err,
+		)
 	}
 
 	bracketType, ok := bracketTypeByStageID[stageID]
 	if !ok {
-		return rift.BracketTemplate{}, fmt.Errorf("stage ID %q is unsupported", stageID)
+		return rift.BracketTemplate{}, fmt.Errorf("stage ID %q is not supported", stageID)
 	}
 
 	bracketTemplateURL := fmt.Sprintf("%s%s.json", baseURL, bracketType)
@@ -78,10 +85,9 @@ func (c *BracketTemplateClient) GetTemplateByStageID(
 func (c *BracketTemplateClient) getBracketTemplateMapper(
 	ctx context.Context,
 ) (map[string]string, error) {
-	var data map[string]string
-
 	bracketTypeByStageIDURL := baseURL + bracketTypeByStageIDFilename
 
+	var data map[string]string
 	if err := c.get(ctx, bracketTypeByStageIDURL, &data); err != nil {
 		return map[string]string{}, err
 	}

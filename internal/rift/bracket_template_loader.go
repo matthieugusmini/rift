@@ -5,39 +5,29 @@ import (
 	"log/slog"
 )
 
-// BracketTemplateCache represents a cache to retrieve bracket templates.
-type BracketTemplateCache interface {
-	// GetBracketTemplate should return:
-	// - The BracketTemplate associated to the given stage id that is retrieved from the cache
-	// - A boolean indicating whether the value was found or not in the cache
-	// - An error(e.g. could not invalidate entry, etc.)
-	Get(stageID string) (BracketTemplate, bool, error)
-
-	// SetBracketTemplate should create a new entry in the cache with a
-	// rift.BracketTemplate as value and a stageID as key.
-	Set(stageID string, value BracketTemplate) error
-}
-
 // BracketTemplateClient represents a client to retrieve bracket templates
 // performing I/O (e.g. network).
 type BracketTemplateClient interface {
 	// GetTemplateByStageID shoulds return the BracketTemplate
 	// associated to the given stage id.
 	GetTemplateByStageID(ctx context.Context, stageID string) (BracketTemplate, error)
-	GetAvailableStageTemplate(ctx context.Context) ([]string, error)
+
+	// ListAvailableStageIDs returns the list of ids of all stages
+	// which have an associated bracket template.
+	ListAvailableStageIDs(ctx context.Context) ([]string, error)
 }
 
 // BracketTemplateLoader handles loading bracket templates from multiple sources.
 type BracketTemplateLoader struct {
 	client BracketTemplateClient
-	cache  BracketTemplateCache
+	cache  Cache[BracketTemplate]
 	logger *slog.Logger
 }
 
 // NewBracketTemplateLoader creates a new instance of BracketTemplateLoader.
 func NewBracketTemplateLoader(
 	bracketTemplateClient BracketTemplateClient,
-	cache BracketTemplateCache,
+	cache Cache[BracketTemplate],
 	logger *slog.Logger,
 ) *BracketTemplateLoader {
 	return &BracketTemplateLoader{
@@ -47,13 +37,14 @@ func NewBracketTemplateLoader(
 	}
 }
 
-// ListAvailableStageIDs returns the list of known stageIDs.
+// ListAvailableStageIDs returns the list of available stage ids in the server.
+//
+// An error is returned if it cannot fetch the data.
 func (l *BracketTemplateLoader) ListAvailableStageIDs(ctx context.Context) ([]string, error) {
-	stageIDs, err := l.client.GetAvailableStageTemplate(ctx)
+	stageIDs, err := l.client.ListAvailableStageIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	return stageIDs, nil
 }
 

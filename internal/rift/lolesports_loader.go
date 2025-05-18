@@ -8,12 +8,6 @@ import (
 	"github.com/matthieugusmini/go-lolesports"
 )
 
-// Cache represents a key/value store with fast read access.
-type Cache[T any] interface {
-	Get(key string) (T, bool, error)
-	Set(key string, value T) error
-}
-
 // LoLEsportsAPIClient represents an API client to retrieve data from LoL Esports.
 type LoLEsportsAPIClient interface {
 	GetStandings(ctx context.Context, tournamentIDs []string) ([]lolesports.Standings, error)
@@ -32,7 +26,7 @@ type LoLEsportsLoader struct {
 	logger         *slog.Logger
 }
 
-// NewLoLEsportsLoader creates a new instance of a Loader which loads LoLEsports
+// NewLoLEsportsLoader creates a new instance of a [Loader] which loads LoLEsports
 // data from different caches or apiClient to fetch the data from
 // the LoLEsports API.
 func NewLoLEsportsLoader(
@@ -47,7 +41,7 @@ func NewLoLEsportsLoader(
 	}
 }
 
-// LoadStandingsByTournamentIDs tries to load all the standings of all the tournamentIDs
+// LoadStandingsByTournamentIDs tries to load all the standings for all the tournamentIDs
 // from the underlying cache first and if not found, fetches it using the client.
 //
 // An error is returned only if the client cannot load the standings.

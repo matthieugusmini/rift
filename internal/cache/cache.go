@@ -23,7 +23,7 @@ type entry[T any] struct {
 	ExpiresAt int64 `json:"expiresAt"`
 }
 
-// New returns a new instance of a Cache given a bbolt database, a time to live duration and a logger.
+// New returns a new instance of a [Cache] given a bbolt database, a time to live duration and a logger.
 //
 // If ttl == 0 values stored in the cache are never invalidated.
 func New[T any](db *bbolt.DB, bucketName string, ttl time.Duration) *Cache[T] {

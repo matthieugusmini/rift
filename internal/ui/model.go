@@ -45,7 +45,7 @@ var stateByNavItemLabel = map[string]state{
 type LoLEsportsLoader interface {
 	// GetSchedule fetches and returns the LoL Esports schedule data.
 	//
-	// You can use the [github.com/matthieugusmini/rift/internal/rift.GetScheduleOptions] to:
+	// Optionnaly you can use the [github.com/matthieugusmini/rift/internal/rift.GetScheduleOptions] to:
 	// - Fetch events only for specific leagues
 	// - Specify which page to fetch
 	GetSchedule(
@@ -67,7 +67,10 @@ type LoLEsportsLoader interface {
 
 // BracketTemplateLoader loads bracket templates.
 type BracketTemplateLoader interface {
+	// ListAvailableStageIDs returns the list of ids of all the stages
+	// that have a bracket template associated with them.
 	ListAvailableStageIDs(ctx context.Context) ([]string, error)
+
 	// Load returns the [rift.BracketTemplate] associated with stageID.
 	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
 }
@@ -105,15 +108,23 @@ func newDefaultModelStyles() (s modelStyles) {
 // It is the main model of the application which dictate which sub-model
 // should be displayed and how to navigate between pages.
 type Model struct {
-	selectedNavIndex int
+	// Actual terminal size
+	width, height int
 
+	// Represents the width the application actually uses for display.
+	// Some of the pages renders horrendously when they take too much
+	// space we keep this values below maxWidth.
+	pageWidth int
+
+	// Sub-models
 	schedulePage  *schedulePage
 	standingsPage *standingsPage
 
+	// Indicates which sub-model to display.
 	state state
 
-	width, height int
-	pageWidth     int
+	// Index of the selected item in the navbar
+	selectedNavIndex int
 
 	styles modelStyles
 }

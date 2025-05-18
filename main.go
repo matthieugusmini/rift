@@ -15,7 +15,7 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/matthieugusmini/rift/internal/cache"
-	"github.com/matthieugusmini/rift/internal/github"
+	"github.com/matthieugusmini/rift/internal/githubusercontent"
 	"github.com/matthieugusmini/rift/internal/lolesports"
 	"github.com/matthieugusmini/rift/internal/rift"
 	"github.com/matthieugusmini/rift/internal/ui"
@@ -130,7 +130,7 @@ func initBracketTemplateLoader(
 	cacheDB *bbolt.DB,
 	logger *slog.Logger,
 ) *rift.BracketTemplateLoader {
-	bracketTemplateClient := github.NewBracketTemplateClient(httpClient)
+	bracketTemplateClient := githubusercontent.NewBracketTemplateClient(httpClient)
 
 	bracketTemplateCache := cache.New[rift.BracketTemplate](
 		cacheDB,
