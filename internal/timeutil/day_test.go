@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matthieugusmini/lolesport/timeutil"
+	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
 var goatBirthday = time.Date(1996, time.May, 7, 0, 0, 0, 0, time.UTC)

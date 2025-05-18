@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matthieugusmini/lolesport/timeutil"
+	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
 var (
