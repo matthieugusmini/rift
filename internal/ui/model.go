@@ -19,14 +19,19 @@ const (
 	navItemLabelSchedule  = "Schedule"
 	navItemLabelStandings = "Standings"
 
-	navigationBarHeight = 2
+	navbarHeight = 2
 
 	maxWidth = 120
 )
 
-var navItemLabels = []string{
-	navItemLabelSchedule,
-	navItemLabelStandings,
+type navItem struct {
+	label string
+	state state
+}
+
+var navItems = []navItem{
+	{label: navItemLabelSchedule, state: stateShowSchedule},
+	{label: navItemLabelStandings, state: stateShowStandings},
 }
 
 type state int
@@ -36,9 +41,32 @@ const (
 	stateShowStandings
 )
 
-var stateByNavItemLabel = map[string]state{
-	navItemLabelSchedule:  stateShowSchedule,
-	navItemLabelStandings: stateShowStandings,
+type modelStyles struct {
+	logo            lipgloss.Style
+	normalNavItem   lipgloss.Style
+	selectedNavItem lipgloss.Style
+	separator       lipgloss.Style
+}
+
+func newDefaultModelStyles() (s modelStyles) {
+	s.logo = lipgloss.NewStyle().
+		Padding(0, 1).
+		Foreground(textTitleColor).
+		Bold(true)
+
+	s.normalNavItem = lipgloss.NewStyle().
+		Foreground(textPrimaryColor).
+		Faint(true)
+
+	s.selectedNavItem = lipgloss.NewStyle().
+		Foreground(selectedColor).
+		Bold(true)
+
+	s.separator = lipgloss.NewStyle().
+		Foreground(textSecondaryColor).
+		Bold(true)
+
+	return s
 }
 
 // LoLEsportsLoader loads LoL Esports data.
@@ -75,32 +103,17 @@ type BracketTemplateLoader interface {
 	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
 }
 
-type modelStyles struct {
-	logo            lipgloss.Style
-	normalNavItem   lipgloss.Style
-	selectedNavItem lipgloss.Style
-	separator       lipgloss.Style
-}
+// page is similar to a tea.Model but with the added ability to set its size.
+// It's particularly useful for managing sub-models that need to be displayed
+// in specific screen areas (e.g., between a navbar and footer).
+//
+// Note: Cannot embed tea.Model as Update should return a page.
+type page interface {
+	Init() tea.Cmd
+	Update(msg tea.Msg) (page, tea.Cmd)
+	View() string
 
-func newDefaultModelStyles() (s modelStyles) {
-	s.logo = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(textTitleColor).
-		Bold(true)
-
-	s.normalNavItem = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
-		Faint(true)
-
-	s.selectedNavItem = lipgloss.NewStyle().
-		Foreground(selectedColor).
-		Bold(true)
-
-	s.separator = lipgloss.NewStyle().
-		Foreground(textSecondaryColor).
-		Bold(true)
-
-	return s
+	setSize(width, height int)
 }
 
 // Model implements the [github.com/charmbracelet/bubbletea.Model] interface.
@@ -116,15 +129,14 @@ type Model struct {
 	// space we keep this values below maxWidth.
 	pageWidth int
 
-	// Sub-models
-	schedulePage  *schedulePage
-	standingsPage *standingsPage
-
 	// Indicates which sub-model to display.
 	state state
 
 	// Index of the selected item in the navbar
 	selectedNavIndex int
+
+	currentPage page
+	pages       map[state]page
 
 	styles modelStyles
 }
@@ -136,16 +148,24 @@ func NewModel(
 	bracketLoader BracketTemplateLoader,
 	logger *slog.Logger,
 ) Model {
+	schedulePage := newSchedulePage(lolesportsLoader, logger)
+	standingsPage := newStandingsPage(lolesportsLoader, bracketLoader, logger)
+
+	pages := map[state]page{
+		stateShowSchedule:  schedulePage,
+		stateShowStandings: standingsPage,
+	}
+
 	return Model{
-		schedulePage:  newSchedulePage(lolesportsLoader, logger),
-		standingsPage: newStandingsPage(lolesportsLoader, bracketLoader, logger),
-		styles:        newDefaultModelStyles(),
+		currentPage: schedulePage,
+		pages:       pages,
+		styles:      newDefaultModelStyles(),
 	}
 }
 
 // Init implements the [github.com/charmbracelet/bubbletea.Model] interface.
 func (m Model) Init() tea.Cmd {
-	return m.schedulePage.Init()
+	return m.currentPage.Init()
 }
 
 // Update implements the [github.com/charmbracelet/bubbletea.Model] interface.
@@ -155,31 +175,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-
 		case "tab":
-			m.selectedNavIndex = moveNavigationBarCursorRight(m.selectedNavIndex)
-			return m.navigate()
-
+			return m.navigateRight()
 		case "shift+tab":
-			m.selectedNavIndex = moveNavigationBarCursorLeft(m.selectedNavIndex)
-			return m.navigate()
+			return m.navigateLeft()
 		}
 
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.pageWidth = min(msg.Width, maxWidth)
-		m.schedulePage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
-		m.standingsPage.setSize(m.pageWidth, msg.Height-navigationBarHeight)
+		for _, page := range m.pages {
+			page.setSize(m.pageWidth, msg.Height-navbarHeight)
+		}
 	}
 
-	return m.updateCurrentPage(msg)
+	var cmd tea.Cmd
+	m.currentPage, cmd = m.currentPage.Update(msg)
+
+	return m, cmd
 }
 
 // View implements the [github.com/charmbracelet/bubbletea.Model] interface.
 func (m Model) View() string {
-	navBar := m.viewNavigationBar(navItemLabels, m.selectedNavIndex, m.pageWidth)
+	navBar := m.viewNavbar(navItems, m.selectedNavIndex, m.pageWidth)
 
-	content := m.currentPageView()
+	content := m.currentPage.View()
 
 	view := lipgloss.JoinVertical(lipgloss.Left, navBar, content)
 
@@ -190,77 +210,62 @@ func (m Model) View() string {
 		Render(view)
 }
 
-func (m Model) viewNavigationBar(
-	navLabels []string,
+func (m Model) viewNavbar(
+	navItems []navItem,
 	selectedNavIndex int,
 	width int,
 ) string {
 	logo := m.styles.logo.Render(logo)
 
-	styledNavItems := make([]string, len(navLabels))
-	for i, label := range navLabels {
+	// Add a padding with the same size as the logo on the other end
+	// of the navbar to center the nav items.
+	padding := strings.Repeat(" ", lipgloss.Width(logo))
+
+	styledNavItems := make([]string, len(navItems))
+	for i, navItem := range navItems {
 		isSelected := selectedNavIndex == i
 		if isSelected {
-			styledNavItems[i] = m.styles.selectedNavItem.Render(label)
+			styledNavItems[i] = m.styles.selectedNavItem.Render(navItem.label)
 		} else {
-			styledNavItems[i] = m.styles.normalNavItem.Render(label)
+			styledNavItems[i] = m.styles.normalNavItem.Render(navItem.label)
 		}
 	}
 
-	padding := strings.Repeat(" ", lipgloss.Width(logo))
-
+	availWidth := width - lipgloss.Width(logo) - lipgloss.Width(padding)
 	navItemsStyle := lipgloss.NewStyle().
-		Width(width - lipgloss.Width(logo)*2).
+		Width(availWidth).
 		Align(lipgloss.Center)
-	navItems := navItemsStyle.Render(strings.Join(styledNavItems, separatorBullet))
+	renderedNavItems := navItemsStyle.Render(strings.Join(styledNavItems, separatorBullet))
 
-	navbar := logo + navItems + padding
+	navbar := logo + renderedNavItems + padding
 
 	separator := m.styles.separator.Render(strings.Repeat(separatorLine, width))
 
 	return fmt.Sprintf("%s\n%s", navbar, separator)
 }
 
-func (m Model) currentPageView() string {
-	switch m.state {
-	case stateShowSchedule:
-		return m.schedulePage.View()
-	case stateShowStandings:
-		return m.standingsPage.View()
-	default:
-		return ""
-	}
+func (m Model) navigateRight() (Model, tea.Cmd) {
+	m.selectedNavIndex = moveNavigationBarCursorRight(m.selectedNavIndex)
+	return m.updateCurrentPage()
 }
 
-func (m Model) updateCurrentPage(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	switch m.state {
-	case stateShowSchedule:
-		m.schedulePage, cmd = m.schedulePage.Update(msg)
-	case stateShowStandings:
-		m.standingsPage, cmd = m.standingsPage.Update(msg)
-	}
-	return m, cmd
+func (m Model) navigateLeft() (Model, tea.Cmd) {
+	m.selectedNavIndex = moveNavigationBarCursorLeft(m.selectedNavIndex)
+	return m.updateCurrentPage()
 }
 
-func (m Model) navigate() (Model, tea.Cmd) {
-	m.state = stateByNavItemLabel[navItemLabels[m.selectedNavIndex]]
-	switch m.state {
-	case stateShowSchedule:
-		return m, m.schedulePage.Init()
-	case stateShowStandings:
-		return m, m.standingsPage.Init()
-	default:
-		return m, nil
-	}
+func (m Model) updateCurrentPage() (Model, tea.Cmd) {
+	m.state = navItems[m.selectedNavIndex].state
+	m.currentPage = m.pages[m.state]
+	return m, m.currentPage.Init()
 }
 
 func moveNavigationBarCursorLeft(current int) int {
-	return moveCursor(current, -1, len(navItemLabels))
+	return moveCursor(current, -1, len(navItems))
 }
 
 func moveNavigationBarCursorRight(current int) int {
-	return moveCursor(current, 1, len(navItemLabels))
+	return moveCursor(current, 1, len(navItems))
 }
 
 func moveCursor(current, delta, upperBound int) int {

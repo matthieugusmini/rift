@@ -168,7 +168,7 @@ func (p *standingsPage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchCurrentSeasonSplits())
 }
 
-func (p *standingsPage) Update(msg tea.Msg) (*standingsPage, tea.Cmd) {
+func (p *standingsPage) Update(msg tea.Msg) (page, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {

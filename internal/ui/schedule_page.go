@@ -150,7 +150,7 @@ func (p *schedulePage) Init() tea.Cmd {
 	return tea.Batch(p.spinner.Tick, p.fetchEvents(pageDirectionInitial))
 }
 
-func (p *schedulePage) Update(msg tea.Msg) (*schedulePage, tea.Cmd) {
+func (p *schedulePage) Update(msg tea.Msg) (page, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
