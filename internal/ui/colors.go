@@ -32,6 +32,7 @@ var (
 	textPrimaryColor         = lipgloss.AdaptiveColor{Light: almostBlack, Dark: lightGrey}
 	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: grey}
 	textDimmedSecondaryColor = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: dimGrey}
+	textDisabledColor        = lipgloss.AdaptiveColor{Light: "#555156", Dark: "#505050"}
 	textTitleColor           = lipgloss.AdaptiveColor{Light: black, Dark: white}
 
 	borderPrimaryColor   = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
