@@ -45,7 +45,7 @@ func newStageOptionsList(
 		item := stageItem{
 			name:      stage.Name,
 			stageType: getStageType(stage),
-			disabled:  isStageAvailable(stage, availableStages),
+			disabled:  !isStageAvailable(stage, availableStages),
 		}
 		stageItems[i] = item
 	}
