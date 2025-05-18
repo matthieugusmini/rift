@@ -1,4 +1,4 @@
-// Package rift contains all the domain objects for the Rift app.
+// Package rift contains all the services and domain objects for the Rift app.
 package rift
 
 // BracketTemplate represents a template to display a bracket layout.
@@ -43,6 +43,9 @@ const (
 
 	// LinkTypeReseed represents a reseed link.
 	LinkTypeReseed LinkType = "reseed"
+
+	// LinkTypeLoserAdvance links two matches where the looser goes to the next round.
+	LinkTypeLoserAdvance LinkType = "loser-advance"
 )
 
 // Link represents a link between two rounds of the bracket.

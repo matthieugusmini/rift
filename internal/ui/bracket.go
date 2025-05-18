@@ -397,6 +397,7 @@ func drawLink(link rift.Link) string {
 	case rift.LinkTypeHorizontal:
 		sb.WriteString(strings.Repeat(horizontalLine, linkWidth))
 
+	// loser-advance, reseed, etc.
 	default:
 		sb.WriteString(strings.Repeat(" ", linkWidth))
 	}
