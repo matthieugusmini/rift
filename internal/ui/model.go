@@ -88,9 +88,9 @@ type LoLEsportsLoader interface {
 		tournamentIDs []string,
 	) ([]lolesports.Standings, error)
 
-	// GetCurrentSeasonSplits fetches and returns all the LoL Esports splits
+	// LoadCurrentSeasonSplits loads and returns all the LoL Esports splits
 	// for the current season.
-	GetCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
+	LoadCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
 
 // BracketTemplateLoader loads bracket templates.

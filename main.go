@@ -10,13 +10,12 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	gololesports "github.com/matthieugusmini/go-lolesports"
+	"github.com/matthieugusmini/go-lolesports"
 	gap "github.com/muesli/go-app-paths"
 	"go.etcd.io/bbolt"
 
 	"github.com/matthieugusmini/rift/internal/cache"
 	"github.com/matthieugusmini/rift/internal/githubusercontent"
-	"github.com/matthieugusmini/rift/internal/lolesports"
 	"github.com/matthieugusmini/rift/internal/rift"
 	"github.com/matthieugusmini/rift/internal/ui"
 )
@@ -37,6 +36,7 @@ const (
 	bucketBracketTemplate = "bracketTemplate"
 	bucketStandings       = "standings"
 	bucketSchedule        = "schedule"
+	bucketSplits          = "splits"
 
 	cacheDefaultTTL = 12 * time.Hour
 )
@@ -150,15 +150,19 @@ func initLoLEsportsLoader(
 	cacheDB *bbolt.DB,
 	logger *slog.Logger,
 ) *rift.LoLEsportsLoader {
-	lolesportsAPIClient := lolesports.NewClient(
-		gololesports.NewClient(gololesports.WithHTTPClient(httpClient)),
-	)
+	lolesportsAPIClient := lolesports.NewClient(lolesports.WithHTTPClient(httpClient))
 
-	standingsCache := cache.New[[]gololesports.Standings](
+	standingsCache := cache.New[[]lolesports.Standings](
 		cacheDB,
 		bucketStandings,
 		cacheDefaultTTL,
 	)
 
-	return rift.NewLoLEsportsLoader(lolesportsAPIClient, standingsCache, logger)
+	splitsCache := cache.New[[]lolesports.Split](
+		cacheDB,
+		bucketSplits,
+		cacheDefaultTTL,
+	)
+
+	return rift.NewLoLEsportsLoader(lolesportsAPIClient, standingsCache, splitsCache, logger)
 }

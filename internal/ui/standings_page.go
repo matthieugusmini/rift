@@ -669,7 +669,7 @@ func (p *standingsPage) loadStandings(tournamentIDs []string) tea.Cmd {
 
 func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	return func() tea.Msg {
-		splits, err := p.lolesportsClient.GetCurrentSeasonSplits(context.Background())
+		splits, err := p.lolesportsClient.LoadCurrentSeasonSplits(context.Background())
 		if err != nil {
 			return fetchErrorMessage{err: err}
 		}

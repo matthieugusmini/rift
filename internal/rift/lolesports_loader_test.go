@@ -17,10 +17,16 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 	t.Run("returns from cache", func(t *testing.T) {
 		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
-		fakeCache := newFakeCacheWith(map[string][]lolesports.Standings{
+		fakeStandingsCache := newFakeCacheWith(map[string][]lolesports.Standings{
 			cacheKey: testStandings,
 		})
-		loader := rift.NewLoLEsportsLoader(stubLoLEsportsAPIClient, fakeCache, slog.Default())
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
 
 		got := mustLoadStandings(t, loader, tournamentIDs)
 
@@ -34,8 +40,14 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 	t.Run("fetches from API and update cache", func(t *testing.T) {
 		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
-		fakeCache := newFakeCache[[]lolesports.Standings]()
-		loader := rift.NewLoLEsportsLoader(stubLoLEsportsAPIClient, fakeCache, slog.Default())
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
 
 		got := mustLoadStandings(t, loader, tournamentIDs)
 
@@ -47,7 +59,7 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		}
 
 		// Assert that the cache has been updated
-		cacheEntry, ok := fakeCache.entries[cacheKey]
+		cacheEntry, ok := fakeStandingsCache.entries[cacheKey]
 		if !ok {
 			t.Fatalf("Bracket template should be cached after loading")
 		}
@@ -59,8 +71,14 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 	t.Run("returns error if not in cache and API fails", func(t *testing.T) {
 		stubLoLEsportsAPIClient := newNotFoundLoLEsportsAPIClient()
-		fakeCache := newFakeCache[[]lolesports.Standings]()
-		loader := rift.NewLoLEsportsLoader(stubLoLEsportsAPIClient, fakeCache, slog.Default())
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
 
 		_, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 		if err == nil {
@@ -70,9 +88,18 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 	t.Run("fetch from API if fails to get in cache", func(t *testing.T) {
 		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
-		fakeCache := newFakeCache[[]lolesports.Standings]()
-		fakeCache.getErr = errCacheGet
-		loader := rift.NewLoLEsportsLoader(stubLoLEsportsAPIClient, fakeCache, slog.Default())
+
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeStandingsCache.getErr = errCacheGet
+
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
 
 		got := mustLoadStandings(t, loader, tournamentIDs)
 
@@ -84,7 +111,7 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		}
 
 		// Assert that the cache has been updated
-		cacheEntry, ok := fakeCache.entries[cacheKey]
+		cacheEntry, ok := fakeStandingsCache.entries[cacheKey]
 		if !ok {
 			t.Fatalf("Bracket template should be cached after loading")
 		}
@@ -95,9 +122,18 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 	t.Run("returns result if cannot update cache", func(t *testing.T) {
 		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
-		fakeCache := newFakeCache[[]lolesports.Standings]()
-		fakeCache.setErr = errCacheSet
-		loader := rift.NewLoLEsportsLoader(stubLoLEsportsAPIClient, fakeCache, slog.Default())
+
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeStandingsCache.setErr = errCacheSet
+
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
 
 		got := mustLoadStandings(t, loader, tournamentIDs)
 
@@ -151,6 +187,7 @@ var testStandings = []lolesports.Standings{
 
 type stubLoLEsportsAPIClient struct {
 	standings []lolesports.Standings
+	seasons   []lolesports.Season
 	err       error
 }
 
@@ -172,9 +209,10 @@ func (c *stubLoLEsportsAPIClient) GetStandings(
 	return c.standings, nil
 }
 
-func (c *stubLoLEsportsAPIClient) GetCurrentSeasonSplits(
+func (c *stubLoLEsportsAPIClient) GetSeasons(
 	ctx context.Context,
-) ([]lolesports.Split, error) {
+	opts *lolesports.GetSeasonsOptions,
+) ([]lolesports.Season, error) {
 	return nil, nil
 }
 
