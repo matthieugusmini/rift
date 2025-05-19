@@ -36,7 +36,7 @@ sudo apt update
 sudo apt install rift
 ```
 
-### yum
+### dnf
 
 ```bash
 # Fedora/RHEL
@@ -45,7 +45,7 @@ name=Gemfury Private Repo
 baseurl=https://yum.fury.io/matthieugusmini/
 enabled=1
 gpgcheck=0' | sudo tee /etc/yum.repos.d/fury.repo
-sudo yum install rift
+sudo dnf install rift
 ```
 
 ### Go
