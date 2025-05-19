@@ -30,6 +30,7 @@ func TestIsYesterday(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsYesterday(tc.date)
+
 			require.Equal(t, tc.want, got)
 		})
 	}
@@ -55,6 +56,7 @@ func TestIsToday(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsToday(tc.date)
+
 			require.Equal(t, tc.want, got)
 		})
 	}
