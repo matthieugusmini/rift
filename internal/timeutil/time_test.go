@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/matthieugusmini/rift/internal/timeutil"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	worldWarIIStartDate = time.Date(1939, time.September, 1, 0, 0, 0, 0, time.UTC)
-	worldWarIIEndDate   = time.Date(1945, time.September, 2, 0, 0, 0, 0, time.UTC)
+	shacoReleaseDate = time.Date(2009, time.October, 10, 0, 0, 0, 0, time.UTC)
+	yuumiReleaseDate = time.Date(2019, time.May, 14, 0, 0, 0, 0, time.UTC)
 )
 
 func TestIsCurrentTimeBetween(t *testing.T) {
@@ -20,31 +21,22 @@ func TestIsCurrentTimeBetween(t *testing.T) {
 		want      bool
 	}{
 		{
-			name:      "with range between yesterday and tomorrow returns true",
+			name:      "returns true if range from yesterday to tomorrow",
 			startTime: time.Now().AddDate(0, 0, -1),
 			endTime:   time.Now().AddDate(0, 0, 1),
 			want:      true,
 		},
 		{
-			name:      "with range between World War II start and end date returns false",
-			startTime: worldWarIIStartDate,
-			endTime:   worldWarIIEndDate,
+			name:      "returns false if range from Shaco release date to Yuumi release date",
+			startTime: yuumiReleaseDate,
+			endTime:   shacoReleaseDate,
 			want:      false,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsCurrentTimeBetween(tc.startTime, tc.endTime)
-
-			if got != tc.want {
-				t.Errorf(
-					"IsCurrentTimeBetween(%s, %s) = %t, want %t",
-					tc.startTime,
-					tc.endTime,
-					got,
-					tc.want,
-				)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }

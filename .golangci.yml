@@ -98,8 +98,5 @@ formatters:
       local-prefixes:
         - github.com/matthieugusmini/lolesport
 
-    golines:
-      max-len: 100
-
   exclusions:
     generated: lax

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/matthieugusmini/rift/internal/timeutil"
+	"github.com/stretchr/testify/require"
 )
 
 var goatBirthday = time.Date(1996, time.May, 7, 0, 0, 0, 0, time.UTC)
@@ -29,10 +30,7 @@ func TestIsYesterday(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsYesterday(tc.date)
-
-			if got != tc.want {
-				t.Errorf("IsYesterday(%s) = %t, want %t", tc.date, got, tc.want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -57,10 +55,7 @@ func TestIsToday(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsToday(tc.date)
-
-			if got != tc.want {
-				t.Errorf("IsToday(%s) = %t, want %t", tc.date, got, tc.want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -85,10 +80,7 @@ func TestIsTomorrow(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			got := timeutil.IsTomorrow(tc.date)
-
-			if got != tc.want {
-				t.Errorf("IsTomorrow(%s) = %t, want %t", tc.date, got, tc.want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }

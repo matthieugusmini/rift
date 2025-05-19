@@ -8,7 +8,7 @@ tasks:
   run:
     desc: Run the project
     cmds:
-      - go run
+      - go run .
 
   build:
     desc: Build the project
