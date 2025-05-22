@@ -9,6 +9,7 @@ import (
 
 	"github.com/matthieugusmini/rift/internal/githubusercontent"
 	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,35 +17,53 @@ func TestBracketTemplateClient_ListAvailableStageIDs(t *testing.T) {
 	response := testBracketTypeByStageID
 	want := []string{"1", "2"}
 
-	t.Run("returns available stage ids when successful request", func(t *testing.T) {
+	t.Run("successful request returns available stage ids", func(t *testing.T) {
 		client, mux := setup(t)
 		mux.HandleFunc(
 			"/bracket-type-by-stage-id.json",
 			func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, http.MethodGet, r.Method)
-				json.NewEncoder(w).Encode(response) //nolint:errcheck
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				json.NewEncoder(w).Encode(response)
 			},
 		)
 
 		got, err := client.ListAvailableStageIDs(t.Context())
 
 		require.NoError(t, err)
-		require.ElementsMatch(t, want, got)
+		assert.ElementsMatch(t, want, got)
 	})
 
-	t.Run("returns error if malformated JSON", func(t *testing.T) {
+	t.Run("malformated JSON return error", func(t *testing.T) {
 		client, mux := setup(t)
 		mux.HandleFunc(
 			"/bracket-type-by-stage-id.json",
 			func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, http.MethodGet, r.Method)
+
 				fmt.Fprint(w, "malformated JSON")
 			},
 		)
 
 		_, err := client.ListAvailableStageIDs(t.Context())
 
-		require.Error(t, err)
+		assert.Error(t, err)
+	})
+
+	t.Run("status not OK returns error", func(t *testing.T) {
+		client, mux := setup(t)
+		mux.HandleFunc(
+			"/bracket-type-by-stage-id.json",
+			func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				http.NotFound(w, r)
+			},
+		)
+
+		_, err := client.ListAvailableStageIDs(t.Context())
+
+		assert.Error(t, err)
 	})
 }
 
@@ -53,37 +72,57 @@ func TestBracketTemplateClient_GetTemplateByStageID(t *testing.T) {
 	response := testBracketTypeByStageID
 	want := testBracketTemplate
 
-	t.Run("returns bracket template when successful request", func(t *testing.T) {
+	t.Run("successful request returns bracket template", func(t *testing.T) {
 		client, mux := setup(t)
+
 		mux.HandleFunc(
 			"/bracket-type-by-stage-id.json",
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				json.NewEncoder(w).Encode(response) //nolint:errcheck
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				json.NewEncoder(w).Encode(response)
 			}),
 		)
 		mux.HandleFunc("/8SE.json", func(w http.ResponseWriter, r *http.Request) {
-			require.Equal(t, http.MethodGet, r.Method)
-			json.NewEncoder(w).Encode(want) //nolint:errcheck
+			assert.Equal(t, http.MethodGet, r.Method)
+
+			json.NewEncoder(w).Encode(want)
 		})
 
 		got, err := client.GetTemplateByStageID(t.Context(), stageID)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	})
 
-	t.Run("returns error when stage id is not supported", func(t *testing.T) {
+	t.Run("stage id not supported returns error", func(t *testing.T) {
 		client, mux := setup(t)
 		mux.HandleFunc(
 			"/bracket-type-by-stage-id.json",
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, http.MethodGet, r.Method)
-				json.NewEncoder(w).Encode(response) //nolint:errcheck
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				json.NewEncoder(w).Encode(response)
 			}),
 		)
 		_, err := client.GetTemplateByStageID(t.Context(), "3")
 
-		require.Error(t, err)
+		assert.Error(t, err)
+	})
+
+	t.Run("status not OK returns error", func(t *testing.T) {
+		client, mux := setup(t)
+		mux.HandleFunc(
+			"/bracket-type-by-stage-id.json",
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				http.NotFound(w, r)
+			}),
+		)
+		_, err := client.GetTemplateByStageID(t.Context(), "3")
+
+		assert.Error(t, err)
 	})
 }
 

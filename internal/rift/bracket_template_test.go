@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +23,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 		got, err := loader.Load(t.Context(), stageID)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("returns template from API and update cache", func(t *testing.T) {
@@ -33,10 +34,10 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 		got, err := loader.Load(t.Context(), stageID)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 		// Assert that the cache has been updated
 		_, ok := fakeCache.entries[stageID]
-		require.True(t, ok)
+		assert.True(t, ok)
 	})
 
 	t.Run("returns error if not in cache and API not found", func(t *testing.T) {
@@ -46,7 +47,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 
 		_, err := loader.Load(t.Context(), stageID)
 
-		require.Error(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("returns template even if fails to get cached value", func(t *testing.T) {
@@ -58,10 +59,10 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 		got, err := loader.Load(t.Context(), stageID)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 		// Assert that the cache has been updated
 		_, ok := fakeCache.entries[stageID]
-		require.True(t, ok)
+		assert.True(t, ok)
 	})
 
 	t.Run("returns template even if cannot update cache", func(t *testing.T) {
@@ -73,7 +74,7 @@ func TestBracketTemplateLoader_Load(t *testing.T) {
 		got, err := loader.Load(t.Context(), stageID)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -88,7 +89,7 @@ func TestBracketTemplateLoader_ListAvailableStageIDs(t *testing.T) {
 		got, err := loader.ListAvailableStageIDs(t.Context())
 
 		require.NoError(t, err)
-		require.ElementsMatch(t, want, got)
+		assert.ElementsMatch(t, want, got)
 	})
 
 	t.Run("returns error if cannot fetch", func(t *testing.T) {
@@ -98,7 +99,7 @@ func TestBracketTemplateLoader_ListAvailableStageIDs(t *testing.T) {
 
 		_, err := loader.ListAvailableStageIDs(t.Context())
 
-		require.Error(t, err)
+		assert.Error(t, err)
 	})
 }
 

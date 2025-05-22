@@ -23,7 +23,6 @@ linters:
     - nonamedreturns
     - paralleltest # https://groups.google.com/g/golang-dev/c/RAKiqi44GEU/m/WkD64zvPR_0J
     - tagalign
-    - testifylint
     - varnamelen
     - wrapcheck
     - wsl # Too strict and opinionated. Doesn't necessarily improve code readability.
@@ -82,6 +81,11 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+        text: Error return value of .(\(\*encoding/json\.Encoder\).Encode). is not checked
 
 formatters:
   enable:

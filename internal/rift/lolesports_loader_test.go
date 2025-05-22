@@ -7,6 +7,7 @@ import (
 
 	"github.com/matthieugusmini/go-lolesports"
 	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +32,7 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		got, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("fetches from API and update cache", func(t *testing.T) {
@@ -48,10 +49,10 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		got, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 		// Assert that the cache has been updated
 		_, ok := fakeStandingsCache.entries[cacheKey]
-		require.True(t, ok)
+		assert.True(t, ok)
 	})
 
 	t.Run("returns error if not in cache and API fails", func(t *testing.T) {
@@ -67,7 +68,7 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 		_, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 
-		require.Error(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("fetch from API if fails to get in cache", func(t *testing.T) {
@@ -85,10 +86,10 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		got, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 		// Assert that the cache has been updated
 		_, ok := fakeStandingsCache.entries[cacheKey]
-		require.True(t, ok)
+		assert.True(t, ok)
 	})
 
 	t.Run("returns result if cannot update cache", func(t *testing.T) {
@@ -106,7 +107,7 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 		got, err := loader.LoadStandingsByTournamentIDs(t.Context(), tournamentIDs)
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -122,7 +123,28 @@ var testStandings = []lolesports.Standings{
 					{
 						Name: "Worlds",
 						Matches: []lolesports.Match{
-							{},
+							{
+								ID:               "",
+								PreviousMatchIDs: nil,
+								Flags:            nil,
+								Teams: []lolesports.Team{
+									{
+										ID:    "1337",
+										Slug:  "M5",
+										Name:  "Moscow 5",
+										Code:  "M5",
+										Image: "https://le-link-pour-get-l-image.com",
+										Result: &lolesports.Result{
+											Outcome:  pointer("win"),
+											GameWins: 3,
+										},
+									},
+								},
+								Strategy: lolesports.Strategy{
+									Type:  lolesports.MatchStrategyTypeBestOf,
+									Count: 5,
+								},
+							},
 						},
 						Rankings: []lolesports.Ranking{
 							{},
@@ -174,3 +196,5 @@ func (c *stubLoLEsportsAPIClient) GetSchedule(
 ) (lolesports.Schedule, error) {
 	return lolesports.Schedule{}, nil
 }
+
+func pointer[T any](v T) *T { return &v }
