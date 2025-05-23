@@ -40,8 +40,8 @@ sudo apt install rift
 
 ```bash
 # Fedora/RHEL
-echo '[fury]
-name=Gemfury Private Repo
+echo '[matthieugusmini]
+name=matthieugusmini
 baseurl=https://yum.fury.io/matthieugusmini/
 enabled=1
 gpgcheck=0' | sudo tee /etc/yum.repos.d/fury.repo
