@@ -16,6 +16,12 @@ func IsToday(date time.Time) bool {
 	return compareDay(date, today)
 }
 
+func IsBeforeToday(date time.Time) bool {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	return date.Before(today)
+}
+
 // IsTomorrow returns true if the given date is tomorrow, false otherwise.
 func IsTomorrow(date time.Time) bool {
 	tomorrow := time.Now().AddDate(0, 0, 1)

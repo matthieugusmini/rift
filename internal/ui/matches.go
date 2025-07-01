@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
-
 	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
@@ -93,13 +92,23 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.SetSpinner(spinner.MiniDot)
 	l.SetShowHelp(false)
 
-	// We use the first match of the day as the starting position for the list cursor.
-	firstTodayMatchIndex := slices.IndexFunc(events, func(event lolesports.Event) bool {
-		return timeutil.IsToday(event.StartTime)
-	})
-	l.Select(firstTodayMatchIndex)
+	cursorStartingPos := indexMatchListInitialCursor(events)
+	l.Select(cursorStartingPos)
 
 	return l
+}
+
+func indexMatchListInitialCursor(events []lolesports.Event) int {
+	// The starting position of the cursor is the first match of the first day
+	// with a match starting from today.
+	cursorStartingPos := slices.IndexFunc(events, func(event lolesports.Event) bool {
+		return !timeutil.IsBeforeToday(event.StartTime)
+	})
+	// Fallback to 0 but it should never happen. Right?
+	if cursorStartingPos == -1 {
+		return 0
+	}
+	return cursorStartingPos
 }
 
 type matchItemStyles struct {

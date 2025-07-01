@@ -17,12 +17,12 @@ func TestIsYesterday(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "with yesterday date returns true",
+			name: "yesterday returns true",
 			date: time.Now().AddDate(0, 0, -1),
 			want: true,
 		},
 		{
-			name: "with Faker birthday returns false",
+			name: "Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},
@@ -43,12 +43,12 @@ func TestIsToday(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "with current date returns true",
+			name: "current date returns true",
 			date: time.Now(),
 			want: true,
 		},
 		{
-			name: "with Faker birthday returns false",
+			name: "Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},
@@ -62,6 +62,31 @@ func TestIsToday(t *testing.T) {
 	}
 }
 
+func TestIsBeforeToday(t *testing.T) {
+	tt := []struct {
+		name string
+		date time.Time
+		want bool
+	}{
+		{
+			name: "yesterday returns true",
+			date: time.Now().AddDate(0, 0, -1),
+			want: true,
+		},
+		{
+			name: "today returns false",
+			date: time.Now(),
+			want: false,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			got := timeutil.IsBeforeToday(tc.date)
+			require.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestIsTomorrow(t *testing.T) {
 	tt := []struct {
 		name string
@@ -69,12 +94,12 @@ func TestIsTomorrow(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "with tomorrow date returns true",
+			name: "tomorrow returns true",
 			date: time.Now().AddDate(0, 0, 1),
 			want: true,
 		},
 		{
-			name: "with Faker birthday returns false",
+			name: "Faker birthday returns false",
 			date: goatBirthday,
 			want: false,
 		},

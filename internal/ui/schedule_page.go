@@ -528,6 +528,11 @@ func filterMatchEvents(events []lolesports.Event) []lolesports.Event {
 			continue
 		}
 
+		// Matches does not always have teams somehow.
+		if len(event.Match.Teams) != 2 {
+			continue
+		}
+
 		matches = append(matches, event)
 	}
 
