@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.9.3
 	github.com/matthieugusmini/go-lolesports v0.5.0
 	github.com/muesli/go-app-paths v0.2.2
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.etcd.io/bbolt v1.4.2
 )
 
