@@ -10,7 +10,7 @@ require (
 	github.com/matthieugusmini/go-lolesports v0.5.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/stretchr/testify v1.11.1
-	go.etcd.io/bbolt v1.4.2
+	go.etcd.io/bbolt v1.4.3
 )
 
 require (
