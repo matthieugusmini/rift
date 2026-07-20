@@ -306,7 +306,7 @@ func matchAdvancingTo(structuralID, destinationID string) lolesportsgraphql.Matc
 	match.Destinations = &lolesportsgraphql.Destinations{
 		Win: lolesportsgraphql.Destination{
 			Type:         lolesportsgraphql.DestinationTypeMatch,
-			StructuralID: pointer(destinationID),
+			StructuralID: new(destinationID),
 		},
 	}
 
@@ -329,7 +329,7 @@ func matchAdvancingToWinAndLoss(
 	match := matchAdvancingTo(structuralID, winDestinationID)
 	match.Destinations.Loss = lolesportsgraphql.Destination{
 		Type:         lolesportsgraphql.DestinationTypeMatch,
-		StructuralID: pointer(lossDestinationID),
+		StructuralID: new(lossDestinationID),
 	}
 
 	return match
@@ -394,8 +394,4 @@ func dynamicEdgeExists(
 	}
 
 	return false
-}
-
-func pointer[T any](value T) *T {
-	return &value
 }

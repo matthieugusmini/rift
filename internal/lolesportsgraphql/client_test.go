@@ -44,9 +44,9 @@ func TestClient_GetStage(t *testing.T) {
 		assert.Equal(t, "semifinal-1", semifinal.StructuralID)
 		require.NotNil(t, semifinal.Destinations)
 		assert.Equal(t, lolesportsgraphql.DestinationTypeMatch, semifinal.Destinations.Win.Type)
-		assert.Equal(t, pointer("final"), semifinal.Destinations.Win.StructuralID)
+		assert.Equal(t, new("final"), semifinal.Destinations.Win.StructuralID)
 		require.NotNil(t, semifinal.Teams[0].Result)
-		assert.Equal(t, pointer("win"), semifinal.Teams[0].Result.Outcome)
+		assert.Equal(t, new("win"), semifinal.Teams[0].Result.Outcome)
 
 		final := stage.Sections[0].Columns[1].Cells[0].Matches[0]
 		assert.Nil(t, final.Destinations)
@@ -165,8 +165,4 @@ func assertGetStageRequest(t *testing.T, r *http.Request, stageID string) {
 		"1b5a17d767e7b415b56d2319238468791089bc25cb782138697ae5eefbbea668",
 		extensions.PersistedQuery.Hash,
 	)
-}
-
-func pointer[T any](value T) *T {
-	return &value
 }

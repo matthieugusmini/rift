@@ -226,7 +226,7 @@ var testStandings = []lolesports.Standings{
 										Code:  "M5",
 										Image: "https://le-link-pour-get-l-image.com",
 										Result: &lolesports.Result{
-											Outcome:  pointer("win"),
+											Outcome:  new("win"),
 											GameWins: 3,
 										},
 									},
@@ -289,5 +289,3 @@ func (c *stubLoLEsportsAPIClient) GetSchedule(
 ) (lolesports.Schedule, error) {
 	return lolesports.Schedule{}, nil
 }
-
-func pointer[T any](v T) *T { return &v }
