@@ -20,6 +20,8 @@ const (
 	locale                    = "en-US"
 )
 
+var ErrPersistedQueryUnavailable = errors.New("persisted GraphQL query is unavailable")
+
 type ClientOption func(*Client)
 
 func WithBaseURL(baseURL string) ClientOption {
@@ -112,7 +114,10 @@ func (c *Client) GetStage(ctx context.Context, stageID string) (Stage, error) {
 			Stages []Stage `json:"stages"`
 		} `json:"data"`
 		Errors []struct {
-			Message string `json:"message"`
+			Message    string `json:"message"`
+			Extensions struct {
+				Code string `json:"code"`
+			} `json:"extensions"`
 		} `json:"errors"`
 	}
 
@@ -122,6 +127,17 @@ func (c *Client) GetStage(ctx context.Context, stageID string) (Stage, error) {
 	}
 
 	if len(response.Errors) > 0 {
+		code := response.Errors[0].Extensions.Code
+		if code == "PERSISTED_QUERY_NOT_IN_LIST" ||
+			code == "PERSISTED_QUERY_NOT_FOUND" ||
+			code == "PERSISTED_QUERY_ID_REQUIRED" {
+			return Stage{}, fmt.Errorf(
+				"%w: %s",
+				ErrPersistedQueryUnavailable,
+				response.Errors[0].Message,
+			)
+		}
+
 		return Stage{}, fmt.Errorf("GraphQL request failed: %s", response.Errors[0].Message)
 	}
 

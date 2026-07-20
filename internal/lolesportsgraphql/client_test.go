@@ -66,6 +66,22 @@ func TestClient_GetStage(t *testing.T) {
 		require.ErrorContains(t, err, "persisted query expired")
 	})
 
+	t.Run("identifies an unavailable persisted query", func(t *testing.T) {
+		client, mux := setup(t)
+		mux.HandleFunc("/api/gql", func(w http.ResponseWriter, _ *http.Request) {
+			fmt.Fprint(w, `{
+                "errors":[{
+                    "message":"PersistedQueryNotInList",
+                    "extensions":{"code":"PERSISTED_QUERY_NOT_IN_LIST"}
+                }]
+            }`)
+		})
+
+		_, err := client.GetStage(t.Context(), "stage-1")
+
+		require.ErrorIs(t, err, lolesportsgraphql.ErrPersistedQueryUnavailable)
+	})
+
 	t.Run("returns an error when the stage is absent", func(t *testing.T) {
 		client, mux := setup(t)
 		mux.HandleFunc("/api/gql", func(w http.ResponseWriter, _ *http.Request) {
