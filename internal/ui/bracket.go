@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
+	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 	"github.com/matthieugusmini/rift/internal/rift"
 )
 
@@ -126,10 +127,29 @@ type bracketPage struct {
 	width, height int
 	template      rift.BracketTemplate
 	matches       []lolesports.Match
+	dynamicStage  *lolesportsgraphql.Stage
 	viewport      viewport.Model
 	help          help.Model
 	keyMap        bracketPageKeyMap
 	styles        bracketPageStyles
+}
+
+func newDynamicBracketPage(
+	stage lolesportsgraphql.Stage,
+	width, height int,
+) *bracketPage {
+	m := &bracketPage{
+		dynamicStage: &stage,
+		width:        width,
+		height:       height,
+		help:         help.New(),
+		keyMap:       newDefaultBracketPageKeyMap(),
+		styles:       newDefaultBracketPageStyles(),
+	}
+
+	m.initViewport()
+
+	return m
 }
 
 func newBracketPage(
@@ -292,7 +312,13 @@ func (m *bracketPage) toggleFullHelp() {
 }
 
 func (m *bracketPage) initViewport() {
-	content := renderBracket(m.template, m.matches, m.width, m.contentHeight(), m.styles)
+	var content string
+	if m.dynamicStage != nil {
+		content = renderDynamicStage(*m.dynamicStage, m.styles)
+	} else {
+		content = renderBracket(m.template, m.matches, m.width, m.contentHeight(), m.styles)
+	}
+
 	m.viewport = viewport.New(m.width, m.contentHeight())
 	m.viewport.SetContent(content)
 	m.viewport.SetHorizontalStep(5)

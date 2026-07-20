@@ -151,6 +151,32 @@ func TestRenderDynamicBracket(t *testing.T) {
 	}
 }
 
+func TestRenderDynamicStage(t *testing.T) {
+	stage := lolesportsgraphql.Stage{
+		Sections: []lolesportsgraphql.Section{
+			{
+				Name: "Group A",
+				Columns: []lolesportsgraphql.Column{
+					columnWithMatches(matchWithTeams("group-a", "", "AAA", "BBB")),
+				},
+			},
+			{
+				Name: "Group B",
+				Columns: []lolesportsgraphql.Column{
+					columnWithMatches(matchWithTeams("group-b", "", "CCC", "DDD")),
+				},
+			},
+		},
+	}
+
+	view := renderDynamicStage(stage, bracketPageStyles{})
+
+	assert.Contains(t, view, "Group A")
+	assert.Contains(t, view, "Group B")
+	assert.Contains(t, view, "AAA")
+	assert.Contains(t, view, "DDD")
+}
+
 func TestFindDynamicRouteRow(t *testing.T) {
 	section := lolesportsgraphql.Section{
 		Columns: []lolesportsgraphql.Column{

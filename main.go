@@ -16,6 +16,7 @@ import (
 
 	"github.com/matthieugusmini/rift/internal/cache"
 	"github.com/matthieugusmini/rift/internal/githubusercontent"
+	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 	"github.com/matthieugusmini/rift/internal/rift"
 	"github.com/matthieugusmini/rift/internal/ui"
 )
@@ -74,8 +75,9 @@ func run() error {
 	bracketTemplateLoader := initBracketTemplateLoader(httpClient, cacheDB, logger)
 
 	lolesportsLoader := initLoLEsportsLoader(httpClient, cacheDB, logger)
+	lolesportsStageClient := lolesportsgraphql.NewClient(httpClient)
 
-	m := ui.NewModel(lolesportsLoader, bracketTemplateLoader, logger)
+	m := ui.NewModel(lolesportsLoader, lolesportsStageClient, bracketTemplateLoader, logger)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

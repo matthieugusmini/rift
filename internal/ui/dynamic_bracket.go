@@ -50,6 +50,24 @@ func RenderDynamicBracket(section lolesportsgraphql.Section) string {
 	return renderDynamicBracket(section, newDefaultBracketPageStyles())
 }
 
+func renderDynamicStage(
+	stage lolesportsgraphql.Stage,
+	styles bracketPageStyles,
+) string {
+	sections := make([]string, 0, len(stage.Sections))
+	for _, section := range stage.Sections {
+		view := renderDynamicBracket(section, styles)
+		if len(stage.Sections) > 1 {
+			title := styles.roundTitle.Render(section.Name)
+			view = lipgloss.JoinVertical(lipgloss.Left, title, "", view)
+		}
+
+		sections = append(sections, view)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
+
 func layoutDynamicBracket(section lolesportsgraphql.Section) dynamicBracketLayout {
 	layout := dynamicBracketLayout{
 		columns: make([]dynamicColumnLayout, len(section.Columns)),
