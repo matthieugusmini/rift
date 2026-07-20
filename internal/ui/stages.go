@@ -76,6 +76,7 @@ type stageItemStyles struct {
 	disabledDesc          lipgloss.Style
 	disabledSelectedTitle lipgloss.Style
 	disabledSelectedDesc  lipgloss.Style
+	selectedTitleText     lipgloss.Style
 }
 
 func newStageItemStyles(theme theme) (s stageItemStyles) {
@@ -90,11 +91,12 @@ func newStageItemStyles(theme theme) (s stageItemStyles) {
 	s.DefaultItemStyles = defaultStyles
 
 	// Selected
-	s.SelectedTitle = selectedStyle.
-		Foreground(theme.selected).
-		Bold(true)
+	s.SelectedTitle = selectedStyle.Foreground(theme.selected)
 
 	s.SelectedDesc = selectedStyle.Foreground(theme.textSecondary)
+	s.selectedTitleText = lipgloss.NewStyle().
+		Foreground(theme.selected).
+		Bold(true)
 
 	// Disabled but selected
 	s.disabledSelectedTitle = disabledSelectedStyle
@@ -160,7 +162,7 @@ func (d stageItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		desc = s.disabledDesc.Render(desc)
 
 	case !isDisabled && isSelected:
-		title = s.SelectedTitle.Render(title)
+		title = s.SelectedTitle.Render(s.selectedTitleText.Render(title))
 		desc = s.SelectedDesc.Render(desc)
 
 	case !isDisabled && !isSelected:

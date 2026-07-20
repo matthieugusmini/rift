@@ -25,6 +25,8 @@ func TestStageItemSelectedCursorSegmentsAlign(t *testing.T) {
 	assert.Equal(t, cursorColumn(lines[0]), cursorColumn(lines[1]))
 	assert.True(t, strings.HasPrefix(lines[0], "┃ "))
 	assert.True(t, strings.HasPrefix(lines[1], "┃ "))
+	assert.False(t, delegate.styles.SelectedTitle.GetBold())
+	assert.True(t, delegate.styles.selectedTitleText.GetBold())
 }
 
 func cursorColumn(line string) int {

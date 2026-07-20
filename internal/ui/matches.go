@@ -272,14 +272,17 @@ func (d matchItemDelegate) viewTitleWithStartTime(item matchItem, width int) str
 	team1Name := d.styles.teamName.Render(item.team1.name)
 	team2Name := d.styles.teamName.Render(item.team2.name)
 	sep := d.styles.separator.Render(separatorSlash)
-	score := d.styles.upcomingMatchScore.
-		Width(width - padding - lipgloss.Width(startTime)*2).
-		Render(team1Name + sep + team2Name)
+	scoreWidth := max(width-padding-lipgloss.Width(startTime)*2, 0)
+	score := renderMatchColumn(
+		d.styles.upcomingMatchScore,
+		team1Name+sep+team2Name,
+		scoreWidth,
+	)
 
 	// Place a filler with the same size as startTime to maintain alignment.
 	filler := strings.Repeat(" ", lipgloss.Width(startTime))
 
-	return d.styles.title.Render(startTime + score + filler)
+	return renderMatchColumn(d.styles.title, startTime+score+filler, width)
 }
 
 //	┌──────────────────────────────────────────────────────┐
@@ -294,7 +297,7 @@ func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width 
 
 	title := team1Name + sep + team2Name
 
-	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, ansi.Truncate(title, width, "…"))
 }
 
 //	┌──────────────────────────────────────────────────────┐
@@ -313,7 +316,7 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 
 	title := team1NameAndScore + sep + team2NameAndScore
 
-	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, ansi.Truncate(title, width, "…"))
 }
 
 //	┌────────────┬────────────────────────────┬────────────┐
@@ -322,28 +325,45 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 //
 // LEAGUE & BLOCK NAME gets content-based width + its padding.
 // The remaining space is split evenly between FLAGS and STRATEGY.
-// FLAGS is truncated with ellipsis when necessary.
+// Columns are truncated with ellipsis when necessary.
 func (d matchItemDelegate) viewDescription(item matchItem, width int) string {
-	leagueAndBlockName := d.styles.leagueAndBlockName.Render(
-		item.leagueName + separatorBullet + item.blockName,
+	leagueAndBlockName := item.leagueName + separatorBullet + item.blockName
+	leagueAndBlockNameWidth := min(
+		width,
+		lipgloss.Width(leagueAndBlockName)+d.styles.leagueAndBlockName.GetHorizontalFrameSize(),
+	)
+	leagueAndBlockName = renderMatchColumn(
+		d.styles.leagueAndBlockName,
+		leagueAndBlockName,
+		leagueAndBlockNameWidth,
 	)
 
 	availWidth := width - lipgloss.Width(leagueAndBlockName)
 
 	sideColumnWidth := availWidth / 2
-	strategy := d.styles.strategy.
-		Width(sideColumnWidth).
-		Render(item.strategy)
+	strategy := renderMatchColumn(d.styles.strategy, item.strategy, sideColumnWidth)
 
 	// We don't use sideColumnWidth as it would be incorrect when
 	// availWidth is an odd number.
 	flagsMaxWidth := availWidth - lipgloss.Width(strategy)
-	flags := d.styles.flags.
-		Width(flagsMaxWidth).
-		Render(item.flags)
-	flags = ansi.Truncate(flags, flagsMaxWidth, "…")
+	flags := renderMatchColumn(d.styles.flags, item.flags, flagsMaxWidth)
 
 	return flags + leagueAndBlockName + strategy
+}
+
+func renderMatchColumn(style lipgloss.Style, text string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+
+	frameWidth := style.GetHorizontalFrameSize()
+	if width < frameWidth {
+		return strings.Repeat(" ", width)
+	}
+
+	text = ansi.Truncate(text, width-frameWidth, "…")
+
+	return style.Width(width).Render(text)
 }
 
 func formatMatchStrategy(strategy lolesports.Strategy) string {
