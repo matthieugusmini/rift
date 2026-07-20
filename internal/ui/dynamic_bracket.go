@@ -36,9 +36,18 @@ type dynamicColumnLayout struct {
 	width   int
 }
 
+type dynamicEdgeOutcome int
+
+const (
+	dynamicEdgeOutcomeWin dynamicEdgeOutcome = iota
+	dynamicEdgeOutcomeLoss
+)
+
 type dynamicEdgeLayout struct {
-	from dynamicNodeRef
-	to   dynamicNodeRef
+	from    dynamicNodeRef
+	to      dynamicNodeRef
+	outcome dynamicEdgeOutcome
+	slot    int
 }
 
 type dynamicBracketLayout struct {
@@ -203,12 +212,14 @@ func listDynamicEdges(
 				edges,
 				from,
 				match.match.Destinations.Win,
+				dynamicEdgeOutcomeWin,
 				nodesByStructuralID,
 			)
 			edges = appendDynamicEdge(
 				edges,
 				from,
 				match.match.Destinations.Loss,
+				dynamicEdgeOutcomeLoss,
 				nodesByStructuralID,
 			)
 		}
@@ -221,6 +232,7 @@ func appendDynamicEdge(
 	edges []dynamicEdgeLayout,
 	from dynamicNodeRef,
 	destination lolesportsgraphql.Destination,
+	outcome dynamicEdgeOutcome,
 	nodesByStructuralID map[string]dynamicNodeRef,
 ) []dynamicEdgeLayout {
 	if destination.Type != lolesportsgraphql.DestinationTypeMatch ||
@@ -233,7 +245,12 @@ func appendDynamicEdge(
 		return edges
 	}
 
-	return append(edges, dynamicEdgeLayout{from: from, to: to})
+	return append(edges, dynamicEdgeLayout{
+		from:    from,
+		to:      to,
+		outcome: outcome,
+		slot:    destination.Slot,
+	})
 }
 
 func alignDynamicMatches(layout *dynamicBracketLayout) {
@@ -442,6 +459,10 @@ func drawDynamicConnectors(
 	}
 
 	for _, edge := range layout.edges {
+		if edge.outcome == dynamicEdgeOutcomeLoss {
+			continue
+		}
+
 		fromColumn := layout.columns[edge.from.column]
 		toColumn := layout.columns[edge.to.column]
 		from := layout.columns[edge.from.column].matches[edge.from.match]
@@ -450,7 +471,7 @@ func drawDynamicConnectors(
 		fromLeft := fromColumn.left + (fromColumn.width-matchWidth)/2
 		toLeft := toColumn.left + (toColumn.width-matchWidth)/2
 		fromRow := dynamicHeaderHeight + from.top + dynamicMatchHeight/2
-		toRow := dynamicHeaderHeight + to.top + dynamicMatchHeight/2
+		toRow := dynamicHeaderHeight + dynamicDestinationRow(to.top, edge.slot)
 		fromStart := fromLeft + matchWidth
 		toEnd := toLeft - 1
 		fromLane := fromColumn.left + fromColumn.width + dynamicGutterWidth/2
@@ -475,6 +496,17 @@ func drawDynamicConnectors(
 				style:     dynamicCanvasStyleLink,
 			}
 		}
+	}
+}
+
+func dynamicDestinationRow(matchTop, slot int) int {
+	switch slot {
+	case 1:
+		return matchTop + 1
+	case 2:
+		return matchTop + 3
+	default:
+		return matchTop + dynamicMatchHeight/2
 	}
 }
 

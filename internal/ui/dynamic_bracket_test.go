@@ -74,13 +74,36 @@ func TestLayoutDynamicBracket(t *testing.T) {
 		}
 
 		layout := layoutDynamicBracket(section)
+		view := renderDynamicBracket(section, bracketPageStyles{})
 
 		assert.Len(t, layout.edges, 8)
+		assert.Equal(t, 5, dynamicEdgeCount(layout.edges, dynamicEdgeOutcomeWin))
+		assert.Equal(t, 3, dynamicEdgeCount(layout.edges, dynamicEdgeOutcomeLoss))
+		assert.True(t, dynamicEdgeExists(
+			layout.edges,
+			dynamicNodeRef{column: 0, match: 0},
+			dynamicNodeRef{column: 1, match: 1},
+			dynamicEdgeOutcomeLoss,
+		))
+		assert.True(t, dynamicEdgeExists(
+			layout.edges,
+			dynamicNodeRef{column: 1, match: 1},
+			dynamicNodeRef{column: 2, match: 0},
+			dynamicEdgeOutcomeWin,
+		))
 		assert.Len(t, layout.columns[0].matches, 2)
 		assert.Len(t, layout.columns[1].matches, 2)
 		assert.Len(t, layout.columns[2].matches, 1)
 		assert.Len(t, layout.columns[3].matches, 1)
 		assertDynamicMatchesDoNotOverlap(t, layout)
+
+		lowerMatch := layout.columns[1].matches[1]
+		lowerMatchLeft := layout.columns[1].left +
+			(layout.columns[1].width-matchWidth)/2
+		lowerMatchCenterRow := dynamicHeaderHeight + lowerMatch.top + dynamicMatchHeight/2
+		renderedRow := []rune(strings.Split(view, "\n")[lowerMatchCenterRow])
+		assert.Equal(t, ' ', renderedRow[lowerMatchLeft-1])
+		assert.Equal(t, '─', renderedRow[lowerMatchLeft+matchWidth])
 	})
 
 	t.Run("preserves separation between cells", func(t *testing.T) {
@@ -149,6 +172,32 @@ func TestRenderDynamicBracket(t *testing.T) {
 	for _, line := range lines {
 		assert.Len(t, []rune(line), 45)
 	}
+}
+
+func TestRenderDynamicBracketTargetsDestinationTeamSlots(t *testing.T) {
+	section := lolesportsgraphql.Section{
+		Columns: []lolesportsgraphql.Column{
+			columnWithMatches(
+				matchAdvancingToSlot("semifinal-1", "final", 1),
+				matchAdvancingToSlot("semifinal-2", "final", 2),
+			),
+			columnWithMatches(matchAdvancingTo("final", "")),
+		},
+	}
+
+	layout := layoutDynamicBracket(section)
+	view := renderDynamicBracket(section, bracketPageStyles{})
+	finalColumn := layout.columns[1]
+	finalMatch := finalColumn.matches[0]
+	finalLeft := finalColumn.left + (finalColumn.width-matchWidth)/2
+	lines := strings.Split(view, "\n")
+	upperTeamRow := dynamicHeaderHeight + finalMatch.top + 1
+	dividerRow := dynamicHeaderHeight + finalMatch.top + dynamicMatchHeight/2
+	lowerTeamRow := dynamicHeaderHeight + finalMatch.top + 3
+
+	assert.NotEqual(t, ' ', []rune(lines[upperTeamRow])[finalLeft-1])
+	assert.Equal(t, ' ', []rune(lines[dividerRow])[finalLeft-1])
+	assert.NotEqual(t, ' ', []rune(lines[lowerTeamRow])[finalLeft-1])
 }
 
 func TestRenderDynamicBracketDisplaysFullRoundTitle(t *testing.T) {
@@ -264,6 +313,16 @@ func matchAdvancingTo(structuralID, destinationID string) lolesportsgraphql.Matc
 	return match
 }
 
+func matchAdvancingToSlot(
+	structuralID, destinationID string,
+	slot int,
+) lolesportsgraphql.Match {
+	match := matchAdvancingTo(structuralID, destinationID)
+	match.Destinations.Win.Slot = slot
+
+	return match
+}
+
 func matchAdvancingToWinAndLoss(
 	structuralID, winDestinationID, lossDestinationID string,
 ) lolesportsgraphql.Match {
@@ -309,6 +368,32 @@ func assertDynamicMatchesDoNotOverlap(t *testing.T, layout dynamicBracketLayout)
 			)
 		}
 	}
+}
+
+func dynamicEdgeCount(edges []dynamicEdgeLayout, outcome dynamicEdgeOutcome) int {
+	count := 0
+
+	for _, edge := range edges {
+		if edge.outcome == outcome {
+			count++
+		}
+	}
+
+	return count
+}
+
+func dynamicEdgeExists(
+	edges []dynamicEdgeLayout,
+	from, to dynamicNodeRef,
+	outcome dynamicEdgeOutcome,
+) bool {
+	for _, edge := range edges {
+		if edge.from == from && edge.to == to && edge.outcome == outcome {
+			return true
+		}
+	}
+
+	return false
 }
 
 func pointer[T any](value T) *T {
