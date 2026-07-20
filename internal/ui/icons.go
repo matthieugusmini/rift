@@ -10,6 +10,8 @@ const (
 var flagsByLeagueName = map[string][]string{
 	"LJL":                     {"🇯🇵"},
 	"LEC":                     {"🇪🇺"},
+	"LCS":                     {"🇺🇸"},
+	"CBLOL":                   {"🇧🇷"},
 	"NACL":                    {"🇺🇸"},
 	"LTA":                     {"🇺🇸"},
 	"LTA North":               {"🇺🇸"},

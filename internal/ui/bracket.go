@@ -83,7 +83,7 @@ func newDefaultBracketPageStyles() (s bracketPageStyles) {
 
 	s.winnerTeamName = lipgloss.NewStyle().
 		Foreground(selectedColor).
-		Faint(true)
+		Bold(true)
 
 	s.link = lipgloss.NewStyle().Foreground(borderSecondaryColor)
 

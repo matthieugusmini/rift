@@ -175,6 +175,14 @@ func TestRenderDynamicBracketDisplaysFullRoundTitle(t *testing.T) {
 	assert.NotContains(t, view, "Upper Bracket - Fina\n")
 }
 
+func TestDefaultBracketPageStylesHighlightsWinner(t *testing.T) {
+	styles := newDefaultBracketPageStyles()
+
+	assert.True(t, styles.winnerTeamName.GetBold())
+	assert.False(t, styles.winnerTeamName.GetFaint())
+	assert.True(t, styles.loserTeamName.GetFaint())
+}
+
 func TestRenderDynamicStage(t *testing.T) {
 	stage := lolesportsgraphql.Stage{
 		Sections: []lolesportsgraphql.Section{
