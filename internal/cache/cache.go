@@ -72,8 +72,8 @@ func (c *Cache[T]) Get(key string) (T, bool, error) {
 
 // Set stores a new entry for value in the cache associated with the given key.
 //
-// If the bucket used to store the rift.BracketTemplate doesn't exist in the underlying
-// daabase, it is automatically created.
+// If the bucket used to store the value doesn't exist in the underlying database,
+// it is automatically created.
 //
 // An error is returned if cannot create a new entry or a new bucket.
 func (c *Cache[T]) Set(key string, value T) error {

@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 )
 
 const (
@@ -29,10 +29,9 @@ const (
 )
 
 const (
-	captionSelectSplit             = "SELECT A SPLIT"
-	captionSelectLeague            = "SELECT A LEAGUE"
-	captionSelectStage             = "SELECT A STAGE"
-	captionUnavailableStageBracket = "UNAVAILABLE STAGE"
+	captionSelectSplit  = "SELECT A SPLIT"
+	captionSelectLeague = "SELECT A LEAGUE"
+	captionSelectStage  = "SELECT A STAGE"
 )
 
 type standingsPageState int
@@ -43,7 +42,7 @@ const (
 	standingsPageStateLeagueSelection
 	standingsPageStateLoadingStages
 	standingsPageStateStageSelection
-	standingsPageStateLoadingBracketTemplate
+	standingsPageStateLoadingBracket
 	standingsPageStateShowRankingPage
 	standingsPageStateShowBracketPage
 )
@@ -108,7 +107,7 @@ func newDefaultStandingsPageKeyMap() standingsPageKeyMap {
 
 type standingsPage struct {
 	lolesportsClient      LoLEsportsLoader
-	bracketTemplateLoader BracketTemplateLoader
+	lolesportsStageClient LoLEsportsStageClient
 	logger                *slog.Logger
 
 	state standingsPageState
@@ -120,8 +119,6 @@ type standingsPage struct {
 	splitOptions  list.Model
 	leagueOptions list.Model
 	stageOptions  list.Model
-
-	availableBracketStageIDs []string
 
 	rankingView *rankingPage
 	bracket     *bracketPage
@@ -140,7 +137,7 @@ type standingsPage struct {
 
 func newStandingsPage(
 	lolesportsClient LoLEsportsLoader,
-	bracketLoader BracketTemplateLoader,
+	lolesportsStageClient LoLEsportsStageClient,
 	logger *slog.Logger,
 ) *standingsPage {
 	styles := newDefaultStandingsStyles()
@@ -152,7 +149,7 @@ func newStandingsPage(
 
 	return &standingsPage{
 		lolesportsClient:      lolesportsClient,
-		bracketTemplateLoader: bracketLoader,
+		lolesportsStageClient: lolesportsStageClient,
 		logger:                logger,
 		styles:                styles,
 		spinner:               sp,
@@ -213,11 +210,8 @@ func (p *standingsPage) Update(msg tea.Msg) (page, tea.Cmd) {
 	case loadedStandingsMessage:
 		p.handleStandingsLoaded(msg)
 
-	case fetchedAvailableStageTemplates:
-		p.handleAvailableStageTemplates(msg)
-
-	case loadedBracketStageTemplateMessage:
-		p.handleBracketTemplateLoaded(msg)
+	case loadedDynamicStageMessage:
+		p.handleDynamicStageLoaded(msg)
 
 	case fetchErrorMessage:
 		p.handleErrorMessage(msg)
@@ -261,28 +255,14 @@ func (p *standingsPage) handleStandingsLoaded(msg loadedStandingsMessage) {
 	p.stages = listStagesFromStandings(msg.standings)
 	p.stageOptions = newStageOptionsList(
 		p.stages,
-		p.availableBracketStageIDs,
 		p.listWidth(),
 		p.listHeight(),
 	)
 }
 
-func (p *standingsPage) handleAvailableStageTemplates(msg fetchedAvailableStageTemplates) {
-	p.availableBracketStageIDs = msg.availableTemplates
-	p.stageOptions = newStageOptionsList(
-		p.stages,
-		p.availableBracketStageIDs,
-		p.listWidth(),
-		p.listHeight(),
-	)
-}
-
-func (p *standingsPage) handleBracketTemplateLoaded(msg loadedBracketStageTemplateMessage) {
+func (p *standingsPage) handleDynamicStageLoaded(msg loadedDynamicStageMessage) {
 	p.state = standingsPageStateShowBracketPage
-
-	// Bracket stages always have a single section.
-	matches := p.selectedStage().Sections[0].Matches
-	p.bracket = newBracketPage(msg.template, matches, p.width, p.height)
+	p.bracket = newDynamicBracketPage(msg.stage, p.width, p.height)
 }
 
 func (p *standingsPage) handleErrorMessage(msg fetchErrorMessage) {
@@ -293,11 +273,11 @@ func (p *standingsPage) handleErrorMessage(msg fetchErrorMessage) {
 	case standingsPageStateLoadingStages:
 		p.state = standingsPageStateLeagueSelection
 
-	case standingsPageStateLoadingBracketTemplate:
+	case standingsPageStateLoadingBracket:
 		p.state = standingsPageStateStageSelection
 	}
 
-	p.logger.Error("Failed to fetch standings", slog.Any("error", msg.err))
+	p.logger.Error("Failed to load standings page data", slog.Any("error", msg.err))
 }
 
 func (p *standingsPage) handleSelection() tea.Cmd {
@@ -333,7 +313,6 @@ func (p *standingsPage) selectLeague() tea.Cmd {
 	return tea.Batch(
 		p.spinner.Tick,
 		p.loadStandings(tournamentIDs),
-		p.fetchAvailableStageTemplates(),
 	)
 }
 
@@ -351,13 +330,8 @@ func (p *standingsPage) selectStage() tea.Cmd {
 		p.state = standingsPageStateShowRankingPage
 
 	case stageTypeBracket:
-		// Disable click on unsupported stages.
-		if !isAvailableBracketStage(p.selectedStage(), p.availableBracketStageIDs) {
-			return nil
-		}
-
-		p.state = standingsPageStateLoadingBracketTemplate
-		return p.loadBracketStageTemplate(p.selectedStage().ID)
+		p.state = standingsPageStateLoadingBracket
+		return p.loadBracketStage(p.selectedStage().ID)
 	}
 
 	return nil
@@ -475,11 +449,7 @@ func (p *standingsPage) viewSelectionPrompt() string {
 	case standingsPageStateLeagueSelection:
 		prompt = p.styles.prompt.Render(captionSelectLeague)
 	case standingsPageStateStageSelection:
-		if isAvailableBracketStage(p.selectedStage(), p.availableBracketStageIDs) {
-			prompt = p.styles.prompt.Render(captionSelectStage)
-		} else {
-			prompt = p.styles.prompt.Render(captionUnavailableStageBracket)
-		}
+		prompt = p.styles.prompt.Render(captionSelectStage)
 	}
 
 	return lipgloss.Place(
@@ -528,7 +498,7 @@ func (p *standingsPage) setSize(width, height int) {
 func (p *standingsPage) isLoading() bool {
 	return p.state == standingsPageStateLoadingSplits ||
 		p.state == standingsPageStateLoadingStages ||
-		p.state == standingsPageStateLoadingBracketTemplate
+		p.state == standingsPageStateLoadingBracket
 }
 
 func (p *standingsPage) contentHeight() int {
@@ -646,8 +616,7 @@ func (p *standingsPage) selectedStage() lolesports.Stage { return p.stages[p.sta
 
 type (
 	fetchedCurrentSeasonSplitsMessage struct{ splits []lolesports.Split }
-	fetchedAvailableStageTemplates    struct{ availableTemplates []string }
-	loadedBracketStageTemplateMessage struct{ template rift.BracketTemplate }
+	loadedDynamicStageMessage         struct{ stage lolesportsgraphql.Stage }
 	loadedStandingsMessage            struct{ standings []lolesports.Standings }
 	fetchErrorMessage                 struct{ err error }
 )
@@ -677,25 +646,14 @@ func (p *standingsPage) fetchCurrentSeasonSplits() tea.Cmd {
 	}
 }
 
-func (p *standingsPage) fetchAvailableStageTemplates() tea.Cmd {
+func (p *standingsPage) loadBracketStage(stageID string) tea.Cmd {
 	return func() tea.Msg {
-		availableStageIDs, err := p.bracketTemplateLoader.ListAvailableStageIDs(
-			context.Background(),
-		)
+		stage, err := p.lolesportsStageClient.GetStage(context.Background(), stageID)
 		if err != nil {
 			return fetchErrorMessage{err: err}
 		}
-		return fetchedAvailableStageTemplates{availableTemplates: availableStageIDs}
-	}
-}
 
-func (p *standingsPage) loadBracketStageTemplate(stageID string) tea.Cmd {
-	return func() tea.Msg {
-		tmpl, err := p.bracketTemplateLoader.Load(context.Background(), stageID)
-		if err != nil {
-			return fetchErrorMessage{err: err}
-		}
-		return loadedBracketStageTemplateMessage{tmpl}
+		return loadedDynamicStageMessage{stage}
 	}
 }
 

@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"io"
-	"slices"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -36,7 +35,6 @@ func (i stageItem) isDisabled() bool { return i.disabled }
 
 func newStageOptionsList(
 	stages []lolesports.Stage,
-	availableStages []string,
 	width, height int,
 ) list.Model {
 	stageItems := make([]list.Item, len(stages))
@@ -44,7 +42,6 @@ func newStageOptionsList(
 		item := stageItem{
 			name:      stage.Name,
 			stageType: getStageType(stage),
-			disabled:  !isAvailableBracketStage(stage, availableStages),
 		}
 		stageItems[i] = item
 	}
@@ -179,11 +176,4 @@ func getStageType(stage lolesports.Stage) stageType {
 		return stageTypeBracket
 	}
 	return stageTypeGroups
-}
-
-func isAvailableBracketStage(stage lolesports.Stage, availableStages []string) bool {
-	if getStageType(stage) == stageTypeBracket {
-		return slices.Contains(availableStages, stage.ID)
-	}
-	return true
 }

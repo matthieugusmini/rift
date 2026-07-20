@@ -1,0 +1,143 @@
+{
+  "data": {
+    "__typename": "Query",
+    "stages": [
+      {
+        "__typename": "Stage",
+        "id": "stage-1",
+        "name": "Playoffs",
+        "slug": "playoffs",
+        "displayState": "selected",
+        "destinations": [
+          {
+            "__typename": "StageDestination",
+            "slot": 1,
+            "structuralId": null,
+            "type": "standing"
+          }
+        ],
+        "sections": [
+          {
+            "__typename": "Section",
+            "id": "section-1",
+            "name": "Playoffs",
+            "slug": "playoffs",
+            "type": "bracket",
+            "rankings": [],
+            "standings": [
+              {
+                "__typename": "Standing",
+                "index": 1,
+                "placement": 1,
+                "team": {
+                  "__typename": "Team",
+                  "id": "team-1",
+                  "name": "Blue Team",
+                  "code": "BLU",
+                  "slug": "blue-team",
+                  "image": "https://example.com/blue.png",
+                  "record": {
+                    "__typename": "TeamRecord",
+                    "wins": 2,
+                    "losses": 0,
+                    "ties": 0
+                  },
+                  "result": null
+                }
+              }
+            ],
+            "columns": [
+              {
+                "__typename": "Column",
+                "cells": [
+                  {
+                    "__typename": "Cell",
+                    "name": "Semifinals",
+                    "slug": "semifinals",
+                    "matches": [
+                      {
+                        "__typename": "Match",
+                        "id": "match-1",
+                        "structuralId": "semifinal-1",
+                        "description": "Semifinal 1",
+                        "state": "completed",
+                        "type": "normal",
+                        "flags": ["hasVod"],
+                        "matchTeams": [
+                          {
+                            "__typename": "MatchTeam",
+                            "teamId": "team-1",
+                            "name": "Blue Team",
+                            "code": "BLU",
+                            "slug": "blue-team",
+                            "image": "https://example.com/blue.png",
+                            "result": {
+                              "__typename": "TeamResult",
+                              "outcome": "win",
+                              "gameWins": 3
+                            }
+                          },
+                          {
+                            "__typename": "MatchTeam",
+                            "teamId": "team-2",
+                            "name": "Red Team",
+                            "code": "RED",
+                            "slug": "red-team",
+                            "image": "https://example.com/red.png",
+                            "result": {
+                              "__typename": "TeamResult",
+                              "outcome": "loss",
+                              "gameWins": 1
+                            }
+                          }
+                        ],
+                        "destinations": {
+                          "__typename": "Destinations",
+                          "win": {
+                            "__typename": "DestinationMatch",
+                            "type": "match",
+                            "structuralId": "final",
+                            "slot": 1
+                          },
+                          "loss": {
+                            "__typename": "DestinationStanding",
+                            "type": "standing",
+                            "structuralId": null,
+                            "slot": 3
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "__typename": "Column",
+                "cells": [
+                  {
+                    "__typename": "Cell",
+                    "name": "Finals",
+                    "slug": "finals",
+                    "matches": [
+                      {
+                        "__typename": "Match",
+                        "id": "match-2",
+                        "structuralId": "final",
+                        "description": "Finals",
+                        "state": "unstarted",
+                        "type": "normal",
+                        "flags": [],
+                        "matchTeams": [],
+                        "destinations": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

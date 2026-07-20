@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/matthieugusmini/go-lolesports"
 
-	"github.com/matthieugusmini/rift/internal/rift"
+	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 )
 
 const (
@@ -93,14 +93,9 @@ type LoLEsportsLoader interface {
 	LoadCurrentSeasonSplits(ctx context.Context) ([]lolesports.Split, error)
 }
 
-// BracketTemplateLoader loads bracket templates.
-type BracketTemplateLoader interface {
-	// ListAvailableStageIDs returns the list of ids of all the stages
-	// that have a bracket template associated with them.
-	ListAvailableStageIDs(ctx context.Context) ([]string, error)
-
-	// Load returns the [rift.BracketTemplate] associated with stageID.
-	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
+// LoLEsportsStageClient loads detailed stage topology from LoL Esports.
+type LoLEsportsStageClient interface {
+	GetStage(ctx context.Context, stageID string) (lolesportsgraphql.Stage, error)
 }
 
 // page is similar to a tea.Model but with the added ability to set its size.
@@ -145,11 +140,15 @@ type Model struct {
 // and default styles.
 func NewModel(
 	lolesportsLoader LoLEsportsLoader,
-	bracketLoader BracketTemplateLoader,
+	lolesportsStageClient LoLEsportsStageClient,
 	logger *slog.Logger,
 ) Model {
 	schedulePage := newSchedulePage(lolesportsLoader, logger)
-	standingsPage := newStandingsPage(lolesportsLoader, bracketLoader, logger)
+	standingsPage := newStandingsPage(
+		lolesportsLoader,
+		lolesportsStageClient,
+		logger,
+	)
 
 	pages := map[state]page{
 		stateShowSchedule:  schedulePage,
