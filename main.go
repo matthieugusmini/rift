@@ -34,10 +34,12 @@ const (
 	cacheFile = "rift.db"
 
 	bucketStandings = "standings"
+	bucketStages    = "stages"
 	bucketSchedule  = "schedule"
 	bucketSplits    = "splits"
 
 	cacheDefaultTTL = 12 * time.Hour
+	stageCacheTTL   = 5 * time.Minute
 )
 
 const (
@@ -71,9 +73,9 @@ func run() error {
 	}
 
 	lolesportsLoader := initLoLEsportsLoader(httpClient, cacheDB, logger)
-	lolesportsStageClient := lolesportsgraphql.NewClient(httpClient)
+	lolesportsStageLoader := initLoLEsportsStageLoader(httpClient, cacheDB, logger)
 
-	m := ui.NewModel(lolesportsLoader, lolesportsStageClient, logger)
+	m := ui.NewModel(lolesportsLoader, lolesportsStageLoader, logger)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
@@ -143,4 +145,15 @@ func initLoLEsportsLoader(
 	)
 
 	return rift.NewLoLEsportsLoader(lolesportsAPIClient, standingsCache, splitsCache, logger)
+}
+
+func initLoLEsportsStageLoader(
+	httpClient *http.Client,
+	cacheDB *bbolt.DB,
+	logger *slog.Logger,
+) *rift.LoLEsportsStageLoader {
+	stageClient := lolesportsgraphql.NewClient(httpClient)
+	stageCache := cache.New[lolesportsgraphql.Stage](cacheDB, bucketStages, stageCacheTTL)
+
+	return rift.NewLoLEsportsStageLoader(stageClient, stageCache, logger)
 }
