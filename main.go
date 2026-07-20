@@ -77,7 +77,7 @@ func run() error {
 
 	m := ui.NewModel(lolesportsLoader, lolesportsStageLoader, logger)
 
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		return err
 	}
