@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/matthieugusmini/go-lolesports"
 	"github.com/matthieugusmini/rift/internal/rift"
@@ -108,6 +109,95 @@ func TestLoLEsportsLoader_LoadStandingsByTournamentIDs(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
+	})
+}
+
+func TestLoLEsportsLoader_LoadCurrentSeasonSplits(t *testing.T) {
+	now := time.Now()
+	want := []lolesports.Split{{ID: "current-split"}}
+
+	t.Run("loads splits from a yearly LoL Esports season", func(t *testing.T) {
+		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
+		stubLoLEsportsAPIClient.seasons = []lolesports.Season{
+			{
+				Name:      "tier_2_leagues_2026",
+				StartTime: now.Add(-time.Hour),
+				EndTime:   now.Add(time.Hour),
+				Splits:    []lolesports.Split{{ID: "tier-2-split"}},
+			},
+			{
+				Name:      "lolesports_2026",
+				StartTime: now.Add(-time.Hour),
+				EndTime:   now.Add(time.Hour),
+				Splits:    want,
+			},
+		}
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
+
+		got, err := loader.LoadCurrentSeasonSplits(t.Context())
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+		assert.Equal(t, want, fakeSplitsCache.entries["current_splits"])
+	})
+
+	t.Run("refreshes an empty cached split list", func(t *testing.T) {
+		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
+		stubLoLEsportsAPIClient.seasons = []lolesports.Season{
+			{
+				Name:      "lolesports_2026",
+				StartTime: now.Add(-time.Hour),
+				EndTime:   now.Add(time.Hour),
+				Splits:    want,
+			},
+		}
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeSplitsCache := newFakeCacheWith(
+			map[string][]lolesports.Split{"current_splits": {}},
+		)
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
+
+		got, err := loader.LoadCurrentSeasonSplits(t.Context())
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("returns an error without an active LoL Esports season", func(t *testing.T) {
+		stubLoLEsportsAPIClient := newStubLoLEsportsAPIClient()
+		stubLoLEsportsAPIClient.seasons = []lolesports.Season{
+			{
+				Name:      "lolesports_2025",
+				StartTime: now.Add(-2 * time.Hour),
+				EndTime:   now.Add(-time.Hour),
+				Splits:    want,
+			},
+		}
+		fakeStandingsCache := newFakeCache[[]lolesports.Standings]()
+		fakeSplitsCache := newFakeCache[[]lolesports.Split]()
+		loader := rift.NewLoLEsportsLoader(
+			stubLoLEsportsAPIClient,
+			fakeStandingsCache,
+			fakeSplitsCache,
+			slog.Default(),
+		)
+
+		_, err := loader.LoadCurrentSeasonSplits(t.Context())
+
+		require.ErrorContains(t, err, "could not find the current LoL Esports season")
+		assert.NotContains(t, fakeSplitsCache.entries, "current_splits")
 	})
 }
 

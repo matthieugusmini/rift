@@ -2,6 +2,7 @@ package rift
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -102,7 +103,8 @@ func (l *LoLEsportsLoader) LoadCurrentSeasonSplits(
 			slog.Any("err", err),
 		)
 	}
-	if ok {
+
+	if ok && len(splits) > 0 {
 		return splits, nil
 	}
 
@@ -111,11 +113,21 @@ func (l *LoLEsportsLoader) LoadCurrentSeasonSplits(
 		return nil, fmt.Errorf("could not fetch seasons: %w", err)
 	}
 
-	var currentSeason lolesports.Season
+	var (
+		currentSeason lolesports.Season
+		found         bool
+	)
 	for _, season := range seasons {
 		if isCurrentSeason(season) {
 			currentSeason = season
+			found = true
+
+			break
 		}
+	}
+
+	if !found {
+		return nil, errors.New("could not find the current LoL Esports season")
 	}
 
 	if err := l.splitsCache.Set(currentSeasonSplitsCacheKey, currentSeason.Splits); err != nil {
@@ -147,6 +159,9 @@ func makeStandingsCacheKey(tournamentIDs []string) string {
 }
 
 func isCurrentSeason(season lolesports.Season) bool {
-	return season.Name == "lolesports" &&
+	isLoLEsportsSeason := season.Name == "lolesports" ||
+		strings.HasPrefix(season.Name, "lolesports_")
+
+	return isLoLEsportsSeason &&
 		timeutil.IsCurrentTimeBetween(season.StartTime, season.EndTime)
 }
