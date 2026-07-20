@@ -151,6 +151,30 @@ func TestRenderDynamicBracket(t *testing.T) {
 	}
 }
 
+func TestRenderDynamicBracketDisplaysFullRoundTitle(t *testing.T) {
+	const title = "Upper Bracket - Finals"
+
+	section := lolesportsgraphql.Section{
+		Columns: []lolesportsgraphql.Column{
+			{
+				Cells: []lolesportsgraphql.Cell{
+					{
+						Name:    title,
+						Matches: []lolesportsgraphql.Match{{StructuralID: "final"}},
+					},
+				},
+			},
+		},
+	}
+
+	layout := layoutDynamicBracket(section)
+	view := renderDynamicBracket(section, bracketPageStyles{})
+
+	assert.Greater(t, layout.columns[0].width, matchWidth)
+	assert.Contains(t, view, title)
+	assert.NotContains(t, view, "Upper Bracket - Fina\n")
+}
+
 func TestRenderDynamicStage(t *testing.T) {
 	stage := lolesportsgraphql.Stage{
 		Sections: []lolesportsgraphql.Section{

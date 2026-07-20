@@ -11,7 +11,6 @@ import (
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
-	"github.com/matthieugusmini/rift/internal/rift"
 )
 
 const (
@@ -99,12 +98,6 @@ type LoLEsportsStageClient interface {
 	GetStage(ctx context.Context, stageID string) (lolesportsgraphql.Stage, error)
 }
 
-// BracketTemplateLoader loads bracket templates.
-type BracketTemplateLoader interface {
-	// Load returns the [rift.BracketTemplate] associated with stageID.
-	Load(ctx context.Context, stageID string) (rift.BracketTemplate, error)
-}
-
 // page is similar to a tea.Model but with the added ability to set its size.
 // It's particularly useful for managing sub-models that need to be displayed
 // in specific screen areas (e.g., between a navbar and footer).
@@ -148,14 +141,12 @@ type Model struct {
 func NewModel(
 	lolesportsLoader LoLEsportsLoader,
 	lolesportsStageClient LoLEsportsStageClient,
-	bracketLoader BracketTemplateLoader,
 	logger *slog.Logger,
 ) Model {
 	schedulePage := newSchedulePage(lolesportsLoader, logger)
 	standingsPage := newStandingsPage(
 		lolesportsLoader,
 		lolesportsStageClient,
-		bracketLoader,
 		logger,
 	)
 

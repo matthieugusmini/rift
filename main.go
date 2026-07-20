@@ -15,7 +15,6 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/matthieugusmini/rift/internal/cache"
-	"github.com/matthieugusmini/rift/internal/githubusercontent"
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 	"github.com/matthieugusmini/rift/internal/rift"
 	"github.com/matthieugusmini/rift/internal/ui"
@@ -34,10 +33,9 @@ const logFilename = "rift.log"
 const (
 	cacheFile = "rift.db"
 
-	bucketBracketTemplate = "bracketTemplate"
-	bucketStandings       = "standings"
-	bucketSchedule        = "schedule"
-	bucketSplits          = "splits"
+	bucketStandings = "standings"
+	bucketSchedule  = "schedule"
+	bucketSplits    = "splits"
 
 	cacheDefaultTTL = 12 * time.Hour
 )
@@ -72,12 +70,10 @@ func run() error {
 		Timeout: httpClientDefaultTimeout,
 	}
 
-	bracketTemplateLoader := initBracketTemplateLoader(httpClient, cacheDB, logger)
-
 	lolesportsLoader := initLoLEsportsLoader(httpClient, cacheDB, logger)
 	lolesportsStageClient := lolesportsgraphql.NewClient(httpClient)
 
-	m := ui.NewModel(lolesportsLoader, lolesportsStageClient, bracketTemplateLoader, logger)
+	m := ui.NewModel(lolesportsLoader, lolesportsStageClient, logger)
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
@@ -125,26 +121,6 @@ func initCache(scope *gap.Scope) (*bbolt.DB, error) {
 	}
 
 	return cacheDB, nil
-}
-
-func initBracketTemplateLoader(
-	httpClient *http.Client,
-	cacheDB *bbolt.DB,
-	logger *slog.Logger,
-) *rift.BracketTemplateLoader {
-	bracketTemplateClient := githubusercontent.NewBracketTemplateClient(httpClient)
-
-	bracketTemplateCache := cache.New[rift.BracketTemplate](
-		cacheDB,
-		bucketBracketTemplate,
-		cacheDefaultTTL,
-	)
-
-	return rift.NewBracketTemplateLoader(
-		bracketTemplateClient,
-		bracketTemplateCache,
-		logger,
-	)
 }
 
 func initLoLEsportsLoader(

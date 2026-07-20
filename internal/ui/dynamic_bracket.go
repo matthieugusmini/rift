@@ -32,6 +32,8 @@ type dynamicMatchLayout struct {
 type dynamicColumnLayout struct {
 	title   string
 	matches []dynamicMatchLayout
+	left    int
+	width   int
 }
 
 type dynamicEdgeLayout struct {
@@ -79,10 +81,12 @@ func layoutDynamicBracket(section lolesportsgraphql.Section) dynamicBracketLayou
 		matches := flattenDynamicMatches(column)
 		positionDynamicMatches(matches)
 		columnHeight := dynamicColumnHeight(matches)
+		title := dynamicColumnTitle(column)
 		maxColumnHeight = max(maxColumnHeight, columnHeight)
 		layout.columns[columnIndex] = dynamicColumnLayout{
-			title:   dynamicColumnTitle(column),
+			title:   title,
 			matches: matches,
+			width:   max(matchWidth, lipgloss.Width(title)),
 		}
 	}
 
@@ -93,6 +97,12 @@ func layoutDynamicBracket(section lolesportsgraphql.Section) dynamicBracketLayou
 		for matchIndex := range layout.columns[columnIndex].matches {
 			layout.columns[columnIndex].matches[matchIndex].top += offset
 		}
+	}
+
+	left := 0
+	for columnIndex := range layout.columns {
+		layout.columns[columnIndex].left = left
+		left += layout.columns[columnIndex].width + dynamicGutterWidth
 	}
 
 	nodesByStructuralID := make(map[string]dynamicNodeRef)
@@ -300,18 +310,19 @@ func renderDynamicBracket(
 		return ""
 	}
 
-	canvasWidth := len(layout.columns)*matchWidth + (len(layout.columns)-1)*dynamicGutterWidth
+	lastColumn := layout.columns[len(layout.columns)-1]
+	canvasWidth := lastColumn.left + lastColumn.width
 	canvasHeight := dynamicHeaderHeight + layout.contentHeight
 	canvas := newDynamicCanvas(canvasWidth, canvasHeight)
 
-	for columnIndex, column := range layout.columns {
-		left := columnIndex * (matchWidth + dynamicGutterWidth)
-		drawDynamicTitle(canvas, left, column.title)
+	for _, column := range layout.columns {
+		drawDynamicTitle(canvas, column.left, column.width, column.title)
+		matchLeft := column.left + (column.width-matchWidth)/2
 
 		for _, match := range column.matches {
 			drawDynamicMatch(
 				canvas,
-				left,
+				matchLeft,
 				dynamicHeaderHeight+match.top,
 				match.match,
 			)
@@ -335,9 +346,8 @@ func newDynamicCanvas(width, height int) [][]dynamicCanvasCell {
 	return canvas
 }
 
-func drawDynamicTitle(canvas [][]dynamicCanvasCell, left int, title string) {
-	title = ansi.Truncate(title, matchWidth, "")
-	start := left + max((matchWidth-lipgloss.Width(title))/2, 0)
+func drawDynamicTitle(canvas [][]dynamicCanvasCell, left, width int, title string) {
+	start := left + max((width-lipgloss.Width(title))/2, 0)
 	writeDynamicText(canvas, 0, start, title, dynamicCanvasStyleTitle)
 }
 
@@ -432,17 +442,19 @@ func drawDynamicConnectors(
 	}
 
 	for _, edge := range layout.edges {
+		fromColumn := layout.columns[edge.from.column]
+		toColumn := layout.columns[edge.to.column]
 		from := layout.columns[edge.from.column].matches[edge.from.match]
 		to := layout.columns[edge.to.column].matches[edge.to.match]
 
-		fromLeft := edge.from.column * (matchWidth + dynamicGutterWidth)
-		toLeft := edge.to.column * (matchWidth + dynamicGutterWidth)
+		fromLeft := fromColumn.left + (fromColumn.width-matchWidth)/2
+		toLeft := toColumn.left + (toColumn.width-matchWidth)/2
 		fromRow := dynamicHeaderHeight + from.top + dynamicMatchHeight/2
 		toRow := dynamicHeaderHeight + to.top + dynamicMatchHeight/2
 		fromStart := fromLeft + matchWidth
 		toEnd := toLeft - 1
-		fromLane := fromStart + dynamicGutterWidth/2
-		toLane := toLeft - dynamicGutterWidth/2 - 1
+		fromLane := fromColumn.left + fromColumn.width + dynamicGutterWidth/2
+		toLane := toColumn.left - dynamicGutterWidth/2 - 1
 		routeRow := dynamicHeaderHeight + findDynamicRouteRow(layout, edge, from.top, to.top)
 
 		addDynamicHorizontalConnection(connections, fromRow, fromStart, fromLane)

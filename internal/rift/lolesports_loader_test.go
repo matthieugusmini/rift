@@ -2,6 +2,7 @@ package rift_test
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"testing"
 	"time"
@@ -251,6 +252,8 @@ type stubLoLEsportsAPIClient struct {
 	seasons   []lolesports.Season
 	err       error
 }
+
+var errAPINotFound = errors.New("API response not found")
 
 func newStubLoLEsportsAPIClient() *stubLoLEsportsAPIClient {
 	return &stubLoLEsportsAPIClient{standings: testStandings}
