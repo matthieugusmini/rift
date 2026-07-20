@@ -86,7 +86,7 @@ func newMatchList(events []lolesports.Event, width, height int, theme theme) lis
 	items := newMatchListItems(events)
 
 	l := list.New(items, newMatchItemDelegate(theme), width, height)
-	applyListTheme(&l, theme)
+	applyMatchListTheme(&l, theme)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
 	l.StatusMessageLifetime = time.Second * 2
@@ -97,6 +97,11 @@ func newMatchList(events []lolesports.Event, width, height int, theme theme) lis
 	l.Select(cursorStartingPos)
 
 	return l
+}
+
+func applyMatchListTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newMatchItemDelegate(theme))
 }
 
 func indexMatchListInitialCursor(events []lolesports.Event) int {

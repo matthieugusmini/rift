@@ -240,6 +240,12 @@ func (p *rankingPage) setSize(width, height int) {
 	p.initViewport()
 }
 
+func (p *rankingPage) setTheme(theme theme) {
+	p.styles = newDefaultRankingPageStyles(theme)
+	p.help.Styles = help.DefaultStyles(theme.isDark)
+	p.viewport.SetContent(renderRankings(p.stage, p.width, p.styles))
+}
+
 func (p *rankingPage) initViewport() {
 	content := renderRankings(p.stage, p.width, p.styles)
 	p.viewport = viewport.New(

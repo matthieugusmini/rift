@@ -87,3 +87,11 @@ func applyListTheme(m *list.Model, theme theme) {
 	m.Help.Styles = help.DefaultStyles(theme.isDark)
 	m.FilterInput.SetStyles(textinput.DefaultStyles(theme.isDark))
 }
+
+func selectionListTitleStyle(theme theme) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Padding(0, 1).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
+		Bold(true)
+}

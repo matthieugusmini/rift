@@ -265,6 +265,18 @@ func (p *schedulePage) setSize(width, height int) {
 	p.help.SetWidth(p.width)
 }
 
+func (p *schedulePage) setTheme(theme theme) {
+	p.theme = theme
+	p.styles = newDefaultSchedulePageStyles(theme)
+	p.spinner.Style = p.styles.spinner
+	p.help.Styles = help.DefaultStyles(theme.isDark)
+
+	if p.loaded {
+		applyMatchListTheme(&p.matchList, theme)
+		p.matchList.Styles.Title = p.styles.title
+	}
+}
+
 func (p *schedulePage) shouldFetchNextPage() bool {
 	return p.onLastItem() &&
 		p.paginationState.hasNextPage() &&

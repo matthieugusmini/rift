@@ -109,6 +109,7 @@ type page interface {
 	View() string
 
 	setSize(width, height int)
+	setTheme(theme theme)
 }
 
 // Model implements the [charm.land/bubbletea/v2.Model] interface.
@@ -134,6 +135,7 @@ type Model struct {
 	pages       map[state]page
 
 	styles modelStyles
+	theme  theme
 }
 
 // NewModel returns a new [Model] initialized with all its sub-models
@@ -161,12 +163,13 @@ func NewModel(
 		currentPage: schedulePage,
 		pages:       pages,
 		styles:      newDefaultModelStyles(theme),
+		theme:       theme,
 	}
 }
 
 // Init implements the [charm.land/bubbletea/v2.Model] interface.
 func (m Model) Init() tea.Cmd {
-	return m.currentPage.Init()
+	return tea.Batch(m.currentPage.Init(), tea.RequestBackgroundColor)
 }
 
 // Update implements the [charm.land/bubbletea/v2.Model] interface.
@@ -188,6 +191,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for _, page := range m.pages {
 			page.setSize(m.pageWidth, msg.Height-navbarHeight)
 		}
+
+	case tea.BackgroundColorMsg:
+		m.setTheme(newTheme(msg.IsDark()))
 	}
 
 	var cmd tea.Cmd
@@ -215,6 +221,19 @@ func (m Model) View() tea.View {
 	result.MouseMode = tea.MouseModeCellMotion
 
 	return result
+}
+
+func (m *Model) setTheme(theme theme) {
+	if m.theme.isDark == theme.isDark {
+		return
+	}
+
+	m.theme = theme
+	m.styles = newDefaultModelStyles(theme)
+
+	for _, page := range m.pages {
+		page.setTheme(theme)
+	}
 }
 
 func (m Model) viewNavbar(

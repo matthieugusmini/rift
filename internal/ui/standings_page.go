@@ -500,6 +500,33 @@ func (p *standingsPage) setSize(width, height int) {
 	}
 }
 
+func (p *standingsPage) setTheme(theme theme) {
+	p.theme = theme
+	p.styles = newDefaultStandingsStyles(theme)
+	p.spinner.Style = p.styles.spinner
+	p.help.Styles = help.DefaultStyles(theme.isDark)
+
+	if p.splitOptions.Items() != nil {
+		applySplitOptionsTheme(&p.splitOptions, theme)
+	}
+
+	if p.leagueOptions.Items() != nil {
+		applyLeagueOptionsTheme(&p.leagueOptions, theme)
+	}
+
+	if p.stageOptions.Items() != nil {
+		applyStageOptionsTheme(&p.stageOptions, theme)
+	}
+
+	if p.rankingView != nil {
+		p.rankingView.setTheme(theme)
+	}
+
+	if p.bracket != nil {
+		p.bracket.setTheme(theme)
+	}
+}
+
 func (p *standingsPage) isLoading() bool {
 	return p.state == standingsPageStateLoadingSplits ||
 		p.state == standingsPageStateLoadingStages ||

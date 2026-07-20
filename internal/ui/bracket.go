@@ -155,6 +155,12 @@ func (m *bracketPage) setSize(width, height int) {
 	m.initViewport()
 }
 
+func (m *bracketPage) setTheme(theme theme) {
+	m.styles = newDefaultBracketPageStyles(theme)
+	m.help.Styles = help.DefaultStyles(theme.isDark)
+	m.viewport.SetContent(renderDynamicStage(*m.dynamicStage, m.styles))
+}
+
 func (p *bracketPage) ShortHelp() []key.Binding {
 	return []key.Binding{
 		p.keyMap.Right,

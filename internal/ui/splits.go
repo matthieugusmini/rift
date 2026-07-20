@@ -38,14 +38,9 @@ func newSplitOptionsList(
 	}
 
 	l := list.New(items, newSplitItemDelegate(theme), width, height)
-	applyListTheme(&l, theme)
+	applySplitOptionsTheme(&l, theme)
 	l.Select(cursorIndex)
 	l.Title = "EVENTS"
-	l.Styles.Title = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(theme.textTitle).
-		Background(theme.secondaryBackground).
-		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
@@ -53,6 +48,12 @@ func newSplitOptionsList(
 	l.DisableQuitKeybindings()
 
 	return l
+}
+
+func applySplitOptionsTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newSplitItemDelegate(theme))
+	l.Styles.Title = selectionListTitleStyle(theme)
 }
 
 type splitItem struct {

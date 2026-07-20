@@ -50,13 +50,8 @@ func newStageOptionsList(
 	stageItemDelegate := newStageItemDelegate(theme)
 
 	l := list.New(stageItems, stageItemDelegate, width, height)
-	applyListTheme(&l, theme)
+	applyStageOptionsTheme(&l, theme)
 	l.Title = "STAGES"
-	l.Styles.Title = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(theme.textTitle).
-		Background(theme.secondaryBackground).
-		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
@@ -66,6 +61,12 @@ func newStageOptionsList(
 	l.StatusMessageLifetime = time.Second * 2
 
 	return l
+}
+
+func applyStageOptionsTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newStageItemDelegate(theme))
+	l.Styles.Title = selectionListTitleStyle(theme)
 }
 
 type stageItemStyles struct {

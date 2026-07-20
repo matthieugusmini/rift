@@ -96,13 +96,8 @@ func newLeagueOptionsList(
 	}
 
 	l := list.New(leagueItems, newLeagueItemDelegate(theme), width, height)
-	applyListTheme(&l, theme)
+	applyLeagueOptionsTheme(&l, theme)
 	l.Title = "LEAGUES"
-	l.Styles.Title = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(theme.textTitle).
-		Background(theme.secondaryBackground).
-		Bold(true)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
 	l.SetShowHelp(false)
@@ -110,4 +105,10 @@ func newLeagueOptionsList(
 	l.DisableQuitKeybindings()
 
 	return l
+}
+
+func applyLeagueOptionsTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newLeagueItemDelegate(theme))
+	l.Styles.Title = selectionListTitleStyle(theme)
 }
