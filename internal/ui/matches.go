@@ -207,8 +207,16 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		return
 	}
 
-	itemWidth := m.Width() - d.styles.normalItem.GetHorizontalFrameSize()
-	if itemWidth <= 0 {
+	var (
+		matchItemStyle = d.styles.normalItem
+		isSelected     = index == m.Index()
+	)
+	if isSelected {
+		matchItemStyle = d.styles.selectedItem
+	}
+
+	contentWidth := m.Width() - matchItemStyle.GetHorizontalFrameSize()
+	if contentWidth <= 0 {
 		return
 	}
 
@@ -216,26 +224,18 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	// Some matches are completed but unstarted somehow so we render those
 	// with their score.
 	if !matchItem.isCompleted && matchItem.startTime.After(time.Now()) {
-		title = d.viewTitleWithStartTime(matchItem, itemWidth)
+		title = d.viewTitleWithStartTime(matchItem, contentWidth)
 	} else if !matchItem.spoilerBlockRevealed {
-		title = d.viewTitleWithScoreSpoilerBlock(matchItem, itemWidth)
+		title = d.viewTitleWithScoreSpoilerBlock(matchItem, contentWidth)
 	} else {
-		title = d.viewTitleWithScore(matchItem, itemWidth)
+		title = d.viewTitleWithScore(matchItem, contentWidth)
 	}
 
-	desc := d.viewDescription(matchItem, itemWidth)
+	desc := d.viewDescription(matchItem, contentWidth)
 
-	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", itemWidth), desc)
+	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", contentWidth), desc)
 
-	var (
-		matchItemStyle = d.styles.normalItem.Width(itemWidth)
-		isSelected     = index == m.Index()
-	)
-	if isSelected {
-		matchItemStyle = d.styles.selectedItem.Width(itemWidth)
-	}
-
-	fmt.Fprintf(w, "%s", matchItemStyle.Render(content))
+	fmt.Fprintf(w, "%s", matchItemStyle.Width(m.Width()).Render(content))
 }
 
 func (d matchItemDelegate) Height() int { return matchItemHeight }

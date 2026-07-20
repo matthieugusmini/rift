@@ -80,31 +80,25 @@ type stageItemStyles struct {
 
 func newStageItemStyles(theme theme) (s stageItemStyles) {
 	defaultStyles := list.NewDefaultItemStyles(theme.isDark)
+	selectedStyle := defaultStyles.SelectedTitle.
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(theme.selected)
+	disabledSelectedStyle := selectedStyle.
+		Foreground(theme.textDisabled).
+		BorderForeground(theme.textDisabled)
 
 	s.DefaultItemStyles = defaultStyles
 
 	// Selected
-	s.SelectedTitle = defaultStyles.SelectedTitle.
+	s.SelectedTitle = selectedStyle.
 		Foreground(theme.selected).
-		Bold(true).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(theme.selected)
+		Bold(true)
 
-	s.SelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(theme.textSecondary).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(theme.selected)
+	s.SelectedDesc = selectedStyle.Foreground(theme.textSecondary)
 
 	// Disabled but selected
-	s.disabledSelectedTitle = defaultStyles.SelectedTitle.
-		Foreground(theme.textDisabled).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(theme.textDisabled)
-
-	s.disabledSelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(theme.textDisabled).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(theme.textDisabled)
+	s.disabledSelectedTitle = disabledSelectedStyle
+	s.disabledSelectedDesc = disabledSelectedStyle
 
 	// Disabled not selected
 	s.disabledTitle = defaultStyles.NormalTitle.
