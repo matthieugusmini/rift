@@ -1,8 +1,15 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
 
-var (
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/lipgloss/v2"
+)
+
+const (
 	// Black
 	black       = "#000000"
 	almostBlack = "#1a1a1a"
@@ -28,21 +35,63 @@ var (
 	gold = "#ffd700"
 )
 
-var (
-	textPrimaryColor         = lipgloss.AdaptiveColor{Light: almostBlack, Dark: lightGrey}
-	textSecondaryColor       = lipgloss.AdaptiveColor{Light: sonicSilver, Dark: grey}
-	textDimmedSecondaryColor = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: dimGrey}
-	textDisabledColor        = lipgloss.AdaptiveColor{Light: "#555156", Dark: "#505050"}
-	textTitleColor           = lipgloss.AdaptiveColor{Light: black, Dark: white}
+type theme struct {
+	isDark bool
 
-	borderPrimaryColor   = lipgloss.AdaptiveColor{Light: eerieBlack, Dark: white}
-	borderSecondaryColor = lipgloss.AdaptiveColor{Light: grey, Dark: dimGrey}
+	textPrimary         color.Color
+	textSecondary       color.Color
+	textDimmedSecondary color.Color
+	textDisabled        color.Color
+	textTitle           color.Color
 
-	secondaryBackgroundColor = lipgloss.AdaptiveColor{Light: darkVanilla, Dark: imperialRed}
+	borderPrimary   color.Color
+	borderSecondary color.Color
 
-	selectedColor = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
+	secondaryBackground color.Color
+	selected            color.Color
+	red                 color.Color
+	spinner             color.Color
+}
 
-	red = lipgloss.AdaptiveColor{Light: crimson, Dark: imperialRed}
+func newTheme(isDark bool) theme {
+	lightDark := lipgloss.LightDark(isDark)
 
-	spinnerColor = lipgloss.AdaptiveColor{Light: neonFuchsia, Dark: gold}
-)
+	return theme{
+		isDark: isDark,
+
+		textPrimary:         lightDark(lipgloss.Color(almostBlack), lipgloss.Color(lightGrey)),
+		textSecondary:       lightDark(lipgloss.Color(sonicSilver), lipgloss.Color(grey)),
+		textDimmedSecondary: lightDark(lipgloss.Color("#A49FA5"), lipgloss.Color(dimGrey)),
+		textDisabled:        lightDark(lipgloss.Color("#555156"), lipgloss.Color("#505050")),
+		textTitle:           lightDark(lipgloss.Color(black), lipgloss.Color(white)),
+
+		borderPrimary:   lightDark(lipgloss.Color(eerieBlack), lipgloss.Color(white)),
+		borderSecondary: lightDark(lipgloss.Color(grey), lipgloss.Color(dimGrey)),
+
+		secondaryBackground: lightDark(lipgloss.Color(darkVanilla), lipgloss.Color(imperialRed)),
+		selected:            lightDark(lipgloss.Color(neonFuchsia), lipgloss.Color(gold)),
+		red:                 lightDark(lipgloss.Color(crimson), lipgloss.Color(imperialRed)),
+		spinner:             lightDark(lipgloss.Color(neonFuchsia), lipgloss.Color(gold)),
+	}
+}
+
+func newHelp(theme theme) help.Model {
+	m := help.New()
+	m.Styles = help.DefaultStyles(theme.isDark)
+
+	return m
+}
+
+func applyListTheme(m *list.Model, theme theme) {
+	m.Styles = list.DefaultStyles(theme.isDark)
+	m.Help.Styles = help.DefaultStyles(theme.isDark)
+	m.FilterInput.SetStyles(textinput.DefaultStyles(theme.isDark))
+}
+
+func selectionListTitleStyle(theme theme) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Padding(0, 1).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
+		Bold(true)
+}

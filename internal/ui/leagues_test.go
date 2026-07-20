@@ -3,6 +3,7 @@ package ui //nolint:testpackage // White-box tests verify league title formattin
 import (
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,4 +23,9 @@ func TestLeagueItemTitleIncludesCurrentRegionalFlags(t *testing.T) {
 			assert.Equal(t, test.want, item.Title())
 		})
 	}
+}
+
+func TestRegionalFlagsHaveEmojiDisplayWidth(t *testing.T) {
+	assert.Equal(t, 2, lipgloss.Width("🇺🇸"))
+	assert.Equal(t, 2, lipgloss.Width("🇧🇷"))
 }

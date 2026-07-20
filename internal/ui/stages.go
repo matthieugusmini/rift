@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
 )
@@ -36,6 +36,7 @@ func (i stageItem) isDisabled() bool { return i.disabled }
 func newStageOptionsList(
 	stages []lolesports.Stage,
 	width, height int,
+	theme theme,
 ) list.Model {
 	stageItems := make([]list.Item, len(stages))
 	for i, stage := range stages {
@@ -46,15 +47,11 @@ func newStageOptionsList(
 		stageItems[i] = item
 	}
 
-	stageItemDelegate := newStageItemDelegate()
+	stageItemDelegate := newStageItemDelegate(theme)
 
 	l := list.New(stageItems, stageItemDelegate, width, height)
+	applyStageOptionsTheme(&l, theme)
 	l.Title = "STAGES"
-	l.Styles.Title = lipgloss.NewStyle().
-		Padding(0, 1).
-		Foreground(textTitleColor).
-		Background(secondaryBackgroundColor).
-		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
@@ -66,6 +63,12 @@ func newStageOptionsList(
 	return l
 }
 
+func applyStageOptionsTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newStageItemDelegate(theme))
+	l.Styles.Title = selectionListTitleStyle(theme)
+}
+
 type stageItemStyles struct {
 	list.DefaultItemStyles
 
@@ -73,42 +76,38 @@ type stageItemStyles struct {
 	disabledDesc          lipgloss.Style
 	disabledSelectedTitle lipgloss.Style
 	disabledSelectedDesc  lipgloss.Style
+	selectedTitleText     lipgloss.Style
 }
 
-func newStageItemStyles() (s stageItemStyles) {
-	defaultStyles := list.NewDefaultItemStyles()
+func newStageItemStyles(theme theme) (s stageItemStyles) {
+	defaultStyles := list.NewDefaultItemStyles(theme.isDark)
+	selectedStyle := defaultStyles.SelectedTitle.
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(theme.selected)
+	disabledSelectedStyle := selectedStyle.
+		Foreground(theme.textDisabled).
+		BorderForeground(theme.textDisabled)
 
 	s.DefaultItemStyles = defaultStyles
 
 	// Selected
-	s.SelectedTitle = defaultStyles.SelectedTitle.
-		Foreground(selectedColor).
-		Bold(true).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(selectedColor)
+	s.SelectedTitle = selectedStyle.Foreground(theme.selected)
 
-	s.SelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(textSecondaryColor).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(selectedColor)
+	s.SelectedDesc = selectedStyle.Foreground(theme.textSecondary)
+	s.selectedTitleText = lipgloss.NewStyle().
+		Foreground(theme.selected).
+		Bold(true)
 
 	// Disabled but selected
-	s.disabledSelectedTitle = defaultStyles.SelectedTitle.
-		Foreground(textDisabledColor).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(textDisabledColor)
-
-	s.disabledSelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(textDisabledColor).
-		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(textDisabledColor)
+	s.disabledSelectedTitle = disabledSelectedStyle
+	s.disabledSelectedDesc = disabledSelectedStyle
 
 	// Disabled not selected
 	s.disabledTitle = defaultStyles.NormalTitle.
-		Foreground(textDisabledColor)
+		Foreground(theme.textDisabled)
 
 	s.disabledDesc = defaultStyles.NormalDesc.
-		Foreground(textDisabledColor)
+		Foreground(theme.textDisabled)
 
 	return s
 }
@@ -119,10 +118,13 @@ type stageItemDelegate struct {
 	styles stageItemStyles
 }
 
-func newStageItemDelegate() stageItemDelegate {
+func newStageItemDelegate(theme theme) stageItemDelegate {
+	defaultDelegate := list.NewDefaultDelegate()
+	defaultDelegate.Styles = list.NewDefaultItemStyles(theme.isDark)
+
 	return stageItemDelegate{
-		DefaultDelegate: list.NewDefaultDelegate(),
-		styles:          newStageItemStyles(),
+		DefaultDelegate: defaultDelegate,
+		styles:          newStageItemStyles(theme),
 	}
 }
 
@@ -160,7 +162,7 @@ func (d stageItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		desc = s.disabledDesc.Render(desc)
 
 	case !isDisabled && isSelected:
-		title = s.SelectedTitle.Render(title)
+		title = s.SelectedTitle.Render(s.selectedTitleText.Render(title))
 		desc = s.SelectedDesc.Render(desc)
 
 	case !isDisabled && !isSelected:

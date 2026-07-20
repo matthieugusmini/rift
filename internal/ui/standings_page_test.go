@@ -16,7 +16,7 @@ func TestStandingsPageLoadBracketStage(t *testing.T) {
 		stageClient := &stubStageClient{
 			stage: lolesportsgraphql.Stage{ID: "stage-1"},
 		}
-		page := newStandingsPage(nil, stageClient, slog.Default())
+		page := newStandingsPage(nil, stageClient, slog.Default(), newTheme(true))
 
 		msg := page.loadBracketStage("stage-1")()
 
@@ -28,7 +28,7 @@ func TestStandingsPageLoadBracketStage(t *testing.T) {
 
 	t.Run("returns dynamic stage errors", func(t *testing.T) {
 		stageClient := &stubStageClient{err: errors.New("dynamic stage unavailable")}
-		page := newStandingsPage(nil, stageClient, slog.Default())
+		page := newStandingsPage(nil, stageClient, slog.Default(), newTheme(true))
 
 		msg := page.loadBracketStage("stage-1")()
 
@@ -39,7 +39,7 @@ func TestStandingsPageLoadBracketStage(t *testing.T) {
 }
 
 func TestStandingsPage_HandleDynamicStageLoaded(t *testing.T) {
-	page := newStandingsPage(nil, &stubStageClient{}, slog.Default())
+	page := newStandingsPage(nil, &stubStageClient{}, slog.Default(), newTheme(true))
 	page.width = 100
 	page.height = 40
 	stage := lolesportsgraphql.Stage{

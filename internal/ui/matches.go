@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
 	"github.com/matthieugusmini/rift/internal/timeutil"
@@ -82,10 +82,11 @@ func newMatchListItems(events []lolesports.Event) []list.Item {
 	return items
 }
 
-func newMatchList(events []lolesports.Event, width, height int) list.Model {
+func newMatchList(events []lolesports.Event, width, height int, theme theme) list.Model {
 	items := newMatchListItems(events)
 
-	l := list.New(items, newMatchItemDelegate(), width, height)
+	l := list.New(items, newMatchItemDelegate(theme), width, height)
+	applyMatchListTheme(&l, theme)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
 	l.StatusMessageLifetime = time.Second * 2
@@ -96,6 +97,11 @@ func newMatchList(events []lolesports.Event, width, height int) list.Model {
 	l.Select(cursorStartingPos)
 
 	return l
+}
+
+func applyMatchListTheme(l *list.Model, theme theme) {
+	applyListTheme(l, theme)
+	l.SetDelegate(newMatchItemDelegate(theme))
 }
 
 func indexMatchListInitialCursor(events []lolesports.Event) int {
@@ -130,32 +136,32 @@ type matchItemStyles struct {
 	strategy           lipgloss.Style
 }
 
-func newDefaultMatchItemStyles() (s matchItemStyles) {
+func newDefaultMatchItemStyles(theme theme) (s matchItemStyles) {
 	// Item
 	itemStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 
 	s.normalItem = itemStyle.
-		Foreground(textSecondaryColor).
-		BorderForeground(borderPrimaryColor)
+		Foreground(theme.textSecondary).
+		BorderForeground(theme.borderPrimary)
 
 	s.selectedItem = itemStyle.
-		Foreground(selectedColor).
-		BorderForeground(selectedColor)
+		Foreground(theme.selected).
+		BorderForeground(theme.selected)
 
 	// Title
 	s.title = lipgloss.NewStyle().Padding(0, 1)
 
 	s.startTime = lipgloss.NewStyle().
 		Align(lipgloss.Left).
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.teamName = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.separator = lipgloss.NewStyle().
-		Foreground(textSecondaryColor)
+		Foreground(theme.textSecondary)
 
 	s.upcomingMatchScore = lipgloss.NewStyle().
 		Align(lipgloss.Center)
@@ -167,19 +173,19 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 	s.flags = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Left).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	s.leagueAndBlockName = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Center).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	s.strategy = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Right).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	return s
@@ -189,9 +195,9 @@ type matchItemDelegate struct {
 	styles matchItemStyles
 }
 
-func newMatchItemDelegate() matchItemDelegate {
+func newMatchItemDelegate(theme theme) matchItemDelegate {
 	return matchItemDelegate{
-		styles: newDefaultMatchItemStyles(),
+		styles: newDefaultMatchItemStyles(theme),
 	}
 }
 
@@ -201,8 +207,16 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		return
 	}
 
-	itemWidth := m.Width() - d.styles.normalItem.GetHorizontalFrameSize()
-	if itemWidth <= 0 {
+	var (
+		matchItemStyle = d.styles.normalItem
+		isSelected     = index == m.Index()
+	)
+	if isSelected {
+		matchItemStyle = d.styles.selectedItem
+	}
+
+	contentWidth := m.Width() - matchItemStyle.GetHorizontalFrameSize()
+	if contentWidth <= 0 {
 		return
 	}
 
@@ -210,26 +224,18 @@ func (d matchItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 	// Some matches are completed but unstarted somehow so we render those
 	// with their score.
 	if !matchItem.isCompleted && matchItem.startTime.After(time.Now()) {
-		title = d.viewTitleWithStartTime(matchItem, itemWidth)
+		title = d.viewTitleWithStartTime(matchItem, contentWidth)
 	} else if !matchItem.spoilerBlockRevealed {
-		title = d.viewTitleWithScoreSpoilerBlock(matchItem, itemWidth)
+		title = d.viewTitleWithScoreSpoilerBlock(matchItem, contentWidth)
 	} else {
-		title = d.viewTitleWithScore(matchItem, itemWidth)
+		title = d.viewTitleWithScore(matchItem, contentWidth)
 	}
 
-	desc := d.viewDescription(matchItem, itemWidth)
+	desc := d.viewDescription(matchItem, contentWidth)
 
-	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", itemWidth), desc)
+	content := fmt.Sprintf("%s\n%s\n%s", title, strings.Repeat("─", contentWidth), desc)
 
-	var (
-		matchItemStyle = d.styles.normalItem.Width(itemWidth)
-		isSelected     = index == m.Index()
-	)
-	if isSelected {
-		matchItemStyle = d.styles.selectedItem.Width(itemWidth)
-	}
-
-	fmt.Fprintf(w, "%s", matchItemStyle.Render(content))
+	fmt.Fprintf(w, "%s", matchItemStyle.Width(m.Width()).Render(content))
 }
 
 func (d matchItemDelegate) Height() int { return matchItemHeight }
@@ -238,7 +244,7 @@ func (d matchItemDelegate) Spacing() int { return 0 }
 
 func (d matchItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			d.revealSpoiler(m)
@@ -266,14 +272,17 @@ func (d matchItemDelegate) viewTitleWithStartTime(item matchItem, width int) str
 	team1Name := d.styles.teamName.Render(item.team1.name)
 	team2Name := d.styles.teamName.Render(item.team2.name)
 	sep := d.styles.separator.Render(separatorSlash)
-	score := d.styles.upcomingMatchScore.
-		Width(width - padding - lipgloss.Width(startTime)*2).
-		Render(team1Name + sep + team2Name)
+	scoreWidth := max(width-padding-lipgloss.Width(startTime)*2, 0)
+	score := renderMatchColumn(
+		d.styles.upcomingMatchScore,
+		team1Name+sep+team2Name,
+		scoreWidth,
+	)
 
 	// Place a filler with the same size as startTime to maintain alignment.
 	filler := strings.Repeat(" ", lipgloss.Width(startTime))
 
-	return d.styles.title.Render(startTime + score + filler)
+	return renderMatchColumn(d.styles.title, startTime+score+filler, width)
 }
 
 //	┌──────────────────────────────────────────────────────┐
@@ -288,7 +297,7 @@ func (d matchItemDelegate) viewTitleWithScoreSpoilerBlock(item matchItem, width 
 
 	title := team1Name + sep + team2Name
 
-	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, ansi.Truncate(title, width, "…"))
 }
 
 //	┌──────────────────────────────────────────────────────┐
@@ -307,7 +316,7 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 
 	title := team1NameAndScore + sep + team2NameAndScore
 
-	return lipgloss.PlaceHorizontal(width, lipgloss.Center, title)
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, ansi.Truncate(title, width, "…"))
 }
 
 //	┌────────────┬────────────────────────────┬────────────┐
@@ -316,28 +325,45 @@ func (d matchItemDelegate) viewTitleWithScore(item matchItem, width int) string 
 //
 // LEAGUE & BLOCK NAME gets content-based width + its padding.
 // The remaining space is split evenly between FLAGS and STRATEGY.
-// FLAGS is truncated with ellipsis when necessary.
+// Columns are truncated with ellipsis when necessary.
 func (d matchItemDelegate) viewDescription(item matchItem, width int) string {
-	leagueAndBlockName := d.styles.leagueAndBlockName.Render(
-		item.leagueName + separatorBullet + item.blockName,
+	leagueAndBlockName := item.leagueName + separatorBullet + item.blockName
+	leagueAndBlockNameWidth := min(
+		width,
+		lipgloss.Width(leagueAndBlockName)+d.styles.leagueAndBlockName.GetHorizontalFrameSize(),
+	)
+	leagueAndBlockName = renderMatchColumn(
+		d.styles.leagueAndBlockName,
+		leagueAndBlockName,
+		leagueAndBlockNameWidth,
 	)
 
 	availWidth := width - lipgloss.Width(leagueAndBlockName)
 
 	sideColumnWidth := availWidth / 2
-	strategy := d.styles.strategy.
-		Width(sideColumnWidth).
-		Render(item.strategy)
+	strategy := renderMatchColumn(d.styles.strategy, item.strategy, sideColumnWidth)
 
 	// We don't use sideColumnWidth as it would be incorrect when
 	// availWidth is an odd number.
 	flagsMaxWidth := availWidth - lipgloss.Width(strategy)
-	flags := d.styles.flags.
-		Width(flagsMaxWidth).
-		Render(item.flags)
-	flags = ansi.Truncate(flags, flagsMaxWidth, "…")
+	flags := renderMatchColumn(d.styles.flags, item.flags, flagsMaxWidth)
 
 	return flags + leagueAndBlockName + strategy
+}
+
+func renderMatchColumn(style lipgloss.Style, text string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+
+	frameWidth := style.GetHorizontalFrameSize()
+	if width < frameWidth {
+		return strings.Repeat(" ", width)
+	}
+
+	text = ansi.Truncate(text, width-frameWidth, "…")
+
+	return style.Width(width).Render(text)
 }
 
 func formatMatchStrategy(strategy lolesports.Strategy) string {

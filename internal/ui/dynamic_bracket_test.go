@@ -225,7 +225,7 @@ func TestRenderDynamicBracketDisplaysFullRoundTitle(t *testing.T) {
 }
 
 func TestDefaultBracketPageStylesHighlightsWinner(t *testing.T) {
-	styles := newDefaultBracketPageStyles()
+	styles := newDefaultBracketPageStyles(newTheme(true))
 
 	assert.True(t, styles.winnerTeamName.GetBold())
 	assert.False(t, styles.winnerTeamName.GetFaint())

@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 	"github.com/matthieugusmini/go-lolesports"
 	"github.com/matthieugusmini/rift/internal/timeutil"
 )
@@ -61,15 +61,16 @@ type rankingPageStyles struct {
 	tableTitle  lipgloss.Style
 	tableHeader lipgloss.Style
 	tableRow    lipgloss.Style
+	tableBorder lipgloss.Style
 
 	// Footer
 	help lipgloss.Style
 }
 
-func newDefaultRankingPageStyles() (s rankingPageStyles) {
+func newDefaultRankingPageStyles(theme theme) (s rankingPageStyles) {
 	// Header
 	s.stageName = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.tournamentState = lipgloss.NewStyle().
@@ -78,12 +79,12 @@ func newDefaultRankingPageStyles() (s rankingPageStyles) {
 		Background(lipgloss.Color(antiFlashWhite))
 
 	s.tournamentPeriod = lipgloss.NewStyle().
-		Foreground(textPrimaryColor)
+		Foreground(theme.textPrimary)
 
 	s.tournamentType = lipgloss.NewStyle().
-		Foreground(textPrimaryColor)
+		Foreground(theme.textPrimary)
 
-	s.separator = lipgloss.NewStyle().Foreground(borderSecondaryColor)
+	s.separator = lipgloss.NewStyle().Foreground(theme.borderSecondary)
 
 	// Content
 	s.tableTitle = lipgloss.NewStyle().
@@ -94,13 +95,15 @@ func newDefaultRankingPageStyles() (s rankingPageStyles) {
 
 	s.tableHeader = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	s.tableRow = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
+
+	s.tableBorder = lipgloss.NewStyle().Foreground(theme.selected)
 
 	// Footer
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
@@ -124,6 +127,7 @@ func newRankingPage(
 	league lolesports.League,
 	stage lolesports.Stage,
 	width, height int,
+	theme theme,
 ) *rankingPage {
 	p := &rankingPage{
 		width:  width,
@@ -131,9 +135,9 @@ func newRankingPage(
 		split:  split,
 		league: league,
 		stage:  stage,
-		help:   help.New(),
+		help:   newHelp(theme),
 		keyMap: newDefaultRankingPageKeyMap(),
-		styles: newDefaultRankingPageStyles(),
+		styles: newDefaultRankingPageStyles(theme),
 	}
 
 	p.initViewport()
@@ -145,7 +149,7 @@ func (p *rankingPage) Init() tea.Cmd { return nil }
 
 func (p *rankingPage) Update(msg tea.Msg) (*rankingPage, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, p.keyMap.ShowFullHelp),
 			key.Matches(msg, p.keyMap.CloseFullHelp):
@@ -236,9 +240,18 @@ func (p *rankingPage) setSize(width, height int) {
 	p.initViewport()
 }
 
+func (p *rankingPage) setTheme(theme theme) {
+	p.styles = newDefaultRankingPageStyles(theme)
+	p.help.Styles = help.DefaultStyles(theme.isDark)
+	p.viewport.SetContent(renderRankings(p.stage, p.width, p.styles))
+}
+
 func (p *rankingPage) initViewport() {
 	content := renderRankings(p.stage, p.width, p.styles)
-	p.viewport = viewport.New(p.width, p.contentHeight())
+	p.viewport = viewport.New(
+		viewport.WithWidth(p.width),
+		viewport.WithHeight(p.contentHeight()),
+	)
 	p.viewport.SetContent(content)
 }
 
@@ -267,7 +280,9 @@ func renderRankings(stage lolesports.Stage, width int, styles rankingPageStyles)
 			width,
 			lipgloss.Center,
 			styles.tableTitle.Render(stage.Sections[i].Name),
-			lipgloss.WithWhitespaceBackground(lipgloss.Color(antiFlashWhite)),
+			lipgloss.WithWhitespaceStyle(
+				lipgloss.NewStyle().Background(lipgloss.Color(antiFlashWhite)),
+			),
 		)
 		sb.WriteString(title + "\n")
 		sb.WriteString(t.Render())
@@ -306,7 +321,7 @@ func newRankingTable(
 
 	return table.New().
 		Border(lipgloss.NormalBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(selectedColor)).
+		BorderStyle(styles.tableBorder).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			switch row {
 			case table.HeaderRow:

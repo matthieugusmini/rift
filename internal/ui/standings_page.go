@@ -4,12 +4,12 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
@@ -55,20 +55,20 @@ type standingsStyles struct {
 	help    lipgloss.Style
 }
 
-func newDefaultStandingsStyles() (s standingsStyles) {
+func newDefaultStandingsStyles(theme theme) (s standingsStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.prompt = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
 
-	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
+	s.spinner = lipgloss.NewStyle().Foreground(theme.spinner)
 
 	s.error = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Italic(true)
 
 	return s
@@ -133,14 +133,16 @@ type standingsPage struct {
 	height, width int
 
 	styles standingsStyles
+	theme  theme
 }
 
 func newStandingsPage(
 	lolesportsClient LoLEsportsLoader,
 	lolesportsStageClient LoLEsportsStageClient,
 	logger *slog.Logger,
+	theme theme,
 ) *standingsPage {
-	styles := newDefaultStandingsStyles()
+	styles := newDefaultStandingsStyles(theme)
 
 	sp := spinner.New(
 		spinner.WithSpinner(spinner.Dot),
@@ -154,7 +156,8 @@ func newStandingsPage(
 		styles:                styles,
 		spinner:               sp,
 		keyMap:                newDefaultStandingsPageKeyMap(),
-		help:                  help.New(),
+		help:                  newHelp(theme),
+		theme:                 theme,
 	}
 }
 
@@ -169,7 +172,7 @@ func (p *standingsPage) Update(msg tea.Msg) (page, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// When an error is displayed is displayed to the user, any keypress should
 		// revert to the state before the error occurred.
 		if p.errMsg != "" {
@@ -246,7 +249,7 @@ func (p *standingsPage) handleSplitsLoaded(msg fetchedCurrentSeasonSplitsMessage
 	p.state = standingsPageStateSplitSelection
 
 	p.splits = msg.splits
-	p.splitOptions = newSplitOptionsList(p.splits, p.listWidth(), p.listHeight())
+	p.splitOptions = newSplitOptionsList(p.splits, p.listWidth(), p.listHeight(), p.theme)
 }
 
 func (p *standingsPage) handleStandingsLoaded(msg loadedStandingsMessage) {
@@ -257,12 +260,13 @@ func (p *standingsPage) handleStandingsLoaded(msg loadedStandingsMessage) {
 		p.stages,
 		p.listWidth(),
 		p.listHeight(),
+		p.theme,
 	)
 }
 
 func (p *standingsPage) handleDynamicStageLoaded(msg loadedDynamicStageMessage) {
 	p.state = standingsPageStateShowBracketPage
-	p.bracket = newDynamicBracketPage(msg.stage, p.width, p.height)
+	p.bracket = newDynamicBracketPage(msg.stage, p.width, p.height, p.theme)
 }
 
 func (p *standingsPage) handleErrorMessage(msg fetchErrorMessage) {
@@ -299,7 +303,7 @@ func (p *standingsPage) selectSplit() {
 	p.state = standingsPageStateLeagueSelection
 
 	p.leagues = listLeaguesFromTournaments(p.selectedSplit().Tournaments)
-	p.leagueOptions = newLeagueOptionsList(p.leagues, p.listWidth(), p.listHeight())
+	p.leagueOptions = newLeagueOptionsList(p.leagues, p.listWidth(), p.listHeight(), p.theme)
 }
 
 func (p *standingsPage) selectLeague() tea.Cmd {
@@ -326,6 +330,7 @@ func (p *standingsPage) selectStage() tea.Cmd {
 			p.selectedStage(),
 			p.width,
 			p.height,
+			p.theme,
 		)
 		p.state = standingsPageStateShowRankingPage
 
@@ -469,7 +474,7 @@ func (p *standingsPage) setSize(width, height int) {
 	h, v := p.styles.doc.GetFrameSize()
 	p.width, p.height = width-h, height-v
 
-	p.help.Width = p.width
+	p.help.SetWidth(p.width)
 
 	switch p.state {
 	case standingsPageStateSplitSelection:
@@ -492,6 +497,33 @@ func (p *standingsPage) setSize(width, height int) {
 
 	case standingsPageStateShowBracketPage:
 		p.bracket.setSize(p.width, p.height)
+	}
+}
+
+func (p *standingsPage) setTheme(theme theme) {
+	p.theme = theme
+	p.styles = newDefaultStandingsStyles(theme)
+	p.spinner.Style = p.styles.spinner
+	p.help.Styles = help.DefaultStyles(theme.isDark)
+
+	if p.splitOptions.Items() != nil {
+		applySplitOptionsTheme(&p.splitOptions, theme)
+	}
+
+	if p.leagueOptions.Items() != nil {
+		applyLeagueOptionsTheme(&p.leagueOptions, theme)
+	}
+
+	if p.stageOptions.Items() != nil {
+		applyStageOptionsTheme(&p.stageOptions, theme)
+	}
+
+	if p.rankingView != nil {
+		p.rankingView.setTheme(theme)
+	}
+
+	if p.bracket != nil {
+		p.bracket.setTheme(theme)
 	}
 }
 
@@ -527,7 +559,7 @@ func (p *standingsPage) isShowingSubModel() bool {
 		p.state == standingsPageStateShowBracketPage
 }
 
-func (p *standingsPage) isSubModelPreviousKey(k tea.KeyMsg) bool {
+func (p *standingsPage) isSubModelPreviousKey(k tea.KeyPressMsg) bool {
 	switch p.state {
 	case standingsPageStateShowRankingPage:
 		return key.Matches(k, p.rankingView.keyMap.Previous)

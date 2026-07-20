@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
 )
@@ -65,27 +65,27 @@ type bracketPageStyles struct {
 	help           lipgloss.Style
 }
 
-func newDefaultBracketPageStyles() (s bracketPageStyles) {
+func newDefaultBracketPageStyles(theme theme) (s bracketPageStyles) {
 	s.roundTitle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color(black)).
 		Background(lipgloss.Color(antiFlashWhite)).
 		Padding(0, 1).
 		Bold(true)
 
-	s.matchBorder = lipgloss.NewStyle().Foreground(borderPrimaryColor)
+	s.matchBorder = lipgloss.NewStyle().Foreground(theme.borderPrimary)
 
 	s.noTeamResult = lipgloss.NewStyle().
-		Foreground(textPrimaryColor)
+		Foreground(theme.textPrimary)
 
 	s.loserTeamName = lipgloss.NewStyle().
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Faint(true)
 
 	s.winnerTeamName = lipgloss.NewStyle().
-		Foreground(selectedColor).
+		Foreground(theme.selected).
 		Bold(true)
 
-	s.link = lipgloss.NewStyle().Foreground(borderSecondaryColor)
+	s.link = lipgloss.NewStyle().Foreground(theme.borderSecondary)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
 
@@ -104,14 +104,15 @@ type bracketPage struct {
 func newDynamicBracketPage(
 	stage lolesportsgraphql.Stage,
 	width, height int,
+	theme theme,
 ) *bracketPage {
 	m := &bracketPage{
 		dynamicStage: &stage,
 		width:        width,
 		height:       height,
-		help:         help.New(),
+		help:         newHelp(theme),
 		keyMap:       newDefaultBracketPageKeyMap(),
-		styles:       newDefaultBracketPageStyles(),
+		styles:       newDefaultBracketPageStyles(theme),
 	}
 
 	m.initViewport()
@@ -121,7 +122,7 @@ func newDynamicBracketPage(
 
 func (m *bracketPage) Update(msg tea.Msg) (*bracketPage, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keyMap.ShowFullHelp),
 			key.Matches(msg, m.keyMap.CloseFullHelp):
@@ -152,6 +153,12 @@ func (m *bracketPage) setSize(width, height int) {
 	// Setting the Height and Width field doesn't seem to work
 	// so we recreate it with the right size.
 	m.initViewport()
+}
+
+func (m *bracketPage) setTheme(theme theme) {
+	m.styles = newDefaultBracketPageStyles(theme)
+	m.help.Styles = help.DefaultStyles(theme.isDark)
+	m.viewport.SetContent(renderDynamicStage(*m.dynamicStage, m.styles))
 }
 
 func (p *bracketPage) ShortHelp() []key.Binding {
@@ -195,7 +202,10 @@ func (m *bracketPage) toggleFullHelp() {
 
 func (m *bracketPage) initViewport() {
 	content := renderDynamicStage(*m.dynamicStage, m.styles)
-	m.viewport = viewport.New(m.width, m.contentHeight())
+	m.viewport = viewport.New(
+		viewport.WithWidth(m.width),
+		viewport.WithHeight(m.contentHeight()),
+	)
 	m.viewport.SetContent(content)
 	m.viewport.SetHorizontalStep(5)
 }
