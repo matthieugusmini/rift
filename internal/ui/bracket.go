@@ -74,6 +74,7 @@ func newDefaultBracketPageKeyMap() bracketPageKeyMap {
 type bracketPageStyles struct {
 	roundTitle       lipgloss.Style
 	match            lipgloss.Style
+	matchBorder      lipgloss.Style
 	noTeamResult     lipgloss.Style
 	loserTeamName    lipgloss.Style
 	loserTeamResult  lipgloss.Style
@@ -93,6 +94,7 @@ func newDefaultBracketPageStyles() (s bracketPageStyles) {
 	s.match = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderPrimaryColor)
+	s.matchBorder = lipgloss.NewStyle().Foreground(borderPrimaryColor)
 
 	s.noTeamResult = lipgloss.NewStyle().
 		Foreground(textPrimaryColor)
