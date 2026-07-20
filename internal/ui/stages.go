@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
 )
@@ -36,6 +36,7 @@ func (i stageItem) isDisabled() bool { return i.disabled }
 func newStageOptionsList(
 	stages []lolesports.Stage,
 	width, height int,
+	theme theme,
 ) list.Model {
 	stageItems := make([]list.Item, len(stages))
 	for i, stage := range stages {
@@ -46,14 +47,15 @@ func newStageOptionsList(
 		stageItems[i] = item
 	}
 
-	stageItemDelegate := newStageItemDelegate()
+	stageItemDelegate := newStageItemDelegate(theme)
 
 	l := list.New(stageItems, stageItemDelegate, width, height)
+	applyListTheme(&l, theme)
 	l.Title = "STAGES"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textTitleColor).
-		Background(secondaryBackgroundColor).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
 		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
@@ -75,40 +77,40 @@ type stageItemStyles struct {
 	disabledSelectedDesc  lipgloss.Style
 }
 
-func newStageItemStyles() (s stageItemStyles) {
-	defaultStyles := list.NewDefaultItemStyles()
+func newStageItemStyles(theme theme) (s stageItemStyles) {
+	defaultStyles := list.NewDefaultItemStyles(theme.isDark)
 
 	s.DefaultItemStyles = defaultStyles
 
 	// Selected
 	s.SelectedTitle = defaultStyles.SelectedTitle.
-		Foreground(selectedColor).
+		Foreground(theme.selected).
 		Bold(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(selectedColor)
+		BorderForeground(theme.selected)
 
 	s.SelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(selectedColor)
+		BorderForeground(theme.selected)
 
 	// Disabled but selected
 	s.disabledSelectedTitle = defaultStyles.SelectedTitle.
-		Foreground(textDisabledColor).
+		Foreground(theme.textDisabled).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(textDisabledColor)
+		BorderForeground(theme.textDisabled)
 
 	s.disabledSelectedDesc = defaultStyles.SelectedDesc.
-		Foreground(textDisabledColor).
+		Foreground(theme.textDisabled).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(textDisabledColor)
+		BorderForeground(theme.textDisabled)
 
 	// Disabled not selected
 	s.disabledTitle = defaultStyles.NormalTitle.
-		Foreground(textDisabledColor)
+		Foreground(theme.textDisabled)
 
 	s.disabledDesc = defaultStyles.NormalDesc.
-		Foreground(textDisabledColor)
+		Foreground(theme.textDisabled)
 
 	return s
 }
@@ -119,10 +121,13 @@ type stageItemDelegate struct {
 	styles stageItemStyles
 }
 
-func newStageItemDelegate() stageItemDelegate {
+func newStageItemDelegate(theme theme) stageItemDelegate {
+	defaultDelegate := list.NewDefaultDelegate()
+	defaultDelegate.Styles = list.NewDefaultItemStyles(theme.isDark)
+
 	return stageItemDelegate{
-		DefaultDelegate: list.NewDefaultDelegate(),
-		styles:          newStageItemStyles(),
+		DefaultDelegate: defaultDelegate,
+		styles:          newStageItemStyles(theme),
 	}
 }
 

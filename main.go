@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/matthieugusmini/go-lolesports"
 	gap "github.com/muesli/go-app-paths"
 	"go.etcd.io/bbolt"
@@ -77,7 +77,7 @@ func run() error {
 
 	m := ui.NewModel(lolesportsLoader, lolesportsStageLoader, logger)
 
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		return err
 	}

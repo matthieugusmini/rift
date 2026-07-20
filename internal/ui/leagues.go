@@ -5,9 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/matthieugusmini/go-lolesports"
 )
 
@@ -30,16 +30,16 @@ type leagueItemStyles struct {
 	selectedTitle lipgloss.Style
 }
 
-func newDefaultLeageItemStyles() (s leagueItemStyles) {
+func newDefaultLeageItemStyles(theme theme) (s leagueItemStyles) {
 	s.normalTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
-		Foreground(textPrimaryColor)
+		Foreground(theme.textPrimary)
 
 	s.selectedTitle = lipgloss.NewStyle().
 		Padding(0, 0, 0, 1).
 		Border(lipgloss.ThickBorder(), false, false, false, true).
-		BorderForeground(selectedColor).
-		Foreground(selectedColor).
+		BorderForeground(theme.selected).
+		Foreground(theme.selected).
 		Bold(true)
 
 	return s
@@ -49,9 +49,9 @@ type leagueItemDelegate struct {
 	styles leagueItemStyles
 }
 
-func newLeagueItemDelegate() leagueItemDelegate {
+func newLeagueItemDelegate(theme theme) leagueItemDelegate {
 	return leagueItemDelegate{
-		styles: newDefaultLeageItemStyles(),
+		styles: newDefaultLeageItemStyles(theme),
 	}
 }
 
@@ -82,7 +82,11 @@ func (d leagueItemDelegate) Render(w io.Writer, m list.Model, index int, item li
 	fmt.Fprint(w, title)
 }
 
-func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.Model {
+func newLeagueOptionsList(
+	leagues []lolesports.League,
+	width, height int,
+	theme theme,
+) list.Model {
 	leagueItems := make([]list.Item, len(leagues))
 	for i, l := range leagues {
 		leagueItems[i] = leagueItem{
@@ -91,12 +95,13 @@ func newLeagueOptionsList(leagues []lolesports.League, width, height int) list.M
 		}
 	}
 
-	l := list.New(leagueItems, newLeagueItemDelegate(), width, height)
+	l := list.New(leagueItems, newLeagueItemDelegate(theme), width, height)
+	applyListTheme(&l, theme)
 	l.Title = "LEAGUES"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textTitleColor).
-		Background(secondaryBackgroundColor).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
 		Bold(true)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)

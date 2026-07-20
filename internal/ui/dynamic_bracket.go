@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
@@ -58,7 +58,7 @@ type dynamicBracketLayout struct {
 
 // RenderDynamicBracket renders a bracket section using the topology supplied by LoL Esports.
 func RenderDynamicBracket(section lolesportsgraphql.Section) string {
-	return renderDynamicBracket(section, newDefaultBracketPageStyles())
+	return renderDynamicBracket(section, newDefaultBracketPageStyles(newTheme(true)))
 }
 
 func renderDynamicStage(

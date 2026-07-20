@@ -5,15 +5,19 @@ import (
 	"io"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/timeutil"
 )
 
-func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Model {
+func newSplitOptionsList(
+	splits []lolesports.Split,
+	width, height int,
+	theme theme,
+) list.Model {
 	var (
 		items       = make([]list.Item, len(splits))
 		cursorIndex int
@@ -33,13 +37,14 @@ func newSplitOptionsList(splits []lolesports.Split, width, height int) list.Mode
 		}
 	}
 
-	l := list.New(items, newSplitItemDelegate(), width, height)
+	l := list.New(items, newSplitItemDelegate(theme), width, height)
+	applyListTheme(&l, theme)
 	l.Select(cursorIndex)
 	l.Title = "EVENTS"
 	l.Styles.Title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textTitleColor).
-		Background(secondaryBackgroundColor).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
 		Bold(true)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
@@ -79,40 +84,40 @@ type splitItemStyles struct {
 	lastNormalDescription     lipgloss.Style
 }
 
-func newSplitItemStyles() (s splitItemStyles) {
+func newSplitItemStyles(theme theme) (s splitItemStyles) {
 	baseTitleStyle := lipgloss.NewStyle().
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
-		Foreground(textPrimaryColor)
+		Foreground(theme.textPrimary)
 
 	s.normalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		BorderForeground(textPrimaryColor)
+		BorderForeground(theme.textPrimary)
 
 	s.upcomingNormalTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◯"}).
-		BorderForeground(borderSecondaryColor)
+		BorderForeground(theme.borderSecondary)
 
 	s.selectedTitle = baseTitleStyle.
 		BorderStyle(lipgloss.Border{Left: "◉"}).
-		BorderForeground(red).
-		Foreground(selectedColor).
+		BorderForeground(theme.red).
+		Foreground(theme.selected).
 		Bold(true)
 
 	baseDescStyle := lipgloss.NewStyle().
-		Foreground(textDimmedSecondaryColor)
+		Foreground(theme.textDimmedSecondary)
 
 	s.normalDescription = baseDescStyle.
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(textPrimaryColor)
+		BorderForeground(theme.textPrimary)
 
 	s.upcomingNormalDescription = baseDescStyle.
 		Padding(0, 0, 0, 2).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
-		BorderForeground(borderSecondaryColor)
+		BorderForeground(theme.borderSecondary)
 
 	s.lastNormalDescription = baseDescStyle.
 		Padding(0, 0, 0, 3)
@@ -122,11 +127,13 @@ func newSplitItemStyles() (s splitItemStyles) {
 
 type splitItemDelegate struct {
 	styles splitItemStyles
+	theme  theme
 }
 
-func newSplitItemDelegate() splitItemDelegate {
+func newSplitItemDelegate(theme theme) splitItemDelegate {
 	return splitItemDelegate{
-		styles: newSplitItemStyles(),
+		styles: newSplitItemStyles(theme),
+		theme:  theme,
 	}
 }
 
@@ -162,7 +169,8 @@ func (d splitItemDelegate) Render(w io.Writer, m list.Model, index int, item lis
 		} else if isCurrent || isUpcoming {
 			descStyle = d.styles.upcomingNormalDescription
 		}
-		descStyle = descStyle.Foreground(textSecondaryColor)
+
+		descStyle = descStyle.Foreground(d.theme.textSecondary)
 
 	case isLast:
 		titleStyle = d.styles.upcomingNormalTitle

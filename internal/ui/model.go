@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/lolesportsgraphql"
@@ -48,22 +48,22 @@ type modelStyles struct {
 	separator       lipgloss.Style
 }
 
-func newDefaultModelStyles() (s modelStyles) {
+func newDefaultModelStyles(theme theme) (s modelStyles) {
 	s.logo = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textTitleColor).
+		Foreground(theme.textTitle).
 		Bold(true)
 
 	s.normalNavItem = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Faint(true)
 
 	s.selectedNavItem = lipgloss.NewStyle().
-		Foreground(selectedColor).
+		Foreground(theme.selected).
 		Bold(true)
 
 	s.separator = lipgloss.NewStyle().
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	return s
@@ -111,7 +111,7 @@ type page interface {
 	setSize(width, height int)
 }
 
-// Model implements the [github.com/charmbracelet/bubbletea.Model] interface.
+// Model implements the [charm.land/bubbletea/v2.Model] interface.
 //
 // It is the main model of the application which dictate which sub-model
 // should be displayed and how to navigate between pages.
@@ -143,11 +143,13 @@ func NewModel(
 	lolesportsStageClient LoLEsportsStageClient,
 	logger *slog.Logger,
 ) Model {
-	schedulePage := newSchedulePage(lolesportsLoader, logger)
+	theme := newTheme(true)
+	schedulePage := newSchedulePage(lolesportsLoader, logger, theme)
 	standingsPage := newStandingsPage(
 		lolesportsLoader,
 		lolesportsStageClient,
 		logger,
+		theme,
 	)
 
 	pages := map[state]page{
@@ -158,19 +160,19 @@ func NewModel(
 	return Model{
 		currentPage: schedulePage,
 		pages:       pages,
-		styles:      newDefaultModelStyles(),
+		styles:      newDefaultModelStyles(theme),
 	}
 }
 
-// Init implements the [github.com/charmbracelet/bubbletea.Model] interface.
+// Init implements the [charm.land/bubbletea/v2.Model] interface.
 func (m Model) Init() tea.Cmd {
 	return m.currentPage.Init()
 }
 
-// Update implements the [github.com/charmbracelet/bubbletea.Model] interface.
+// Update implements the [charm.land/bubbletea/v2.Model] interface.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
@@ -194,19 +196,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// View implements the [github.com/charmbracelet/bubbletea.Model] interface.
-func (m Model) View() string {
+// View implements the [charm.land/bubbletea/v2.Model] interface.
+func (m Model) View() tea.View {
 	navBar := m.viewNavbar(navItems, m.selectedNavIndex, m.pageWidth)
 
-	content := m.currentPage.View()
+	pageContent := m.currentPage.View()
 
-	view := lipgloss.JoinVertical(lipgloss.Left, navBar, content)
+	view := lipgloss.JoinVertical(lipgloss.Left, navBar, pageContent)
 
-	return lipgloss.NewStyle().
+	content := lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
 		Align(lipgloss.Center).
 		Render(view)
+
+	result := tea.NewView(content)
+	result.AltScreen = true
+	result.MouseMode = tea.MouseModeCellMotion
+
+	return result
 }
 
 func (m Model) viewNavbar(

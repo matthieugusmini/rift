@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/matthieugusmini/go-lolesports"
 	"github.com/matthieugusmini/rift/internal/timeutil"
@@ -82,10 +82,11 @@ func newMatchListItems(events []lolesports.Event) []list.Item {
 	return items
 }
 
-func newMatchList(events []lolesports.Event, width, height int) list.Model {
+func newMatchList(events []lolesports.Event, width, height int, theme theme) list.Model {
 	items := newMatchListItems(events)
 
-	l := list.New(items, newMatchItemDelegate(), width, height)
+	l := list.New(items, newMatchItemDelegate(theme), width, height)
+	applyListTheme(&l, theme)
 	l.SetShowPagination(false)
 	l.SetShowStatusBar(false)
 	l.StatusMessageLifetime = time.Second * 2
@@ -130,32 +131,32 @@ type matchItemStyles struct {
 	strategy           lipgloss.Style
 }
 
-func newDefaultMatchItemStyles() (s matchItemStyles) {
+func newDefaultMatchItemStyles(theme theme) (s matchItemStyles) {
 	// Item
 	itemStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 
 	s.normalItem = itemStyle.
-		Foreground(textSecondaryColor).
-		BorderForeground(borderPrimaryColor)
+		Foreground(theme.textSecondary).
+		BorderForeground(theme.borderPrimary)
 
 	s.selectedItem = itemStyle.
-		Foreground(selectedColor).
-		BorderForeground(selectedColor)
+		Foreground(theme.selected).
+		BorderForeground(theme.selected)
 
 	// Title
 	s.title = lipgloss.NewStyle().Padding(0, 1)
 
 	s.startTime = lipgloss.NewStyle().
 		Align(lipgloss.Left).
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.teamName = lipgloss.NewStyle().
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Bold(true)
 
 	s.separator = lipgloss.NewStyle().
-		Foreground(textSecondaryColor)
+		Foreground(theme.textSecondary)
 
 	s.upcomingMatchScore = lipgloss.NewStyle().
 		Align(lipgloss.Center)
@@ -167,19 +168,19 @@ func newDefaultMatchItemStyles() (s matchItemStyles) {
 	s.flags = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Left).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	s.leagueAndBlockName = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Center).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	s.strategy = lipgloss.NewStyle().
 		Padding(0, 1).
 		Align(lipgloss.Right).
-		Foreground(textSecondaryColor).
+		Foreground(theme.textSecondary).
 		Bold(true)
 
 	return s
@@ -189,9 +190,9 @@ type matchItemDelegate struct {
 	styles matchItemStyles
 }
 
-func newMatchItemDelegate() matchItemDelegate {
+func newMatchItemDelegate(theme theme) matchItemDelegate {
 	return matchItemDelegate{
-		styles: newDefaultMatchItemStyles(),
+		styles: newDefaultMatchItemStyles(theme),
 	}
 }
 
@@ -238,7 +239,7 @@ func (d matchItemDelegate) Spacing() int { return 0 }
 
 func (d matchItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			d.revealSpoiler(m)

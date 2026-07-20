@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/charmbracelet/bubbles/key"
+import "charm.land/bubbles/v2/key"
 
 // These key bindings are available across all the application.
 type baseKeyMap struct {

@@ -5,12 +5,12 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/matthieugusmini/go-lolesports"
 
 	"github.com/matthieugusmini/rift/internal/timeutil"
@@ -35,22 +35,22 @@ type schedulePageStyles struct {
 	error   lipgloss.Style
 }
 
-func newDefaultSchedulePageStyles() (s schedulePageStyles) {
+func newDefaultSchedulePageStyles(theme theme) (s schedulePageStyles) {
 	s.doc = lipgloss.NewStyle().Padding(1, 2)
 
 	s.title = lipgloss.NewStyle().
 		Padding(0, 1).
-		Foreground(textTitleColor).
-		Background(secondaryBackgroundColor).
+		Foreground(theme.textTitle).
+		Background(theme.secondaryBackground).
 		Bold(true)
 
-	s.spinner = lipgloss.NewStyle().Foreground(spinnerColor)
+	s.spinner = lipgloss.NewStyle().Foreground(theme.spinner)
 
 	s.help = lipgloss.NewStyle().Padding(1, 0, 0, 2)
 
 	s.error = lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Foreground(textPrimaryColor).
+		Foreground(theme.textPrimary).
 		Italic(true)
 
 	return s
@@ -123,10 +123,15 @@ type schedulePage struct {
 	spinner spinner.Model
 	keyMap  schedulePageKeyMap
 	styles  schedulePageStyles
+	theme   theme
 }
 
-func newSchedulePage(lolesportsClient LoLEsportsLoader, logger *slog.Logger) *schedulePage {
-	styles := newDefaultSchedulePageStyles()
+func newSchedulePage(
+	lolesportsClient LoLEsportsLoader,
+	logger *slog.Logger,
+	theme theme,
+) *schedulePage {
+	styles := newDefaultSchedulePageStyles(theme)
 
 	sp := spinner.New(
 		spinner.WithSpinner(spinner.Dot),
@@ -139,7 +144,8 @@ func newSchedulePage(lolesportsClient LoLEsportsLoader, logger *slog.Logger) *sc
 		spinner:          sp,
 		styles:           styles,
 		keyMap:           newDefaultSchedulePageKeyMap(),
-		help:             help.New(),
+		help:             newHelp(theme),
+		theme:            theme,
 	}
 }
 
@@ -154,7 +160,7 @@ func (p *schedulePage) Update(msg tea.Msg) (page, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// When an error is displayed after failing to fetch the initial schedule data,
 		// any keypress should trigger a refetch of the initial data again.
 		if p.errMsg != "" {
@@ -256,7 +262,7 @@ func (p *schedulePage) setSize(width, height int) {
 		p.matchList.SetSize(p.width, p.contentHeight())
 	}
 
-	p.help.Width = p.width
+	p.help.SetWidth(p.width)
 }
 
 func (p *schedulePage) shouldFetchNextPage() bool {
@@ -288,7 +294,7 @@ func (p *schedulePage) handleFetchedEvents(msg fetchedEventsMessage) {
 	case pageDirectionInitial:
 		p.loaded = true
 		p.matches = matches
-		p.matchList = newMatchList(matches, p.width, p.contentHeight())
+		p.matchList = newMatchList(matches, p.width, p.contentHeight(), p.theme)
 		p.paginationState.prevPageToken = msg.prevPageToken
 		p.paginationState.nextPageToken = msg.nextPageToken
 
